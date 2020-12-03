@@ -1,0 +1,13 @@
+repos:
+  - repo: https://github.com/ambv/black
+    rev: stable
+    hooks:
+    - id: black
+
+  - repo: https://github.com/pycqa/pylint
+    rev: master
+    hooks:
+    - id: pylint
+      language: system
+      args:
+        - --fail-under=9
