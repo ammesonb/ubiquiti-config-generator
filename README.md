@@ -89,9 +89,11 @@ Next, we will set up your router configurations.
 Finally, set up automatic validations and committing to the router.
 You will need to set up Travis CI or some similar service to perform checks on your merge/pull requests.
 This is usually pretty easy and there are many guides on how to do this, such as [this one](https://docs.travis-ci.com/user/tutorial/#to-get-started-with-travis-ci-using-github).
+
 After configuration with Travis CI, validation will automatically work on the repo and your configuration files.
     - The commands that would be run to modify the router's configuration will be printed in the test output!
-*After* the initial configuration has been merged, set up the Git hook to load your configuration.
+
+Finally, *only after* the initial configuration has been merged, set up the Git hook to load your configuration.
     Ensure this is only done after merging the initial configuration, since you (probably) don't want to reload all of it, again.
 
 Then, you should be all set!
