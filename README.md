@@ -30,6 +30,16 @@ The bulk of the configuration follows.
 ## Hosts
 The host is the principal item in this configuration.
 
+You must:
+- For dynamic firewall configuration, specify either an address group and/or IP address
+- Provide numeric ports, or names of valid port groups
+
+You can:
+- Provide ports to forward (NAT)
+- Provide ports to redirect via hairpin (back to local network instead of exiting the router through WAN, NAT)
+- Specify addresses/ports to allow inbound requests for (firewall)
+- Specify addresses/ports to allow outbound requests to (firewall)
+
 ## Automatic validations
 The automatic checks for configuration consistency are as follows:
 - Since file names have to be unique, you cannot have two of the same network, interface, firewall, etc
@@ -80,6 +90,7 @@ Finally, set up automatic validations and committing to the router.
 You will need to set up Travis CI or some similar service to perform checks on your merge/pull requests.
 This is usually pretty easy and there are many guides on how to do this, such as [this one](https://docs.travis-ci.com/user/tutorial/#to-get-started-with-travis-ci-using-github).
 After configuration with Travis CI, validation will automatically work on the repo and your configuration files.
+    - The commands that would be run to modify the router's configuration will be printed in the test output!
 *After* the initial configuration has been merged, set up the Git hook to load your configuration.
     Ensure this is only done after merging the initial configuration, since you (probably) don't want to reload all of it, again.
 
