@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Ignore any configuration YAML files
+# But keep any from global settings
+router_config/*/**/*.yaml
