@@ -1,6 +1,7 @@
 """
 Configuration path definitions
 """
+import glob
 from os import path
 from typing import List
 
@@ -14,6 +15,20 @@ CONFIG_FILE_NAME = "config.yaml"
 INTERFACE_FOLDER = "interfaces"
 HOSTS_FOLDER = "hosts"
 FIREWALL_FOLDER = "firewall"
+
+
+def get_folders_with_config(folder_paths: List[str]) -> List[str]:
+    """
+    Looks for config.yaml in nested folders under the provided one
+    """
+    return glob.glob(path.join(get_path(folder_paths), "*", "*.yaml"))
+
+
+def get_config_files(config_folders: List[str]) -> List[str]:
+    """
+    Returns a list of yaml files in a given directory
+    """
+    return glob.glob(path.join(get_path(config_folders), "*.yaml"))
 
 
 def get_path(config_paths: List[str]):

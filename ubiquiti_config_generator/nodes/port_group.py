@@ -3,13 +3,25 @@ Contains port groups
 """
 from typing import List
 
+from ubiquiti_config_generator.nodes.validatable import Validatable
+from ubiquiti_config_generator import type_checker
 
-class PortGroup:
+PORT_GROUP_TYPES = {
+    "ports": lambda ports: all([type_checker.is_number(port) for port in ports])
+}
+
+
+# Allow too few public methods, for now
+# pylint: disable=too-few-public-methods
+
+
+class PortGroup(Validatable):
     """
     Represents a named grouping of ports
     """
 
     def __init__(self, name: str, ports: List[int] = None):
+        super().__init__(PORT_GROUP_TYPES, ["ports"])
         self.__name = name
         self.__ports = ports or []
 

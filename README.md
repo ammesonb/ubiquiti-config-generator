@@ -25,12 +25,14 @@ That means you still can manually enter anything you would like, BUT it will not
 This [diagram.net](https://app.diagrams.net/?src=about#G1Lw4wh8zmSl0JGgrkhEczMQtAOhgKbUKq) shows the data architecture in use.
 First, there are a few auxiliary schemas to call out up front:
 - Some various global settings can be set in the global.yaml file as you see fit - none are required.
+    - Use `/` to denote arbitrarily-nested configuration paths in the yaml keys
 - Port groups are mapped separately, since they are by definition shared amongst multiple hosts and cannot easily be dynamically created via the paradigm in use.
 - External addresses is a list of any outside IP addresses, accessible from the world
     - These are used in case of hairpin NAT, where you need to redirect a request to an external domain back inside your network
 
 The bulk of the configuration follows.
 - A network is the parent node, which defines a subnet (and any other dhcp server options).
+    - Currently only ONE subnet per network is supported, but it should be fairly trivial to extend the YAML to allow for subnets to be a list
 - Underneath that lies an interface, which maps to a physical interface, an address, and any number of virtual interfaces recursively.
 - Firewalls belong to interfaces, and have directions, default actions, and how many numbers to automatically increment.
     - Firewall rules will be automatically created based on host configurations.
@@ -47,8 +49,8 @@ You must:
 You can:
 - Provide ports to forward (NAT)
 - Provide ports to redirect via hairpin (back to local network instead of exiting the router through WAN, NAT)
-- Specify addresses/ports to allow inbound requests for (firewall)
-- Specify addresses/ports to allow outbound requests to (firewall)
+- Specify addresses/ports to allow inbound requests to/for (firewall)
+    - These should be lists of address/port combinations
 
 ## Automatic validations
 The automatic checks for configuration consistency are as follows:
