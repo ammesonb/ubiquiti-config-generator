@@ -1,0 +1,7 @@
+update: insecure
+pin: True
+branch: trunk
+requirements:
+  - reqs.txt
+
+close_prs: False
