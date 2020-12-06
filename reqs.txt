@@ -2,4 +2,4 @@ black==20.8b1
 pre-commit
 pylint==2.6.0
 pytest
-pyyaml
+pyyaml==5.3.1
