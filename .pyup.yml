@@ -1,6 +1,6 @@
 update: insecure
 pin: True
-branch: trunk
+branch: main
 requirements:
   - reqs.txt
 
