@@ -34,16 +34,18 @@ def is_ip_address(address: str) -> bool:
     Check if an address is a valid ip
     """
     try:
-        return bool(ipaddress.ip_address(address))
+        # Technically an integer will be converted to the octet form more commonly used
+        # but probably isn't what _most_ people would expect to use so require a string
+        return bool(ipaddress.ip_address(address)) and isinstance(address, str)
     except ValueError:
         return False
 
 
-def is_subnet_mask(mask: str) -> bool:
+def is_subnet_mask(mask: Union[str, int]) -> bool:
     """
     Is input a subnet mask
     """
-    return mask.isnumeric() and int(mask) in range(33)
+    return type(mask) in [str, int] and mask.isnumeric() and int(mask) in range(33)
 
 
 def is_cidr(cidr: str) -> bool:
@@ -68,7 +70,7 @@ def is_number(value: Union[int, str]) -> bool:
     """
     Is thing a number
     """
-    return isinstance(value, int) or value.isnumeric()
+    return isinstance(value, int) or (isinstance(value, str) and value.isnumeric())
 
 
 def is_duplex(value: str) -> bool:
