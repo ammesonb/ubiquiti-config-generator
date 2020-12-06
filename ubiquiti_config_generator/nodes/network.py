@@ -51,7 +51,9 @@ class Network(Validatable):
                 **(file_paths.load_yaml_from_file(interface_path))
             )
             for interface_path in file_paths.get_folders_with_config(
-                [file_paths.NETWORK_FOLDER, self.name, file_paths.INTERFACE_FOLDER]
+                file_paths.get_path(
+                    [file_paths.NETWORK_FOLDER, self.name, file_paths.INTERFACE_FOLDER]
+                )
             )
         ]
         self._add_validate_attribute("interfaces")

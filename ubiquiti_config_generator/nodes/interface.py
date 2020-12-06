@@ -50,13 +50,15 @@ class Interface(Validatable):
                 **(file_paths.load_yaml_from_file(firewall_path))
             )
             for firewall_path in file_paths.get_folders_with_config(
-                [
-                    file_paths.NETWORK_FOLDER,
-                    network_name,
-                    file_paths.INTERFACE_FOLDER,
-                    self.name,
-                    file_paths.FIREWALL_FOLDER,
-                ]
+                file_paths.get_path(
+                    [
+                        file_paths.NETWORK_FOLDER,
+                        network_name,
+                        file_paths.INTERFACE_FOLDER,
+                        self.name,
+                        file_paths.FIREWALL_FOLDER,
+                    ]
+                )
             )
         ]
         self._add_validate_attribute("firewalls")

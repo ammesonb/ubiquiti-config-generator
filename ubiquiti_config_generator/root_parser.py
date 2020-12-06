@@ -75,10 +75,10 @@ class RootNode:
         external_addresses: ExternalAddresses,
         networks: List[Network],
     ):
-        self.__global_settings = global_settings
-        self.__port_groups = port_groups
-        self.__external_addresses = external_addresses
-        self.__networks = networks
+        self.global_settings = global_settings
+        self.port_groups = port_groups
+        self.external_addresses = external_addresses
+        self.networks = networks
 
     @classmethod
     def create_from_configs(cls):

@@ -26,18 +26,18 @@ def load_yaml_from_file(file_path: str) -> Union[list, dict]:
         return yaml.load(file_handle, Loader=yaml.FullLoader)
 
 
-def get_folders_with_config(folder_paths: List[str]) -> List[str]:
-    """
-    Looks for config.yaml in nested folders under the provided one
-    """
-    return glob.glob(path.join(get_path(folder_paths), "*", "*.yaml"))
-
-
 def get_config_files(config_folders: List[str]) -> List[str]:
     """
     Returns a list of yaml files in a given directory
     """
-    return glob.glob(path.join(get_path(config_folders), "*.yaml"))
+    return glob.glob(path.join(config_folders, "*.yaml"))
+
+
+def get_folders_with_config(folder_paths: List[str]) -> List[str]:
+    """
+    Looks for config.yaml in nested folders under the provided one
+    """
+    return glob.glob(path.join(folder_paths, "*", "config.yaml"))
 
 
 def get_path(config_paths: List[str]):

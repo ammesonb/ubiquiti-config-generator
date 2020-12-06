@@ -1,0 +1,12 @@
+---
+value: 1
+a-list:
+  - apple
+  - orange
+
+nested:
+  foo: bar
+  baz:
+    - ipsum
+    - lorem
+...
