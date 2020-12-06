@@ -1,8 +1,8 @@
 # ubiquiti-config-generator
 <p align="center">
-  <a href="https://travis-ci.com/ammesonb/ubiquiti-config-generator"><img alt="Build Status" src="https://travis-ci.com/ammesonb/ubiquiti-config-generator.svg?branch=trunk"></a>
+  <a href="https://travis-ci.com/ammesonb/ubiquiti-config-generator"><img alt="Build Status" src="https://travis-ci.com/ammesonb/ubiquiti-config-generator.svg?branch=main"></a>
   <a href="https://codecov.io/gh/ammesonb/ubiquiti-config-generator">
-    <img src="https://codecov.io/gh/ammesonb/ubiquiti-config-generator/branch/trunk/graph/badge.svg" />
+    <img src="https://codecov.io/gh/ammesonb/ubiquiti-config-generator/branch/main/graph/badge.svg" />
   </a>
   <a href="https://pyup.io/repos/github/ammesonb/ubiquiti-config-generator/"><img src="https://pyup.io/repos/github/ammesonb/ubiquiti-config-generator/shield.svg" alt="Updates" /></a>
   <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
