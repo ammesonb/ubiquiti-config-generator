@@ -11,7 +11,7 @@ from ubiquiti_config_generator.nodes.validatable import Validatable
 # pylint: disable=too-few-public-methods
 
 NETWORK_TYPES = {
-    "name": lambda value: True,
+    "name": type_checker.is_string,
     "subnet": type_checker.is_cidr,
     "default-router": type_checker.is_ip_address,
     "dns-server": type_checker.is_ip_address,
@@ -19,7 +19,7 @@ NETWORK_TYPES = {
         [type_checker.is_ip_address(addr) for addr in servers]
     ),
     # Don't think this can be invalid?
-    "domain-name": lambda value: True,
+    "domain-name": type_checker.is_string,
     "lease": type_checker.is_number,
     "start": type_checker.is_ip_address,
     "stop": type_checker.is_ip_address,

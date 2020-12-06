@@ -2,6 +2,7 @@
 An interface node
 """
 import copy
+from os import path
 
 from ubiquiti_config_generator import type_checker, file_paths
 from ubiquiti_config_generator.nodes.validatable import Validatable
@@ -9,11 +10,11 @@ from ubiquiti_config_generator.nodes import Firewall
 
 
 INTERFACE_TYPES = {
-    "description": lambda value: True,
+    "description": type_checker.is_string,
     "duplex": type_checker.is_duplex,
     "speed": type_checker.is_speed,
     "vif": type_checker.is_number,
-    "name": lambda value: True,
+    "name": type_checker.is_string,
     "firewalls": lambda firewalls: all([firewall.validate() for firewall in firewalls]),
 }
 
