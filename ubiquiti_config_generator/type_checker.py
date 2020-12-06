@@ -7,6 +7,16 @@ from typing import Union
 ENABLED = "enabled"
 DISABLED = "disabled"
 
+AUTO = "auto"
+FULL = "full"
+HALF = "half"
+
+ACCEPT = "accept"
+DROP = "drop"
+REJECT = "reject"
+
+SPEEDS = [10, 100, 1000, 10000]
+
 
 def is_string_boolean(value: str) -> bool:
     """
@@ -48,3 +58,24 @@ def is_number(value: Union[int, str]) -> bool:
     Is thing a number
     """
     return isinstance(value, int) or value.isnumeric()
+
+
+def is_duplex(value: str) -> bool:
+    """
+    Check duplex value
+    """
+    return value in [AUTO, FULL, HALF]
+
+
+def is_speed(value: Union[int, str]) -> bool:
+    """
+    Is valid speed setting
+    """
+    return value in SPEEDS or value == AUTO
+
+
+def is_action(value: str) -> bool:
+    """
+    Is an action for a packet
+    """
+    return value in [ACCEPT, DROP, REJECT]

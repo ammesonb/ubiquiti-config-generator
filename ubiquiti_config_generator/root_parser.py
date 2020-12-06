@@ -2,8 +2,7 @@
 Contains the root configuration node
 """
 from os import path
-from typing import List, Union
-import yaml
+from typing import List
 
 from ubiquiti_config_generator import file_paths
 from ubiquiti_config_generator.nodes import (
@@ -15,7 +14,6 @@ from ubiquiti_config_generator.nodes import (
 
 # Allow TODO comments while WIP
 # pylint: disable=fixme
-
 # TODO: For commenting on issue with commands to run
 # https://github.com/ActionsDesk/add-comment-action
 # TODO: to get cache of previous configuration, make file changes like so:
@@ -26,20 +24,16 @@ from ubiquiti_config_generator.nodes import (
 # TODO: this is a list of keys and possible values, in the form of a validator function
 
 
-def _load_yaml_from_file(file_path: str) -> Union[list, dict]:
-    """
-    Loads yaml data from a given file
-    """
-    with open(file_path) as file_handle:
-        return yaml.load(file_handle, Loader=yaml.FullLoader)
-
-
 def _get_global_configuration() -> GlobalSettings:
     """
     Gets the yaml global configuration content
     """
     return GlobalSettings(
-        **(_load_yaml_from_file(file_paths.get_path(file_paths.GLOBAL_CONFIG)))
+        **(
+            file_paths.load_yaml_from_file(
+                file_paths.get_path(file_paths.GLOBAL_CONFIG)
+            )
+        )
     )
 
 
@@ -50,7 +44,7 @@ def _get_port_groups() -> List[PortGroup]:
     port_groups = []
     for port_group in file_paths.get_config_files(file_paths.PORT_GROUPS_FOLDER):
         group_name = path.basename(port_group).replace(".yaml", "")
-        ports = _load_yaml_from_file(port_group)
+        ports = file_paths.load_yaml_from_file(port_group)
         port_groups.append(PortGroup(group_name, ports))
 
     return port_groups
@@ -62,7 +56,7 @@ def _get_external_addresses() -> ExternalAddresses:
     """
     return ExternalAddresses(
         **(
-            _load_yaml_from_file(
+            file_paths.load_yaml_from_file(
                 file_paths.get_path(file_paths.EXTERNAL_ADDRESSES_CONFIG)
             )
         )
@@ -98,7 +92,7 @@ class RootNode:
             [
                 Network(
                     name=network_folder.split(path.sep)[-2],
-                    **(_load_yaml_from_file(network_folder))
+                    **(file_paths.load_yaml_from_file(network_folder))
                 )
                 for network_folder in file_paths.get_folders_with_config(
                     file_paths.NETWORK_FOLDER

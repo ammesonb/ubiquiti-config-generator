@@ -1,8 +1,11 @@
 """
 Contains the network node
 """
+from os import path
+
+from ubiquiti_config_generator import file_paths, type_checker
+from ubiquiti_config_generator.nodes import Interface
 from ubiquiti_config_generator.nodes.validatable import Validatable
-from ubiquiti_config_generator import type_checker
 
 # Allow too few public methods, for now
 # pylint: disable=too-few-public-methods
@@ -20,6 +23,9 @@ NETWORK_TYPES = {
     "lease": type_checker.is_number,
     "start": type_checker.is_ip_address,
     "stop": type_checker.is_ip_address,
+    "interfaces": lambda interfaces: all(
+        [interface.validate() for interface in interfaces]
+    ),
 }
 
 
@@ -33,3 +39,19 @@ class Network(Validatable):
         self.name = name
         self.cidr = cidr
         self._add_keyword_attributes(kwargs)
+        self._load_interfaces()
+
+    def _load_interfaces(self) -> None:
+        """
+        Load interfaces for this network
+        """
+        self.interfaces = [
+            Interface(
+                name=interface_path.split(path.sep)[-2],
+                **(file_paths.load_yaml_from_file(interface_path))
+            )
+            for interface_path in file_paths.get_folders_with_config(
+                [file_paths.NETWORK_FOLDER, self.name, file_paths.INTERFACE_FOLDER]
+            )
+        ]
+        self._add_validate_attribute("interfaces")

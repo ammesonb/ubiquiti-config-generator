@@ -3,7 +3,8 @@ Configuration path definitions
 """
 import glob
 from os import path
-from typing import List
+from typing import List, Union
+import yaml
 
 TOP_LEVEL_DIRECTORY = "router_config"
 GLOBAL_CONFIG = "global.yaml"
@@ -15,6 +16,14 @@ CONFIG_FILE_NAME = "config.yaml"
 INTERFACE_FOLDER = "interfaces"
 HOSTS_FOLDER = "hosts"
 FIREWALL_FOLDER = "firewall"
+
+
+def load_yaml_from_file(file_path: str) -> Union[list, dict]:
+    """
+    Loads yaml data from a given file
+    """
+    with open(file_path) as file_handle:
+        return yaml.load(file_handle, Loader=yaml.FullLoader)
 
 
 def get_folders_with_config(folder_paths: List[str]) -> List[str]:
