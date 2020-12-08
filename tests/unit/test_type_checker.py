@@ -152,3 +152,122 @@ def test_is_action():
     assert type_checker.is_action(type_checker.ACCEPT), "Accept is action"
     assert type_checker.is_action(type_checker.REJECT), "Reject is action"
     assert type_checker.is_action(type_checker.DROP), "Drop is action"
+
+
+def test_is_mac():
+    """
+    .
+    """
+    assert not type_checker.is_mac("abc"), "Random string not mac"
+    assert not type_checker.is_mac(123), "Number is not mac"
+    assert not type_checker.is_mac(["aa:bb:cc:dd:ee:ff"]), "Array is not mac"
+    assert not type_checker.is_mac({"aa:bb:cc:dd:ee:ff": True}), "Dictionary is not mac"
+    assert not type_checker.is_mac("aa:bb:cc:dd:ee"), "Missing octet is not mac"
+    assert not type_checker.is_mac("aa:bb:cc:dd:ee:ee:ff"), "Extra octet is not mac"
+    assert not type_checker.is_mac(
+        "aabbccddeeff"
+    ), "No separator for valid MAC is not mac"
+    assert not type_checker.is_mac(
+        "aa bb cc dd ee ff"
+    ), "Space for valid MAC is not mac"
+    assert type_checker.is_mac("aa-bb-cc-dd-ee-ff"), "Dashes is MAC"
+    assert type_checker.is_mac("aa:bb:cc:dd:ee:ff"), "Colon is MAC"
+    assert type_checker.is_mac("aa:bb-cc:dd:ee-ff"), "Mixed dash and colon is MAC"
+
+
+def test_is_translated_port():
+    """
+    .
+    """
+    assert not type_checker.is_translated_port("abc"), "String not port"
+    assert not type_checker.is_translated_port(80), "Number is not port"
+    assert not type_checker.is_translated_port([80]), "Array is not port"
+    assert not type_checker.is_translated_port(
+        {"abc": 80}
+    ), "String key is not port translation"
+    assert not type_checker.is_translated_port(
+        {"80": "abc"}
+    ), "String value is not port translation"
+    assert not type_checker.is_translated_port(
+        {80: 8080, 443: 4430}
+    ), "Multiple keys is not port translation"
+    assert type_checker.is_translated_port(
+        {"80": "8080"}
+    ), "String numbers are port translation"
+    assert type_checker.is_translated_port(
+        {"80": 8080}
+    ), "String key with int value is port translation"
+    assert type_checker.is_translated_port(
+        {80: "8080"}
+    ), "Int key with str value is port translation"
+    assert type_checker.is_translated_port(
+        {80: 8080}
+    ), "Int key with int value is port translation"
+
+
+def test_is_address_and_or_port():
+    """
+    .
+    """
+    assert not type_checker.is_address_and_or_port("abc"), "String not valid"
+    assert not type_checker.is_address_and_or_port(80), "Number is not valid"
+    assert not type_checker.is_address_and_or_port([80]), "Array is not valid"
+    assert not type_checker.is_address_and_or_port({"abc": 123}), "Dict is not valid"
+    assert not type_checker.is_address_and_or_port(
+        {type_checker.ADDRESS: 123}
+    ), "Non-array address invalid"
+    assert not type_checker.is_address_and_or_port(
+        {type_checker.ADDRESS: [123]}
+    ), "Non-string address invalid"
+    assert not type_checker.is_address_and_or_port(
+        {type_checker.PORT: "123"}
+    ), "Non-array port invalid"
+    assert not type_checker.is_address_and_or_port(
+        {type_checker.PORT: ["abc"]}
+    ), "Non-number port invalid"
+    assert not type_checker.is_address_and_or_port(
+        {type_checker.ADDRESS: ["123"], type_checker.PORT: ["abc"]}
+    ), "Non-number port with address invalid"
+    assert not type_checker.is_address_and_or_port(
+        {type_checker.ADDRESS: [123], type_checker.PORT: [123]}
+    ), "Number port with number address invalid"
+    assert not type_checker.is_address_and_or_port(
+        {"other": "foo", type_checker.ADDRESS: ["123"], type_checker.PORT: [123]}
+    ), "Extra field at beginning invalid"
+    assert not type_checker.is_address_and_or_port(
+        {type_checker.ADDRESS: ["123"], type_checker.PORT: [123], "other": 123}
+    ), "Extra field at end invalid"
+    assert not type_checker.is_address_and_or_port(
+        {type_checker.ADDRESS: ["123"], type_checker.PORT: [123], "other": 123}
+    ), "Extra field at end invalid"
+
+    assert not type_checker.is_address_and_or_port(
+        {type_checker.ADDRESS: ["123", 80], type_checker.PORT: [123]}
+    ), "Mixed address type invalid"
+    assert not type_checker.is_address_and_or_port(
+        {type_checker.ADDRESS: ["123"], type_checker.PORT: [123, "abc"]}
+    ), "Mixed port type invalid"
+    assert not type_checker.is_address_and_or_port(
+        {type_checker.ADDRESS: ["123", 123], type_checker.PORT: [123, "abc"]}
+    ), "Mixed address and port type invalid"
+
+    assert type_checker.is_address_and_or_port(
+        {type_checker.ADDRESS: ["123"]}
+    ), "Single address is valid"
+    assert type_checker.is_address_and_or_port(
+        {type_checker.ADDRESS: ["123", "234"]}
+    ), "Multiple address is valid"
+
+    assert type_checker.is_address_and_or_port(
+        {type_checker.PORT: [80]}
+    ), "Single port is valid"
+    assert type_checker.is_address_and_or_port(
+        {type_checker.PORT: [80, 443]}
+    ), "Multiple port is valid"
+
+    assert type_checker.is_address_and_or_port(
+        {type_checker.ADDRESS: ["123"], type_checker.PORT: [80]}
+    ), "Single address/port combination is valid"
+    assert type_checker.is_address_and_or_port(
+        {type_checker.ADDRESS: ["123", "234"], type_checker.PORT: [80, 443]}
+    ), "Multiple address/port combination is valid"

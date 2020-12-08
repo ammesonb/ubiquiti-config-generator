@@ -98,7 +98,9 @@ def is_mac(value: str) -> bool:
     """
     Is a MAC address
     """
-    return bool(re.match(r"^[0-9a-fA-F]{2}([:\-][0-9a-fA-F]{2}){5}$", value))
+    return isinstance(value, str) and bool(
+        re.match(r"^[0-9a-fA-F]{2}([:\-][0-9a-fA-F]{2}){5}$", value)
+    )
 
 
 def is_translated_port(value: dict) -> bool:
@@ -106,9 +108,10 @@ def is_translated_port(value: dict) -> bool:
     Check if the dictionary is a single instance of one integer mapped to another
     """
     return (
-        len(value.items()) == 1
-        and is_number(value.keys()[0])
-        and is_number(value.values()[0])
+        isinstance(value, dict)
+        and len(value.items()) == 1
+        and is_number(list(value.keys())[0])
+        and is_number(list(value.values())[0])
     )
 
 
@@ -118,7 +121,10 @@ def is_address_and_or_port(value: dict) -> bool:
     with expected values for them
     """
     return (
-        value.keys() in [[ADDRESS], [PORT], [ADDRESS, PORT]]
-        and all([is_string(address) for address in value.get("address", [])])
-        and all([is_number(port) for port in value.get("ports", [])])
+        isinstance(value, dict)
+        and isinstance(value.get(ADDRESS, []), list)
+        and isinstance(value.get(PORT, []), list)
+        and list(value.keys()) in [[ADDRESS], [PORT], [ADDRESS, PORT]]
+        and all([is_string(address) for address in value.get(ADDRESS, [])])
+        and all([is_number(port) for port in value.get(PORT, [])])
     )
