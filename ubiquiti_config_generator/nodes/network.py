@@ -47,7 +47,8 @@ class Network(Validatable):
         """
         self.interfaces = [
             Interface(
-                name=interface_path.split(path.sep)[-2],
+                interface_path.split(path.sep)[-2],
+                self.name,
                 **(file_paths.load_yaml_from_file(interface_path))
             )
             for interface_path in file_paths.get_folders_with_config(

@@ -15,6 +15,7 @@ INTERFACE_TYPES = {
     "speed": type_checker.is_speed,
     "vif": type_checker.is_number,
     "name": type_checker.is_string,
+    "network_name": type_checker.is_string,
     "firewalls": lambda firewalls: all([firewall.validate() for firewall in firewalls]),
 }
 
@@ -34,13 +35,14 @@ class Interface(Validatable):
             "address"
         ] = lambda value: value == network_name or type_checker.is_cidr(value)
 
-        super().__init__(validator_map, ["name"])
+        super().__init__(validator_map, ["name, network_name"])
         self.name = name
+        self.network_name = network_name
 
         self._add_keyword_attributes(kwargs)
-        self._load_firewalls(network_name)
+        self._load_firewalls()
 
-    def _load_firewalls(self, network_name):
+    def _load_firewalls(self):
         """
         Get firewalls for this interface
         """
@@ -53,7 +55,7 @@ class Interface(Validatable):
                 file_paths.get_path(
                     [
                         file_paths.NETWORK_FOLDER,
-                        network_name,
+                        self.network_name,
                         file_paths.INTERFACE_FOLDER,
                         self.name,
                         file_paths.FIREWALL_FOLDER,
