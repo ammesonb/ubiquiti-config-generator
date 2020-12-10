@@ -36,7 +36,19 @@ def test_validate(monkeypatch):
     """
     .
     """
-    obj = Validatable(
+
+    class MockValidatable(Validatable):
+        """
+        Mock validatable
+        """
+
+        def __str__(self):
+            """
+            .
+            """
+            return "Test node"
+
+    obj = MockValidatable(
         {
             "valid-attr": lambda value: True,
             "invalid-attr": lambda value: False,
@@ -49,7 +61,26 @@ def test_validate(monkeypatch):
     assert obj.validate(), "Valid attr is valid"
     obj._add_keyword_attributes({"even-attr": 1})
     assert not obj.validate(), "Odd attr breaks validation"
+    assert obj.validation_errors == [
+        "Test node attribute even-attr has failed validation"
+    ], "Validation error added for failure"
     setattr(obj, "even-attr", 2)
     assert obj.validate(), "Even attr fixes validation"
+
+    obj._add_validate_attribute("nonexistent-attr")
+    assert not obj.validate(), "Nonexistent attribute fails"
+
+    assert obj.validation_errors == [
+        "Test node attribute even-attr has failed validation",
+        "Test node has attribute with no validation provided: 'nonexistent-attr'",
+    ], "Validation error added for nonexistent attribute"
+
     obj._add_keyword_attributes({"invalid-attr": "value"})
     assert not obj.validate(), "Invalid attr breaks validation"
+
+    assert obj.validation_errors == [
+        "Test node attribute even-attr has failed validation",
+        "Test node has attribute with no validation provided: 'nonexistent-attr'",
+        "Test node has attribute with no validation provided: 'nonexistent-attr'",
+        "Test node attribute invalid-attr has failed validation",
+    ], "Validation error added for invalid attribute"

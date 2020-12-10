@@ -26,3 +26,9 @@ class ExternalAddresses(Validatable):
     def __init__(self, addresses: List[str]):
         super().__init__(EXTERNAL_ADDRESS_TYPES, ["addresses"])
         self.addresses = addresses
+
+    def __str__(self) -> str:
+        """
+        String version of this class
+        """
+        return "External address"

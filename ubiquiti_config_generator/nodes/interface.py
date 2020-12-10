@@ -64,3 +64,9 @@ class Interface(Validatable):
             )
         ]
         self._add_validate_attribute("firewalls")
+
+    def __str__(self) -> str:
+        """
+        String version of this class
+        """
+        return "Interface " + self.name

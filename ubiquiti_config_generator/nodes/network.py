@@ -58,3 +58,9 @@ class Network(Validatable):
             )
         ]
         self._add_validate_attribute("interfaces")
+
+    def __str__(self) -> str:
+        """
+        String version of this class
+        """
+        return "Network " + self.name

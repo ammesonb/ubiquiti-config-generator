@@ -18,3 +18,5 @@ def test_port_group():
 
     ports.add_ports([8080, 4430])
     assert ports.ports == [80, 443, 8080, 4430], "Ports added"
+
+    assert str(ports) == "Port group group", "Port group name returned"

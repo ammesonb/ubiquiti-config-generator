@@ -35,6 +35,8 @@ def test_initialization(monkeypatch):
     assert fake_set_attrs.counter == 1, "Set attrs called"
     assert fake_load_firewalls.counter == 1, "Load firewalls called"
 
+    assert str(interface) == "Interface interface", "Interface name returned"
+
 
 def test_load_firewalls(monkeypatch):
     """

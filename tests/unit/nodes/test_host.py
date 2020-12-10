@@ -23,3 +23,5 @@ def test_host_calls_methods(monkeypatch):
 
     assert host.name == "host", "Name set"
     assert fake_set_attrs.counter == 1, "Set attrs called"
+
+    assert str(host) == "Host host", "Name returned"

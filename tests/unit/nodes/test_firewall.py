@@ -23,3 +23,5 @@ def test_firewall_calls_methods(monkeypatch):
 
     assert firewall.name == "firewall", "Name set"
     assert fake_set_attrs.counter == 1, "Set attrs called"
+
+    assert str(firewall) == "Firewall firewall", "Name returned"

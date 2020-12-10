@@ -20,3 +20,9 @@ class GlobalSettings(Validatable):
     def __init__(self, **kwargs):
         super().__init__(GLOBAL_SETTINGS_TYPES)
         self._add_keyword_attributes(kwargs)
+
+    def __str__(self) -> str:
+        """
+        String version of this class
+        """
+        return "Global settings"

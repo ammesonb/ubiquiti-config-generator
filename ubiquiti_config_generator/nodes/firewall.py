@@ -23,3 +23,9 @@ class Firewall(Validatable):
         super().__init__(FIREWALL_TYPES, ["name"])
         self.name = name
         self._add_keyword_attributes(kwargs)
+
+    def __str__(self) -> str:
+        """
+        String version of this class
+        """
+        return "Firewall " + self.name

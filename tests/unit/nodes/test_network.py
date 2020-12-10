@@ -35,6 +35,8 @@ def test_initialization(monkeypatch):
     assert fake_set_attrs.counter == 1, "Set attrs called"
     assert fake_load_interfaces.counter == 1, "Load interfaces called"
 
+    assert str(network) == "Network network", "Network name returned"
+
 
 def test_load_interfaces(monkeypatch):
     """

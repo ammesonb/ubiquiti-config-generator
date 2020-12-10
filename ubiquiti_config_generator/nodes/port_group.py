@@ -50,3 +50,9 @@ class PortGroup(Validatable):
         Returns ports in the group
         """
         return self.__ports
+
+    def __str__(self) -> str:
+        """
+        String version of this class
+        """
+        return "Port group " + self.name

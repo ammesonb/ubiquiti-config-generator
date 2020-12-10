@@ -45,3 +45,9 @@ class Host(Validatable):
         super().__init__(HOST_TYPES, ["name"])
         self.name = name
         self._add_keyword_attributes(kwargs)
+
+    def __str__(self) -> str:
+        """
+        String version of this class
+        """
+        return "Host " + self.name

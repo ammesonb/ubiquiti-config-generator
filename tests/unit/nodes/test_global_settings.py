@@ -20,5 +20,6 @@ def test_kw_set(monkeypatch):
 
     monkeypatch.setattr(GlobalSettings, "_add_keyword_attributes", fake_set_attrs)
 
-    GlobalSettings(stuff="things")
+    settings = GlobalSettings(stuff="things")
     assert fake_set_attrs.counter == 1, "Attributes set"
+    assert str(settings) == "Global settings", "Name returned"
