@@ -55,11 +55,9 @@ def _get_external_addresses() -> ExternalAddresses:
     Gets the yaml external address definitions
     """
     return ExternalAddresses(
-        **(
-            file_paths.load_yaml_from_file(
-                file_paths.get_path(file_paths.EXTERNAL_ADDRESSES_CONFIG)
-            )
-        )
+        file_paths.load_yaml_from_file(
+            file_paths.get_path(file_paths.EXTERNAL_ADDRESSES_CONFIG)
+        ).get("addresses", [])
     )
 
 
