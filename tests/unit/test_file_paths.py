@@ -2,7 +2,6 @@
 Test the file paths loader functionality
 """
 from os import path
-import yaml
 
 from ubiquiti_config_generator import file_paths
 

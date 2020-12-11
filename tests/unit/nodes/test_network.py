@@ -6,6 +6,8 @@ from ubiquiti_config_generator import file_paths
 from ubiquiti_config_generator.nodes import Network
 from ubiquiti_config_generator.testing_utils import counter_wrapper
 
+# pylint: disable=protected-access
+
 
 def test_initialization(monkeypatch):
     """
@@ -58,3 +60,41 @@ def test_load_interfaces(monkeypatch):
     assert "interface2" in [
         interface.name for interface in interfaces
     ], "Interface 2 found"
+
+
+def test_load_hosts(monkeypatch):
+    """
+    .
+    """
+    monkeypatch.setattr(
+        file_paths,
+        "get_folders_with_config",
+        lambda folder: ["host1/config.yaml", "host2/config.yaml"],
+    )
+    monkeypatch.setattr(file_paths, "load_yaml_from_file", lambda file_path: {})
+
+    network = Network("network", "10.0.0.0/8")
+    assert "hosts" in network._validate_attributes, "Hosts added"
+    hosts = getattr(network, "hosts")
+    assert "host1" in [host.name for host in hosts], "Host 1 found"
+    assert "host2" in [host.name for host in hosts], "Host 2 found"
+
+
+def test_validate(monkeypatch):
+    """
+    .
+    """
+
+    # pylint: disable=unused-argument
+    @counter_wrapper
+    def fake_validate(self):
+        """
+        .
+        """
+        return True
+
+
+def test_validation_failures(monkeypatch):
+    """
+    .
+    """

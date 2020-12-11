@@ -64,7 +64,6 @@ class Network(Validatable):
         self.hosts = [
             Host(
                 host_path.split(path.sep)[-2],
-                self.name,
                 **(file_paths.load_yaml_from_file(host_path))
             )
             for host_path in file_paths.get_folders_with_config(
@@ -75,14 +74,15 @@ class Network(Validatable):
         ]
         self._add_validate_attribute("hosts")
 
-    @property
     def validation_failures(self) -> List[str]:
         """
         Get all validation failures
         """
-        failures = self.validation_errors
-        failures.extend([interface.validation_errors for interface in self.interfaces])
-        failures.extend([host.validation_errors for host in self.hosts])
+        failures = self.validation_errors()
+        for interface in self.interfaces:
+            failures.extend(interface.validation_errors())
+        for host in self.hosts:
+            failures.extend(host.validation_errors())
         return failures
 
     def is_consistent(self) -> bool:

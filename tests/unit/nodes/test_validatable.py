@@ -32,7 +32,7 @@ def test_attributes_added():
     assert getattr(obj, "fourth-attr") == 4, "Fourth attribute set"
 
 
-def test_validate(monkeypatch):
+def test_validate():
     """
     .
     """
@@ -61,7 +61,7 @@ def test_validate(monkeypatch):
     assert obj.validate(), "Valid attr is valid"
     obj._add_keyword_attributes({"even-attr": 1})
     assert not obj.validate(), "Odd attr breaks validation"
-    assert obj.validation_errors == [
+    assert obj.validation_errors() == [
         "Test node attribute even-attr has failed validation"
     ], "Validation error added for failure"
     setattr(obj, "even-attr", 2)
@@ -70,7 +70,7 @@ def test_validate(monkeypatch):
     obj._add_validate_attribute("nonexistent-attr")
     assert not obj.validate(), "Nonexistent attribute fails"
 
-    assert obj.validation_errors == [
+    assert obj.validation_errors() == [
         "Test node attribute even-attr has failed validation",
         "Test node has attribute with no validation provided: 'nonexistent-attr'",
     ], "Validation error added for nonexistent attribute"
@@ -78,7 +78,7 @@ def test_validate(monkeypatch):
     obj._add_keyword_attributes({"invalid-attr": "value"})
     assert not obj.validate(), "Invalid attr breaks validation"
 
-    assert obj.validation_errors == [
+    assert obj.validation_errors() == [
         "Test node attribute even-attr has failed validation",
         "Test node has attribute with no validation provided: 'nonexistent-attr'",
         "Test node has attribute with no validation provided: 'nonexistent-attr'",

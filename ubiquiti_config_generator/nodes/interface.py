@@ -64,13 +64,13 @@ class Interface(Validatable):
         ]
         self._add_validate_attribute("firewalls")
 
-    @property
     def validation_failures(self) -> List[str]:
         """
         Get all validation failures
         """
-        failures = self.validation_errors
-        failures.extend([firewall.validation_errors for firewall in self.firewalls])
+        failures = self.validation_errors()
+        for firewall in self.firewalls:
+            failures.extend(firewall.validation_errors)
         return failures
 
     def is_consistent(self) -> bool:

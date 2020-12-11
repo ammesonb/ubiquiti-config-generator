@@ -55,7 +55,6 @@ class Validatable:
             self._add_validate_attribute(option)
             setattr(self, option, value)
 
-    @property
     def validation_errors(self) -> List[str]:
         """
         Validation errors

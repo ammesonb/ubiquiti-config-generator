@@ -3,8 +3,10 @@ Test interface
 """
 
 from ubiquiti_config_generator import file_paths
-from ubiquiti_config_generator.nodes import Interface
+from ubiquiti_config_generator.nodes import Interface, Firewall
 from ubiquiti_config_generator.testing_utils import counter_wrapper
+
+# pylint: disable=protected-access
 
 
 def test_initialization(monkeypatch):
@@ -54,3 +56,23 @@ def test_load_firewalls(monkeypatch):
     firewalls = getattr(interface, "firewalls")
     assert "firewall1" in [firewall.name for firewall in firewalls], "Firewall 1 found"
     assert "firewall2" in [firewall.name for firewall in firewalls], "Firewall 2 found"
+
+
+def test_validate(monkeypatch):
+    """
+    .
+    """
+
+    # pylint: disable=unused-argument
+    @counter_wrapper
+    def fake_validate(self):
+        """
+        .
+        """
+        return True
+
+
+def test_validation_failures(monkeypatch):
+    """
+    .
+    """
