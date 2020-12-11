@@ -51,6 +51,11 @@ class PortGroup(Validatable):
         """
         return self.__ports
 
+    def is_consistent(self) -> bool:
+        """
+        Check configuration for consistency
+        """
+
     def __str__(self) -> str:
         """
         String version of this class

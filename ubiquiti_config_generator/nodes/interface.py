@@ -3,6 +3,7 @@ An interface node
 """
 import copy
 from os import path
+from typing import List
 
 from ubiquiti_config_generator import type_checker, file_paths
 from ubiquiti_config_generator.nodes.validatable import Validatable
@@ -20,8 +21,6 @@ INTERFACE_TYPES = {
 }
 
 
-# Disable for now
-# pylint: disable=too-few-public-methods
 class Interface(Validatable):
     """
     The interface node
@@ -64,6 +63,28 @@ class Interface(Validatable):
             )
         ]
         self._add_validate_attribute("firewalls")
+
+    @property
+    def validation_failures(self) -> List[str]:
+        """
+        Get all validation failures
+        """
+        failures = self.validation_errors
+        failures.extend([firewall.validation_errors for firewall in self.firewalls])
+        return failures
+
+    def is_consistent(self) -> bool:
+        """
+        Check configuration for consistency
+        """
+
+    def validate(self) -> bool:
+        """
+        Is the root node valid
+        """
+        return super().validate() and all(
+            [firewall.validate() for firewall in self.firewalls]
+        )
 
     def __str__(self) -> str:
         """

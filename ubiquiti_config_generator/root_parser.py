@@ -98,6 +98,41 @@ class RootNode:
             ],
         )
 
+    def is_valid(self) -> bool:
+        """
+        Are all fields in the configuration valid
+        """
+        return (
+            self.global_settings.validate()
+            and self.external_addresses.validate()
+            and self.port_groups.validate()
+            and all([network.validate() for network in self.networks])
+        )
+
+    def is_consistent(self) -> bool:
+        """
+        Check configuration for consistency
+        """
+
+    def validate(self) -> bool:
+        """
+        Is the root node valid
+        """
+        return self.is_valid() and self.is_consistent()
+
+    @property
+    def validation_failures(self) -> List[str]:
+        """
+        Get all validation failures
+        """
+        failures = (
+            self.global_settings.validation_errors
+            + self.external_addresses.validation_errors
+            + self.port_groups.validation_errors
+        )
+        failures.extend([network.validation_failures for network in self.networks])
+        return failures
+
     def find_changes_from(self, previous_config: "RootNode"):
         """
         Using a previous configuration, identify what has changed and

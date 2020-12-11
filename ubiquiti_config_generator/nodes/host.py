@@ -5,8 +5,6 @@ Contains the host node
 from ubiquiti_config_generator import type_checker
 from ubiquiti_config_generator.nodes.validatable import Validatable
 
-# Allow too few public methods, for now
-# pylint: disable=too-few-public-methods
 
 HOST_TYPES = {
     "name": type_checker.is_string,
@@ -45,6 +43,11 @@ class Host(Validatable):
         super().__init__(HOST_TYPES, ["name"])
         self.name = name
         self._add_keyword_attributes(kwargs)
+
+    def is_consistent(self) -> bool:
+        """
+        Check configuration for consistency
+        """
 
     def __str__(self) -> str:
         """

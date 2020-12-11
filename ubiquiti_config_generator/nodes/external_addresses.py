@@ -14,10 +14,6 @@ EXTERNAL_ADDRESS_TYPES = {
 }
 
 
-# Allow too few public methods, for now
-# pylint: disable=too-few-public-methods
-
-
 class ExternalAddresses(Validatable):
     """
     External IP addressses
@@ -26,6 +22,11 @@ class ExternalAddresses(Validatable):
     def __init__(self, addresses: List[str]):
         super().__init__(EXTERNAL_ADDRESS_TYPES, ["addresses"])
         self.addresses = addresses
+
+    def is_consistent(self) -> bool:
+        """
+        Check configuration for consistency
+        """
 
     def __str__(self) -> str:
         """
