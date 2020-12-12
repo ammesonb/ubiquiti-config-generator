@@ -26,3 +26,10 @@ class GlobalSettings(Validatable):
         String version of this class
         """
         return "Global settings"
+
+    def is_consistent(self) -> bool:
+        """
+        Are global settings internally consistent
+        """
+        # Nothing to actually validate here, yet
+        return True

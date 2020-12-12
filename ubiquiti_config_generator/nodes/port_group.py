@@ -4,7 +4,7 @@ Contains port groups
 from typing import List
 
 from ubiquiti_config_generator.nodes.validatable import Validatable
-from ubiquiti_config_generator import type_checker
+from ubiquiti_config_generator import type_checker, utility
 
 PORT_GROUP_TYPES = {
     "ports": lambda ports: all([type_checker.is_number(port) for port in ports])
@@ -55,6 +55,13 @@ class PortGroup(Validatable):
         """
         Check configuration for consistency
         """
+        duplicates = utility.get_duplicates(self.ports)
+        if duplicates:
+            self.add_validation_error(
+                "{0} has duplicate ports: {1}".format(str(self), ", ".join(duplicates))
+            )
+
+        return not bool(duplicates)
 
     def __str__(self) -> str:
         """

@@ -5,7 +5,7 @@ External IP addresses
 from typing import List
 
 from ubiquiti_config_generator.nodes.validatable import Validatable
-from ubiquiti_config_generator import type_checker
+from ubiquiti_config_generator import type_checker, utility
 
 EXTERNAL_ADDRESS_TYPES = {
     "addresses": lambda addresses: all(
@@ -27,6 +27,15 @@ class ExternalAddresses(Validatable):
         """
         Check configuration for consistency
         """
+        duplicates = utility.get_duplicates(self.addresses)
+        if duplicates:
+            self.add_validation_error(
+                "{0} has duplicate addresses: {1}".format(
+                    str(self), ", ".join(duplicates)
+                )
+            )
+
+        return not bool(duplicates)
 
     def __str__(self) -> str:
         """

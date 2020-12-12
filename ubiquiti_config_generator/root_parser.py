@@ -1,6 +1,7 @@
 """
 Contains the root configuration node
 """
+import ipaddress
 from os import path
 from typing import List
 
@@ -20,8 +21,6 @@ from ubiquiti_config_generator.nodes import (
 # Can run bash directly - https://github.com/jpadfield/simple-site/blob/master/.github/workflows/build.yml
 # Then use this to commit and push back:
 # https://github.com/stefanzweifel/git-auto-commit-action
-
-# TODO: this is a list of keys and possible values, in the form of a validator function
 
 
 def _get_global_configuration() -> GlobalSettings:
@@ -113,6 +112,32 @@ class RootNode:
         """
         Check configuration for consistency
         """
+        internals_consistent = (
+            self.external_addresses.is_consistent()
+            and self.global_settings.is_consistent()
+            and all([group.is_consistent() for group in self.port_groups])
+            and all([network.is_consistent() for network in self.networks])
+        )
+
+        networks_consistent = True
+
+        network_count = len(self.networks)
+        for network_index in range(network_count):
+            network = self.networks[network_index]
+            ip_network = ipaddress.ip_network(network.cidr)
+            for second_network_index in range(network_index + 1, network_count):
+                second_network = self.networks[second_network_index]
+                second_ip_network = ipaddress.ip_network(second_network.cidr)
+
+                if ip_network.overlaps(second_ip_network):
+                    network.add_validation_error(
+                        "{0} overlaps with {1}".format(
+                            str(network), str(second_network)
+                        )
+                    )
+                    networks_consistent = False
+
+        return internals_consistent and networks_consistent
 
     def validate(self) -> bool:
         """
