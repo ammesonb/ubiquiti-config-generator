@@ -4,7 +4,7 @@ Tests the root parser
 
 # pylint: disable=protected-access
 
-from ubiquiti_config_generator import root_parser, file_paths
+from ubiquiti_config_generator import root_parser, file_paths, utility
 from ubiquiti_config_generator.nodes import (
     GlobalSettings,
     ExternalAddresses,
@@ -207,3 +207,86 @@ def test_validation_failures(monkeypatch):
     result = node.validation_failures()
     print(result)
     assert result == ["failure"] * 4, "Validation failures returned"
+
+
+def test_consistency_checks_called(monkeypatch):
+    """
+    .
+    """
+
+    @counter_wrapper
+    def check_consistency(self):
+        """
+        .
+        """
+        return True
+
+    monkeypatch.setattr(GlobalSettings, "is_consistent", check_consistency)
+    monkeypatch.setattr(ExternalAddresses, "is_consistent", check_consistency)
+    monkeypatch.setattr(PortGroup, "is_consistent", check_consistency)
+    monkeypatch.setattr(Network, "is_consistent", check_consistency)
+
+    monkeypatch.setattr(file_paths, "get_folders_with_config", lambda folder: [])
+
+    root = root_parser.RootNode(
+        GlobalSettings(),
+        [PortGroup("Ports", [80])],
+        ExternalAddresses(["1.1.1.1"]),
+        [Network("Network", "10.0.0.0/24")],
+    )
+
+    assert root.is_consistent(), "Node is consistent"
+    assert check_consistency.counter == 4, "Consistency checked for each object"
+
+
+def test_network_overlap_consistency(monkeypatch):
+    """
+    .
+    """
+    monkeypatch.setattr(GlobalSettings, "is_consistent", lambda self: True)
+    monkeypatch.setattr(ExternalAddresses, "is_consistent", lambda self: True)
+    monkeypatch.setattr(PortGroup, "is_consistent", lambda self: True)
+    monkeypatch.setattr(Network, "is_consistent", lambda self: True)
+
+    root = root_parser.RootNode(
+        GlobalSettings(),
+        [PortGroup("Ports", [80])],
+        ExternalAddresses(["1.1.1.1"]),
+        [
+            Network("Network 1", "10.0.0.0/24"),
+            Network("Network 2", "10.0.1.0/24"),
+            Network("Network 3", "10.0.2.0/24"),
+        ],
+    )
+
+    assert root.is_consistent(), "Networks do not overlap"
+
+    overlap_root = root_parser.RootNode(
+        GlobalSettings(),
+        [PortGroup("Ports", [80])],
+        ExternalAddresses(["1.1.1.1"]),
+        [
+            # First network contains all the others
+            Network("Network 1", "10.0.0.0/22"),
+            # This network has no collisions inside it
+            Network("Network 2", "10.0.1.0/24"),
+            # This network collides with the next
+            Network("Network 2", "10.0.2.0/23"),
+            # This network has no collisions inside it
+            Network("Network 3", "10.0.2.0/24"),
+        ],
+    )
+
+    assert not overlap_root.is_consistent(), "Networks overlap"
+    networks = overlap_root.networks
+    assert networks[0].validation_errors() == [
+        "{0} overlaps with {1}".format(networks[0], networks[1]),
+        "{0} overlaps with {1}".format(networks[0], networks[2]),
+        "{0} overlaps with {1}".format(networks[0], networks[3]),
+    ], "Network 0 contains collisions"
+
+    assert networks[1].validation_errors() == [], "Network 1 contains no collisions"
+    assert networks[2].validation_errors() == [
+        "{0} overlaps with {1}".format(networks[2], networks[3]),
+    ], "Network 2 contains collision with 3"
+    assert networks[3].validation_errors() == [], "Network 3 contains no collisions"

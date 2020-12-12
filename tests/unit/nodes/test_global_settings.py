@@ -23,3 +23,12 @@ def test_kw_set(monkeypatch):
     settings = GlobalSettings(stuff="things")
     assert fake_set_attrs.counter == 1, "Attributes set"
     assert str(settings) == "Global settings", "Name returned"
+
+
+def test_is_consistent(monkeypatch):
+    """
+    .
+    """
+    # When there are more settings to test, update this
+    settings = GlobalSettings()
+    assert settings.is_consistent(), "Global settings should be consistent"

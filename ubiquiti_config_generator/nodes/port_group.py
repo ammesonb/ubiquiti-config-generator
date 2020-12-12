@@ -58,7 +58,9 @@ class PortGroup(Validatable):
         duplicates = utility.get_duplicates(self.ports)
         if duplicates:
             self.add_validation_error(
-                "{0} has duplicate ports: {1}".format(str(self), ", ".join(duplicates))
+                "{0} has duplicate ports: {1}".format(
+                    str(self), ", ".join([str(dup) for dup in duplicates])
+                )
             )
 
         return not bool(duplicates)
