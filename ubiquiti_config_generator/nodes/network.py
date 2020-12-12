@@ -36,8 +36,11 @@ class Network(Validatable):
         self.name = name
         self.cidr = cidr
         self._add_keyword_attributes(kwargs)
-        self._load_interfaces()
-        self._load_hosts()
+
+        if "interfaces" not in kwargs:
+            self._load_interfaces()
+        if "hosts" not in kwargs:
+            self._load_hosts()
 
     def _load_interfaces(self) -> None:
         """
@@ -80,7 +83,7 @@ class Network(Validatable):
         """
         failures = self.validation_errors()
         for interface in self.interfaces:
-            failures.extend(interface.validation_errors())
+            failures.extend(interface.validation_failures())
         for host in self.hosts:
             failures.extend(host.validation_errors())
         return failures

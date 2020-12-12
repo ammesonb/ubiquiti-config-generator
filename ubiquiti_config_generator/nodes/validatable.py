@@ -27,13 +27,13 @@ class Validatable:
             )
 
             if attribute not in self._validator_map:
-                self._validation_errors.append(
+                self.add_validation_error(
                     "{0} has attribute with no validation provided: '{1}'".format(
                         str(self), attribute
                     )
                 )
             elif not self._validator_map[attribute](getattr(self, attribute)):
-                self._validation_errors.append(
+                self.add_validation_error(
                     "{0} attribute {1} has failed validation".format(
                         str(self), attribute
                     )
@@ -60,3 +60,9 @@ class Validatable:
         Validation errors
         """
         return self._validation_errors
+
+    def add_validation_error(self, error: str):
+        """
+        Adds a validation error
+        """
+        self._validation_errors.append(error)

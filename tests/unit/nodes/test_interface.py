@@ -4,6 +4,7 @@ Test interface
 
 from ubiquiti_config_generator import file_paths
 from ubiquiti_config_generator.nodes import Interface, Firewall
+from ubiquiti_config_generator.nodes.validatable import Validatable
 from ubiquiti_config_generator.testing_utils import counter_wrapper
 
 # pylint: disable=protected-access
@@ -71,8 +72,33 @@ def test_validate(monkeypatch):
         """
         return True
 
+    monkeypatch.setattr(file_paths, "get_folders_with_config", lambda folder: [])
+    interface = Interface("interface", "network", firewalls=[Firewall("firewall")],)
+    monkeypatch.setattr(Validatable, "validate", fake_validate)
+    monkeypatch.setattr(Firewall, "validate", fake_validate)
+
+    assert interface.validate(), "Interface is valid"
+    assert fake_validate.counter == 2, "Called for parent/interface and firewall"
+
 
 def test_validation_failures(monkeypatch):
     """
     .
     """
+    monkeypatch.setattr(file_paths, "get_folders_with_config", lambda folder: [])
+
+    interface = Interface(
+        "interface", "network", firewalls=[Firewall("firewall"), Firewall("firewall2")],
+    )
+    assert interface.validation_failures() == [], "No failures added yet"
+
+    monkeypatch.setattr(Firewall, "validation_errors", lambda self: ["123"])
+    interface.add_validation_error("failure")
+    interface.add_validation_error("failure2")
+
+    assert interface.validation_failures() == [
+        "failure",
+        "failure2",
+        "123",
+        "123",
+    ], "Failures returned from interface and firewall"

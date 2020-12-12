@@ -39,7 +39,8 @@ class Interface(Validatable):
         self.network_name = network_name
 
         self._add_keyword_attributes(kwargs)
-        self._load_firewalls()
+        if "firewalls" not in kwargs:
+            self._load_firewalls()
 
     def _load_firewalls(self):
         """
@@ -70,7 +71,7 @@ class Interface(Validatable):
         """
         failures = self.validation_errors()
         for firewall in self.firewalls:
-            failures.extend(firewall.validation_errors)
+            failures.extend(firewall.validation_errors())
         return failures
 
     def is_consistent(self) -> bool:

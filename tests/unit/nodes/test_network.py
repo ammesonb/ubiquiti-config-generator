@@ -3,7 +3,8 @@ Test network
 """
 
 from ubiquiti_config_generator import file_paths
-from ubiquiti_config_generator.nodes import Network
+from ubiquiti_config_generator.nodes import Network, Interface, Host
+from ubiquiti_config_generator.nodes.validatable import Validatable
 from ubiquiti_config_generator.testing_utils import counter_wrapper
 
 # pylint: disable=protected-access
@@ -93,8 +94,43 @@ def test_validate(monkeypatch):
         """
         return True
 
+    monkeypatch.setattr(file_paths, "get_folders_with_config", lambda folder: [])
+    network = Network(
+        "network",
+        "1.1.1.1/24",
+        interfaces=[Interface("interface", "network")],
+        hosts=[Host("host")],
+    )
+    monkeypatch.setattr(Validatable, "validate", fake_validate)
+    monkeypatch.setattr(Interface, "validate", fake_validate)
+    monkeypatch.setattr(Host, "validate", fake_validate)
+
+    assert network.validate(), "Network is valid"
+    assert fake_validate.counter == 3, "Called for parent/network, interface, and host"
+
 
 def test_validation_failures(monkeypatch):
     """
     .
     """
+    monkeypatch.setattr(file_paths, "get_folders_with_config", lambda folder: [])
+
+    network = Network(
+        "network",
+        "1.1.1.1/24",
+        interfaces=[Interface("interface", "network")],
+        hosts=[Host("host"), Host("host2")],
+    )
+    assert network.validation_failures() == [], "No failures added yet"
+
+    monkeypatch.setattr(Interface, "validation_failures", lambda self: ["abc", "def"])
+    monkeypatch.setattr(Host, "validation_errors", lambda self: ["ghi"])
+    network.add_validation_error("failure")
+
+    assert network.validation_failures() == [
+        "failure",
+        "abc",
+        "def",
+        "ghi",
+        "ghi",
+    ], "Failures returned for network and all children"
