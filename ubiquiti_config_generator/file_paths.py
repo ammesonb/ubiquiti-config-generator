@@ -6,7 +6,7 @@ from os import path
 from typing import List, Union
 import yaml
 
-TOP_LEVEL_DIRECTORY = "router_config"
+CURRENT_CONFIG_DIRECTORY = "router_config"
 GLOBAL_CONFIG = "global.yaml"
 EXTERNAL_ADDRESSES_CONFIG = "external_addresses.yaml"
 PORT_GROUPS_FOLDER = "port-groups"
@@ -44,4 +44,4 @@ def get_path(config_paths: List[str]):
     """
     Returns a file path with the top level directory prefixed
     """
-    return path.abspath(path.join(".", TOP_LEVEL_DIRECTORY, *config_paths))
+    return path.abspath(path.join(".", CURRENT_CONFIG_DIRECTORY, *config_paths))

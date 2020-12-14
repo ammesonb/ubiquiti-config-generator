@@ -51,5 +51,5 @@ def test_get_path():
     Check the path joining
     """
     assert file_paths.get_path(["foo", "bar"]) == path.join(
-        path.abspath("."), file_paths.TOP_LEVEL_DIRECTORY, "foo", "bar"
+        path.abspath("."), file_paths.CURRENT_CONFIG_DIRECTORY, "foo", "bar"
     ), "Path resolved correctly"
