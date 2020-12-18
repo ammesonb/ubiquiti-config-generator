@@ -15,15 +15,14 @@ HOST_TYPES = {
     ),
     "forward-ports": lambda ports: all(
         [
-            type_checker.is_number(port) or type_checker.is_translated_port(port)
+            type_checker.is_number(port)
+            or type_checker.is_string(port)
+            or type_checker.is_translated_port(port)
             for port in ports
         ]
     ),
-    "hairpin-ports": lambda ports: all(
-        [
-            type_checker.is_number(port) or type_checker.is_translated_port(port)
-            for port in ports
-        ]
+    "hairpin-ports": lambda hosts: all(
+        [type_checker.is_address_and_or_port(host) for host in hosts]
     ),
     "allow-connect-from": lambda hosts: all(
         [type_checker.is_address_and_or_port(host) for host in hosts]

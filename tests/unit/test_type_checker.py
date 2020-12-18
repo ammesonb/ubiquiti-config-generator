@@ -223,12 +223,6 @@ def test_is_address_and_or_port():
         {type_checker.PORT: "123"}
     ), "Non-array port invalid"
     assert not type_checker.is_address_and_or_port(
-        {type_checker.PORT: ["abc"]}
-    ), "Non-number port invalid"
-    assert not type_checker.is_address_and_or_port(
-        {type_checker.ADDRESS: ["123"], type_checker.PORT: ["abc"]}
-    ), "Non-number port with address invalid"
-    assert not type_checker.is_address_and_or_port(
         {type_checker.ADDRESS: [123], type_checker.PORT: [123]}
     ), "Number port with number address invalid"
     assert not type_checker.is_address_and_or_port(
@@ -244,9 +238,6 @@ def test_is_address_and_or_port():
     assert not type_checker.is_address_and_or_port(
         {type_checker.ADDRESS: ["123", 80], type_checker.PORT: [123]}
     ), "Mixed address type invalid"
-    assert not type_checker.is_address_and_or_port(
-        {type_checker.ADDRESS: ["123"], type_checker.PORT: [123, "abc"]}
-    ), "Mixed port type invalid"
     assert not type_checker.is_address_and_or_port(
         {type_checker.ADDRESS: ["123", 123], type_checker.PORT: [123, "abc"]}
     ), "Mixed address and port type invalid"
@@ -269,5 +260,5 @@ def test_is_address_and_or_port():
         {type_checker.ADDRESS: ["123"], type_checker.PORT: [80]}
     ), "Single address/port combination is valid"
     assert type_checker.is_address_and_or_port(
-        {type_checker.ADDRESS: ["123", "234"], type_checker.PORT: [80, 443]}
+        {type_checker.ADDRESS: ["123", "234"], type_checker.PORT: [80, 443, "ssh"]}
     ), "Multiple address/port combination is valid"

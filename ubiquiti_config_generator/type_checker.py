@@ -126,5 +126,5 @@ def is_address_and_or_port(value: dict) -> bool:
         and isinstance(value.get(PORT, []), list)
         and list(value.keys()) in [[ADDRESS], [PORT], [ADDRESS, PORT]]
         and all([is_string(address) for address in value.get(ADDRESS, [])])
-        and all([is_number(port) for port in value.get(PORT, [])])
+        and all([is_number(port) or is_string(port) for port in value.get(PORT, [])])
     )

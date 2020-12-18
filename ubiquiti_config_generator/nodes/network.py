@@ -4,13 +4,17 @@ Contains the network node
 from os import path
 from typing import List
 
-from ubiquiti_config_generator import file_paths, type_checker
+from ubiquiti_config_generator import (
+    file_paths,
+    type_checker,
+    utility,
+)
 from ubiquiti_config_generator.nodes import Interface, Host
 from ubiquiti_config_generator.nodes.validatable import Validatable
 
 NETWORK_TYPES = {
     "name": type_checker.is_string,
-    "subnet": type_checker.is_cidr,
+    "cidr": type_checker.is_cidr,
     "default-router": type_checker.is_ip_address,
     "dns-server": type_checker.is_ip_address,
     "dns-servers": lambda servers: all(
@@ -23,6 +27,7 @@ NETWORK_TYPES = {
     "interfaces": lambda interfaces: all(
         [interface.validate() for interface in interfaces]
     ),
+    "hosts": lambda hosts: all([host.validate() for host in hosts]),
 }
 
 
@@ -92,6 +97,48 @@ class Network(Validatable):
         """
         Check configuration for consistency
         """
+        consistent = True
+
+        if not utility.address_in_subnet(
+            self.cidr, getattr(self, "default-router", None)
+        ):
+            self.add_validation_error("Default router not in " + str(self))
+            consistent = False
+
+        if not utility.address_in_subnet(self.cidr, getattr(self, "start", None)):
+            self.add_validation_error("DHCP start address not in " + str(self))
+            consistent = False
+
+        if not utility.address_in_subnet(self.cidr, getattr(self, "stop", None)):
+            self.add_validation_error("DHCP stop address not in " + str(self))
+            consistent = False
+
+        for host in self.hosts:
+            if not utility.address_in_subnet(self.cidr, host.name):
+                self.add_validation_error("{0} not in {1}".format(str(host), str(self)))
+                consistent = False
+
+        host_count = len(self.hosts)
+        for first_host_index in range(host_count):
+            first_host = self.hosts[first_host_index]
+            matched_hosts = [
+                second_host
+                for second_host in self.hosts[first_host_index + 1 :]
+                if first_host.address == second_host.address
+            ]
+            if matched_hosts:
+                self.add_validation_error(
+                    "{0} shares an address with: {1}".format(
+                        str(first_host),
+                        ", ".join([str(host) for host in matched_hosts]),
+                    )
+                )
+
+        return (
+            consistent
+            and all([interface.is_consistent() for interface in self.interfaces])
+            and all([host.is_consistent() for host in self.hosts])
+        )
 
     def validate(self) -> bool:
         """
