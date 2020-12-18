@@ -16,3 +16,19 @@ def test_get_duplicates():
         "a",
         "ab",
     ], "Duplicates returned"
+
+
+def test_address_in_subnet():
+    """
+    .
+    """
+    assert utility.address_in_subnet("10.0.0.0/8", None), "Empty address is valid"
+    assert utility.address_in_subnet("10.0.0.0/8", "10.1.0.1"), "In subnet valid"
+    assert utility.address_in_subnet("10.0.0.0/8", "10.0.0.1"), "In subnet valid"
+    assert utility.address_in_subnet("10.0.0.0/8", "10.255.255.255"), "In subnet valid"
+    assert not utility.address_in_subnet(
+        "10.0.0.0/8", "11.0.0.0"
+    ), "Outside subnet invalid"
+    assert not utility.address_in_subnet(
+        "10.0.0.0/8", "9.0.0.0"
+    ), "Outside subnet invalid"
