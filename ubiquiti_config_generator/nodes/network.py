@@ -114,31 +114,46 @@ class Network(Validatable):
             consistent = False
 
         for host in self.hosts:
-            if not utility.address_in_subnet(self.cidr, host.name):
+            if not utility.address_in_subnet(self.cidr, host.address):
                 self.add_validation_error("{0} not in {1}".format(str(host), str(self)))
                 consistent = False
 
         host_count = len(self.hosts)
         for first_host_index in range(host_count):
             first_host = self.hosts[first_host_index]
-            matched_hosts = [
+            matched_addresses = [
                 second_host
                 for second_host in self.hosts[first_host_index + 1 :]
                 if first_host.address == second_host.address
             ]
-            if matched_hosts:
+            matched_macs = [
+                second_host
+                for second_host in self.hosts[first_host_index + 1 :]
+                if first_host.mac == second_host.mac
+            ]
+            if matched_addresses:
                 self.add_validation_error(
                     "{0} shares an address with: {1}".format(
                         str(first_host),
-                        ", ".join([str(host) for host in matched_hosts]),
+                        ", ".join([str(host) for host in matched_addresses]),
                     )
                 )
+                consistent = False
 
-        return (
-            consistent
-            and all([interface.is_consistent() for interface in self.interfaces])
-            and all([host.is_consistent() for host in self.hosts])
-        )
+            if matched_macs:
+                self.add_validation_error(
+                    "{0} shares its mac with: {1}".format(
+                        str(first_host),
+                        ", ".join([str(host) for host in matched_macs]),
+                    )
+                )
+                consistent = False
+
+        interfaces_consistent = [
+            interface.is_consistent() for interface in self.interfaces
+        ]
+        hosts_consistent = [host.is_consistent() for host in self.hosts]
+        return consistent and all(interfaces_consistent) and all(hosts_consistent)
 
     def validate(self) -> bool:
         """

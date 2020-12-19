@@ -75,14 +75,12 @@ class RootNode:
         """
         Check configuration for consistency
         """
-        internals_consistent = (
-            self.external_addresses.is_consistent()
-            and self.global_settings.is_consistent()
-            and all([group.is_consistent() for group in self.port_groups])
-            and all([network.is_consistent() for network in self.networks])
-        )
+        addresses_consistent = self.external_addresses.is_consistent()
+        globals_consistent = self.global_settings.is_consistent()
+        port_groups_consistent = [group.is_consistent() for group in self.port_groups]
+        networks_consistent = [network.is_consistent() for network in self.networks]
 
-        networks_consistent = True
+        networks_consistent = all(networks_consistent) and True
 
         network_count = len(self.networks)
         for network_index in range(network_count):
@@ -100,7 +98,12 @@ class RootNode:
                     )
                     networks_consistent = False
 
-        return internals_consistent and networks_consistent
+        return (
+            addresses_consistent
+            and globals_consistent
+            and all(port_groups_consistent)
+            and networks_consistent
+        )
 
     def validate(self) -> bool:
         """

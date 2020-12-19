@@ -134,3 +134,68 @@ def test_validation_failures(monkeypatch):
         "ghi",
         "ghi",
     ], "Failures returned for network and all children"
+
+
+def test_is_consistent(monkeypatch):
+    """
+    .
+    """
+
+    @counter_wrapper
+    def fake_host_consistent(self):
+        """
+        .
+        """
+        return True
+
+    @counter_wrapper
+    def fake_interface_consistent(self):
+        """
+        .
+        """
+        return True
+
+    monkeypatch.setattr(Host, "is_consistent", fake_host_consistent)
+    monkeypatch.setattr(Interface, "is_consistent", fake_interface_consistent)
+
+    host1 = Host("test", address="11.0.0.1", mac="ab:cd:ef")
+    host2 = Host("test2", address="10.0.0.1", mac="ab:cd:ef")
+    host3 = Host("test3", address="11.0.0.1", mac="ab:cd:12")
+    host4 = Host("test4", address="10.0.0.2", mac="12:34:56")
+
+    interface1 = Interface("interface", "network")
+    interface2 = Interface("interface2", "network")
+
+    network_properties = {
+        "interfaces": [interface1, interface2],
+        "hosts": [host1, host2, host3, host4],
+        "default-router": "192.168.0.1",
+        "start": "10.10.0.100",
+        "stop": "10.10.0.255",
+    }
+    network = Network("network", "10.0.0.0/24", **network_properties)
+
+    assert not network.is_consistent(), "Network is not consistent"
+    assert network.validation_errors() == [
+        "Default router not in Network network",
+        "DHCP start address not in Network network",
+        "DHCP stop address not in Network network",
+        "Host test not in Network network",
+        "Host test3 not in Network network",
+        "Host test shares an address with: Host test3",
+        "Host test shares its mac with: Host test2",
+    ], "Validation errors set"
+
+    assert fake_host_consistent.counter == 4, "Four hosts' consistency checked"
+    assert fake_interface_consistent.counter == 2, "Two interaces' consistency checked"
+
+    network_properties = {
+        "interfaces": [interface1, interface2],
+        "hosts": [host2, host4],
+        "default-router": "10.0.0.1",
+        "start": "10.0.0.100",
+        "stop": "10.0.0.255",
+    }
+    network = Network("network", "10.0.0.0/24", **network_properties)
+    assert network.is_consistent(), "Network should be consistent"
+    assert not network.validation_errors(), "No validation errors present"
