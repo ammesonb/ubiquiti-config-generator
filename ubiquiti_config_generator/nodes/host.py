@@ -2,7 +2,7 @@
 Contains the host node
 """
 
-from ubiquiti_config_generator import type_checker
+from ubiquiti_config_generator import secondary_configs, type_checker
 from ubiquiti_config_generator.nodes.validatable import Validatable
 
 
@@ -24,11 +24,16 @@ HOST_TYPES = {
     "hairpin-ports": lambda hosts: all(
         [type_checker.is_address_and_or_port(host) for host in hosts]
     ),
-    "allow-connect-from": lambda hosts: all(
-        [type_checker.is_address_and_or_port(host) for host in hosts]
-    ),
-    "allow-connect-to": lambda hosts: all(
-        [type_checker.is_address_and_or_port(host) for host in hosts]
+    # This is a dictionary for connections to allow/block, with properties:
+    # allow: bool
+    # source:
+    #    address: IP/address group
+    #    port: port/port group
+    # destination:
+    #    address: IP/address group
+    #    port: port/port group
+    "connections": lambda hosts: all(
+        [type_checker.is_source_destination(host) for host in hosts]
     ),
 }
 
@@ -47,6 +52,57 @@ class Host(Validatable):
         """
         Check configuration for consistency
         """
+        consistent = True
+        port_groups = secondary_configs.get_port_groups()
+        port_group_names = [group.name for group in port_groups]
+        for port in getattr(self, "forward-ports", []):
+            if not type_checker.is_number(port) and port not in port_group_names:
+                self.add_validation_error(
+                    "Port Group {0} not defined for forwarding in {1}".format(
+                        port, str(self)
+                    )
+                )
+                consistent = False
+
+        for port in getattr(self, "hairpin-ports", []):
+            if not type_checker.is_number(port) and port not in port_group_names:
+                self.add_validation_error(
+                    "Port Group {0} not defined for hairpin in {1}".format(
+                        port, str(self)
+                    )
+                )
+                consistent = False
+
+        for connection in getattr(self, "allow-connections", []):
+            source_port = connection.get("source", {}).get("port", 0)
+            if (
+                not type_checker.is_number(source_port)
+                and source_port not in port_group_names
+            ):
+                self.add_validation_error(
+                    "Port Group {0} not defined for source {1} connection in {2}".format(
+                        source_port,
+                        "allowed" if connection["allow"] else "blocked",
+                        str(self),
+                    )
+                )
+                consistent = False
+
+            destination_port = connection.get("destination", {}).get("port", 0)
+            if (
+                not type_checker.is_number(destination_port)
+                and destination_port not in port_group_names
+            ):
+                self.add_validation_error(
+                    "Port Group {0} not defined for destination {1} connection in {2}".format(
+                        destination_port,
+                        "allowed" if connection["allow"] else "blocked",
+                        str(self),
+                    )
+                )
+                consistent = False
+
+        return consistent
 
     def __str__(self) -> str:
         """

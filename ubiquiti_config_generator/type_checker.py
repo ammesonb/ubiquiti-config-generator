@@ -134,6 +134,33 @@ def is_address_and_or_port(value: dict) -> bool:
     )
 
 
+def is_source_destination(connections: dict) -> bool:
+    """
+    This is a dictionary with a source and/or destination property,
+    containing addresses and ports
+    """
+    keys = list(connections.keys()) if isinstance(connections, dict) else []
+    return (
+        isinstance(connections, dict)
+        # Only keys permissible are these three
+        and not any([key not in ["destination", "source", "allowed"] for key in keys])
+        and isinstance(connections.get("source", {}), dict)
+        and isinstance(connections.get("destination", {}), dict)
+        # A source or destination must be set
+        and (connections.get("source", {}) or connections.get("destination", {}))
+        and is_string(connections.get("source", {}).get("address", ""))
+        and is_string(connections.get("destination", {}).get("address", ""))
+        and (
+            is_string(connections.get("source", {}).get("port", ""))
+            or is_number(connections.get("source", {}).get("port", ""))
+        )
+        and (
+            is_string(connections.get("destination", {}).get("port", ""))
+            or is_number(connections.get("destination", {}).get("port", ""))
+        )
+    )
+
+
 def is_firewall_direction(value: str) -> bool:
     """
     Is the firewall direction valid

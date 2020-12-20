@@ -264,6 +264,77 @@ def test_is_address_and_or_port():
     ), "Multiple address/port combination is valid"
 
 
+def test_is_source_destination():
+    """
+    .
+    """
+    assert not type_checker.is_source_destination("abc"), "String not valid"
+    assert not type_checker.is_source_destination(80), "Number is not valid"
+    assert not type_checker.is_source_destination(["allowed"]), "Array is not valid"
+    assert not type_checker.is_source_destination(
+        {"allowed": "bad"}
+    ), "Dict is not valid"
+
+    assert not type_checker.is_source_destination(
+        {"allowed": True}
+    ), "Missing source/destination invalid"
+    assert not type_checker.is_source_destination(
+        {"allowed": True, "source": []}
+    ), "Non dictionary source invalid"
+    assert not type_checker.is_source_destination(
+        {"allowed": True, "destination": "Abc"}
+    ), "Non dictionary destination invalid"
+    assert not type_checker.is_source_destination(
+        {"allowed": True, "source": {}}
+    ), "Empty source invalid"
+    assert not type_checker.is_source_destination(
+        {"allowed": True, "destination": {}}
+    ), "Empty destination invalid"
+    assert not type_checker.is_source_destination(
+        {"allowed": True, "source": {}, "destination": {}}
+    ), "Empty source and destination invalid"
+    assert not type_checker.is_source_destination(
+        {"a_key": "stuff"}
+    ), "Invalid key is invalid"
+    assert not type_checker.is_source_destination(
+        {
+            "a_key": "stuff",
+            "allowed": True,
+            "source": {"address": "123"},
+            "destination": {"address": "321"},
+        }
+    ), "Extra key is invalid"
+
+    assert not type_checker.is_source_destination(
+        {"allowed": True, "source": {"address": 123, "port": "80"}}
+    ), "Numeric address invalid"
+    assert type_checker.is_source_destination(
+        {"allowed": True, "source": {"address": "abc"}}
+    ), "Source address valid"
+    assert type_checker.is_source_destination(
+        {"allowed": True, "source": {"port": "abc"}}
+    ), "Source port valid"
+    assert type_checker.is_source_destination(
+        {"allowed": True, "source": {"address": "123.123.123.123", "port": "80"}}
+    ), "Source address and port is valid"
+    assert type_checker.is_source_destination(
+        {"allowed": True, "destination": {"address": "abc"}}
+    ), "Destination address valid"
+    assert type_checker.is_source_destination(
+        {"allowed": True, "destination": {"port": "abc"}}
+    ), "Destination port valid"
+    assert type_checker.is_source_destination(
+        {"allowed": True, "destination": {"address": "321.321.321.321", "port": "443"}}
+    ), "Destination address and port is valid"
+    assert type_checker.is_source_destination(
+        {
+            "allowed": True,
+            "source": {"address": "123.123.123.123", "port": "80"},
+            "destination": {"address": "hosts", "port": "ports"},
+        }
+    ), "Source and destination address and port is valid"
+
+
 def test_is_firewall_direction():
     """
     .
