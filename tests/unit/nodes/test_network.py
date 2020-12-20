@@ -50,7 +50,11 @@ def test_load_interfaces(monkeypatch):
         "get_folders_with_config",
         lambda folder: ["interface1/config.yaml", "interface2/config.yaml"],
     )
-    monkeypatch.setattr(file_paths, "load_yaml_from_file", lambda file_path: {})
+    monkeypatch.setattr(Network, "_load_hosts", lambda self: None)
+    # Need the direction set here for firewalls
+    monkeypatch.setattr(
+        file_paths, "load_yaml_from_file", lambda file_path: {"direction": "local"}
+    )
 
     network = Network("network", "10.0.0.0/8")
     assert "interfaces" in network._validate_attributes, "Interfaces added"
@@ -72,6 +76,7 @@ def test_load_hosts(monkeypatch):
         "get_folders_with_config",
         lambda folder: ["host1/config.yaml", "host2/config.yaml"],
     )
+    monkeypatch.setattr(Network, "_load_interfaces", lambda self: None)
     monkeypatch.setattr(file_paths, "load_yaml_from_file", lambda file_path: {})
 
     network = Network("network", "10.0.0.0/8")

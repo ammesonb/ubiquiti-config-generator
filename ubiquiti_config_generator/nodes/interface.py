@@ -78,6 +78,25 @@ class Interface(Validatable):
         """
         Check configuration for consistency
         """
+        consistent = True
+
+        for firewall_index in range(len(self.firewalls)):
+            first_firewall = self.firewalls[firewall_index]
+            matches = [
+                second_firewall
+                for second_firewall in self.firewalls[firewall_index + 1 :]
+                if first_firewall.direction == second_firewall.direction
+            ]
+            if matches:
+                self.add_validation_error(
+                    "{0} shares direction with {1}".format(
+                        str(first_firewall),
+                        ", ".join([str(firewall) for firewall in matches]),
+                    )
+                )
+                consistent = False
+
+        return consistent
 
     def validate(self) -> bool:
         """

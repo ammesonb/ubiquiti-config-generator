@@ -19,7 +19,7 @@ def test_firewall_calls_methods(monkeypatch):
         """
 
     monkeypatch.setattr(Firewall, "_add_keyword_attributes", fake_set_attrs)
-    firewall = Firewall("firewall")
+    firewall = Firewall("firewall", "in")
 
     assert firewall.name == "firewall", "Name set"
     assert fake_set_attrs.counter == 1, "Set attrs called"

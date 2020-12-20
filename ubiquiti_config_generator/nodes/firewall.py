@@ -7,6 +7,7 @@ from ubiquiti_config_generator.nodes.validatable import Validatable
 
 
 FIREWALL_TYPES = {
+    "direction": type_checker.is_firewall_direction,
     "default-action": type_checker.is_action,
     "auto-increment": type_checker.is_number,
 }
@@ -19,9 +20,10 @@ class Firewall(Validatable):
     The firewall object
     """
 
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str, direction: str, **kwargs):
         super().__init__(FIREWALL_TYPES, ["name"])
         self.name = name
+        self.direction = direction
         self._add_keyword_attributes(kwargs)
 
     def __str__(self) -> str:

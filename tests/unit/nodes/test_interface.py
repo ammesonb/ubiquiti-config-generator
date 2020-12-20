@@ -50,7 +50,9 @@ def test_load_firewalls(monkeypatch):
         "get_folders_with_config",
         lambda folder: ["firewall1/config.yaml", "firewall2/config.yaml"],
     )
-    monkeypatch.setattr(file_paths, "load_yaml_from_file", lambda file_path: {})
+    monkeypatch.setattr(
+        file_paths, "load_yaml_from_file", lambda file_path: {"direction": "in"}
+    )
 
     interface = Interface("interface", "network")
     assert "firewalls" in interface._validate_attributes, "Firewalls added"
@@ -73,7 +75,9 @@ def test_validate(monkeypatch):
         return True
 
     monkeypatch.setattr(file_paths, "get_folders_with_config", lambda folder: [])
-    interface = Interface("interface", "network", firewalls=[Firewall("firewall")],)
+    interface = Interface(
+        "interface", "network", firewalls=[Firewall("firewall", "out")],
+    )
     monkeypatch.setattr(Validatable, "validate", fake_validate)
     monkeypatch.setattr(Firewall, "validate", fake_validate)
 
@@ -88,7 +92,9 @@ def test_validation_failures(monkeypatch):
     monkeypatch.setattr(file_paths, "get_folders_with_config", lambda folder: [])
 
     interface = Interface(
-        "interface", "network", firewalls=[Firewall("firewall"), Firewall("firewall2")],
+        "interface",
+        "network",
+        firewalls=[Firewall("firewall", "out"), Firewall("firewall2", "in")],
     )
     assert interface.validation_failures() == [], "No failures added yet"
 
@@ -102,3 +108,25 @@ def test_validation_failures(monkeypatch):
         "123",
         "123",
     ], "Failures returned from interface and firewall"
+
+
+def test_is_consistent(monkeypatch):
+    """
+    .
+    """
+
+    interface = Interface(
+        "interface",
+        "network",
+        firewalls=[
+            Firewall("firewall1", "out"),
+            Firewall("firewall2", "in"),
+            Firewall("firewall3", "local"),
+            Firewall("firewall4", "in"),
+        ],
+    )
+
+    assert not interface.is_consistent(), "Interface not consistent"
+    assert interface.validation_errors() == [
+        "Firewall firewall2 shares direction with Firewall firewall4"
+    ], "Error added"

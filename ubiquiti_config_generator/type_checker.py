@@ -19,6 +19,10 @@ REJECT = "reject"
 ADDRESS = "address"
 PORT = "port"
 
+IN = "in"
+OUT = "out"
+LOCAL = "local"
+
 SPEEDS = [10, 100, 1000, 10000]
 
 
@@ -128,3 +132,10 @@ def is_address_and_or_port(value: dict) -> bool:
         and all([is_string(address) for address in value.get(ADDRESS, [])])
         and all([is_number(port) or is_string(port) for port in value.get(PORT, [])])
     )
+
+
+def is_firewall_direction(value: str) -> bool:
+    """
+    Is the firewall direction valid
+    """
+    return value in [IN, OUT, LOCAL]

@@ -118,8 +118,7 @@ class Network(Validatable):
                 self.add_validation_error("{0} not in {1}".format(str(host), str(self)))
                 consistent = False
 
-        host_count = len(self.hosts)
-        for first_host_index in range(host_count):
+        for first_host_index in range(len(self.hosts)):
             first_host = self.hosts[first_host_index]
             matched_addresses = [
                 second_host

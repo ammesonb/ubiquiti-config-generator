@@ -262,3 +262,18 @@ def test_is_address_and_or_port():
     assert type_checker.is_address_and_or_port(
         {type_checker.ADDRESS: ["123", "234"], type_checker.PORT: [80, 443, "ssh"]}
     ), "Multiple address/port combination is valid"
+
+
+def test_is_firewall_direction():
+    """
+    .
+    """
+    assert not type_checker.is_firewall_direction("abc"), "String not valid"
+    assert not type_checker.is_firewall_direction(80), "Number is not valid"
+    assert not type_checker.is_firewall_direction(["in"]), "Array is not valid"
+    assert not type_checker.is_firewall_direction(
+        {"direction": "out"}
+    ), "Dict is not valid"
+    assert type_checker.is_firewall_direction("in"), "In is direction"
+    assert type_checker.is_firewall_direction("out"), "Out is direction"
+    assert type_checker.is_firewall_direction("local"), "Local is direction"
