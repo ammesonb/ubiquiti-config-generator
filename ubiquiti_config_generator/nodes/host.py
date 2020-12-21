@@ -73,14 +73,15 @@ class Host(Validatable):
                 )
                 consistent = False
 
-        for connection in getattr(self, "allow-connections", []):
+        for connection in getattr(self, "connections", []):
             source_port = connection.get("source", {}).get("port", 0)
             if (
                 not type_checker.is_number(source_port)
                 and source_port not in port_group_names
             ):
                 self.add_validation_error(
-                    "Port Group {0} not defined for source {1} connection in {2}".format(
+                    "Source Port Group {0} not defined for "
+                    "{1} connection in {2}".format(
                         source_port,
                         "allowed" if connection["allow"] else "blocked",
                         str(self),
@@ -94,7 +95,8 @@ class Host(Validatable):
                 and destination_port not in port_group_names
             ):
                 self.add_validation_error(
-                    "Port Group {0} not defined for destination {1} connection in {2}".format(
+                    "Destination Port Group {0} not defined for "
+                    "{1} connection in {2}".format(
                         destination_port,
                         "allowed" if connection["allow"] else "blocked",
                         str(self),

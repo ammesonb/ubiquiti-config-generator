@@ -1,0 +1,24 @@
+# Contains deployment configurations
+router:
+  address:
+  user:
+  # Either password or keyfile may be specified - keyfile is preferred
+  password:
+  keyfile:
+
+# Apply only the difference in configuration, rather than the entire config file
+apply-difference-only: False
+
+git:
+  # Repository for the router config
+  repo:
+  # Branch to deploy changes from
+  # (Validations will always be against feature branches)
+  primary-branch: main
+  user:
+  keyfile:
+  # where to clone the repo - need both to ensure a consistent configuration is applied
+  # A node may be deleted from the previous config, which simply applying the updated one
+  # will not always catch
+  config-folder: ./router_config
+  diff-config-folder: ./previous_router_config
