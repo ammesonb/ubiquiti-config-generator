@@ -38,3 +38,26 @@ def test_is_consistent(monkeypatch):
     assert duplicate_group.validation_errors() == [
         str(duplicate_group) + " has duplicate ports: 10, 20"
     ], "Validation error added"
+
+
+def test_command():
+    """
+    .
+    """
+    group = PortGroup("web-ports", [80, 443])
+    group2 = PortGroup(
+        "printer-ports", [161, 515, 631, 9100], "Ports for printer connections"
+    )
+
+    assert group.commands() == [
+        "firewall group port-group web-ports port 80",
+        "firewall group port-group web-ports port 443",
+    ], "No description port group correct"
+
+    assert group2.commands() == [
+        "firewall group port-group printer-ports port 161",
+        "firewall group port-group printer-ports port 515",
+        "firewall group port-group printer-ports port 631",
+        "firewall group port-group printer-ports port 9100",
+        'firewall group port-group printer-ports description "Ports for printer connections"',
+    ], "Description port group correct"

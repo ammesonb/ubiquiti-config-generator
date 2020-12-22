@@ -1,6 +1,7 @@
 """
 Configurable global options
 """
+import shlex
 from typing import List
 
 from ubiquiti_config_generator.nodes.validatable import Validatable
@@ -40,6 +41,6 @@ class GlobalSettings(Validatable):
         Generate commands to set global settings
         """
         return [
-            setting.replace("/", " ") + " " + str(getattr(self, setting))
+            setting.replace("/", " ") + " " + shlex.quote(str(getattr(self, setting)))
             for setting in self._validate_attributes
         ]

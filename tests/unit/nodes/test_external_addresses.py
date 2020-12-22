@@ -35,3 +35,17 @@ def test_is_consistent(monkeypatch):
     assert duplicate_address.validation_errors() == [
         str(duplicate_address) + " has duplicate addresses: 10, 20"
     ], "Validation error added"
+
+
+def test_commands():
+    """
+    .
+    """
+    addresses = ExternalAddresses(["1.1.1.1", "2.2.2.2", "3.3.3.3"])
+    assert addresses.commands() == [
+        "firewall group address-group external-addresses "
+        'description "Externally-facing IP addresses"',
+        "firewall group address-group external-addresses " "address 1.1.1.1",
+        "firewall group address-group external-addresses " "address 2.2.2.2",
+        "firewall group address-group external-addresses " "address 3.3.3.3",
+    ], "Address commands correct"

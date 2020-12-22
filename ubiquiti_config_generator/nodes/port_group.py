@@ -22,10 +22,13 @@ class PortGroup(Validatable):
     Represents a named grouping of ports
     """
 
-    def __init__(self, name: str, ports: List[int] = None):
+    def __init__(self, name: str, ports: List[int] = None, description: str = None):
         super().__init__(PORT_GROUP_TYPES, ["ports"])
         self.__name = name
         self.__ports = ports or []
+        if description:
+            self._add_validate_attribute("description")
+            self.description = description
 
     def add_port(self, port: int) -> None:
         """
