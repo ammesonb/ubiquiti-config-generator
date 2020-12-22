@@ -42,3 +42,12 @@ class ExternalAddresses(Validatable):
         String version of this class
         """
         return "External address"
+
+    def commands(self) -> List[str]:
+        """
+        Commands to generate the external addresses
+        """
+        base_command = "firewall group address-group external-addresses"
+        return [base_command + ' description "Externally-facing IP addresses"'] + [
+            base_command + " address {0}".format(address) for address in self.addresses
+        ]

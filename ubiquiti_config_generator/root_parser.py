@@ -3,7 +3,7 @@ Contains the root configuration node
 """
 import ipaddress
 from os import path
-from typing import List
+from typing import List, Tuple
 
 from ubiquiti_config_generator import file_paths, secondary_configs
 from ubiquiti_config_generator.nodes import (
@@ -126,11 +126,39 @@ class RootNode:
 
         return failures
 
-    def find_changes_from(self, previous_config: "RootNode"):
+    def get_commands(self) -> Tuple[List[List[str]], List[str]]:
         """
-        Using a previous configuration, identify what has changed and
-        return a condensed summary suitable for applying the changes
+        Returns the commands to generate this configuration
+
+        First value is an ordered list of commands to run, segmented into
+        distinct portions which need to be committed in-order
+        Second value is a flat list of all commands, for comparison against
+        the previous configuration, to check for needed deletions
         """
-        # TODO: make an object capable of representing changes
-        # TODO: how do we even _get_ the previous configuration in a single run of this?
-        # TODO: then need to make commands to apply changes
+        # These 3 should just be a list of commands, since ordering won't matter
+        external_addresses = self.external_addresses.commands()
+        port_groups = []
+        for group in self.port_groups:
+            port_groups.extend(group.commands())
+        global_settings = self.global_settings.commands()
+
+        ordered_commands = [[*external_addresses, *port_groups], global_settings]
+
+        all_commands = external_addresses + port_groups + global_settings
+
+        # Group ordered network commands together, extending the list of ordered
+        # commands by all of them after they've all been created
+        network_ordered_commands = []
+        for network in self.networks:
+            ordered_commands, command_list = network.commands()
+            all_commands.extend(command_list)
+
+            for index, commands in enumerate(ordered_commands):
+                while index >= len(network_ordered_commands):
+                    network_ordered_commands.append([])
+
+                network_ordered_commands[index].extend(commands)
+
+        ordered_commands.extend(network_ordered_commands)
+
+        return (ordered_commands, all_commands)

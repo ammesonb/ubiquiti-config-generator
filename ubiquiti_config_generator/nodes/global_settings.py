@@ -1,6 +1,7 @@
 """
 Configurable global options
 """
+from typing import List
 
 from ubiquiti_config_generator.nodes.validatable import Validatable
 
@@ -33,3 +34,12 @@ class GlobalSettings(Validatable):
         """
         # Nothing to actually validate here, yet
         return True
+
+    def commands(self) -> List[str]:
+        """
+        Generate commands to set global settings
+        """
+        return [
+            setting.replace("/", " ") + " " + str(getattr(self, setting))
+            for setting in self._validate_attributes
+        ]

@@ -7,7 +7,9 @@ from ubiquiti_config_generator.nodes.validatable import Validatable
 from ubiquiti_config_generator import type_checker, utility
 
 PORT_GROUP_TYPES = {
-    "ports": lambda ports: all([type_checker.is_number(port) for port in ports])
+    "description": type_checker.is_string,
+    "ports": lambda ports: ports
+    and all([type_checker.is_number(port) for port in ports]),
 }
 
 
@@ -70,3 +72,14 @@ class PortGroup(Validatable):
         String version of this class
         """
         return "Port group " + self.name
+
+    def commands(self) -> List[str]:
+        """
+        Commands to generate the port group
+        """
+        base_command = "firewall group port-group {0}".format(self.name)
+        return [base_command + " port {0}".format(port) for port in self.ports] + (
+            [base_command + ' description "{0}"'.format(self.description)]
+            if hasattr(self, "description")
+            else []
+        )
