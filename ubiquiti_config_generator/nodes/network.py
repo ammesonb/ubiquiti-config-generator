@@ -2,7 +2,7 @@
 Contains the network node
 """
 from os import path
-from typing import List
+from typing import List, Tuple
 
 from ubiquiti_config_generator import (
     file_paths,
@@ -163,6 +163,12 @@ class Network(Validatable):
             and all([interface.validate() for interface in self.interfaces])
             and all([host.validate() for host in self.hosts])
         )
+
+    def commands(self) -> Tuple[List[List[str]], List[str]]:
+        """
+        The commands to generate this network
+        """
+        return ([], [])
 
     def __str__(self) -> str:
         """

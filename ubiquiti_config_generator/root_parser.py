@@ -150,10 +150,10 @@ class RootNode:
         # commands by all of them after they've all been created
         network_ordered_commands = []
         for network in self.networks:
-            ordered_commands, command_list = network.commands()
-            all_commands.extend(command_list)
+            net_ordered_commands, net_command_list = network.commands()
+            all_commands.extend(net_command_list)
 
-            for index, commands in enumerate(ordered_commands):
+            for index, commands in enumerate(net_ordered_commands):
                 while index >= len(network_ordered_commands):
                     network_ordered_commands.append([])
 

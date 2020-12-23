@@ -238,3 +238,76 @@ def test_network_overlap_consistency(monkeypatch):
         "{0} overlaps with {1}".format(networks[2], networks[3]),
     ], "Network 2 contains collision with 3"
     assert networks[3].validation_errors() == [], "Network 3 contains no collisions"
+
+
+def test_get_commands(monkeypatch):
+    """
+    .
+    """
+
+    @counter_wrapper
+    def get_port_group_commands(self):
+        """
+        .
+        """
+        if get_port_group_commands.counter == 1:
+            return ["group1-command"]
+        else:
+            return ["group2-command"]
+
+    @counter_wrapper
+    def get_network_commands(self):
+        """
+        .
+        """
+        if get_network_commands.counter == 1:
+            return (
+                [["network1-command", "network1-command2"], ["network1-command3"]],
+                ["network1-command", "network1-command2", "network1-command3"],
+            )
+        else:
+            return (
+                [["network2-command", "network2-command2"], ["network2-command3"]],
+                ["network2-command", "network2-command2", "network2-command3"],
+            )
+
+    monkeypatch.setattr(GlobalSettings, "commands", lambda self: ["settings-command"])
+    monkeypatch.setattr(
+        ExternalAddresses, "commands", lambda self: ["addresses-command"]
+    )
+    monkeypatch.setattr(PortGroup, "commands", get_port_group_commands)
+    monkeypatch.setattr(Network, "commands", get_network_commands)
+
+    parser = root_parser.RootNode(
+        GlobalSettings(),
+        [PortGroup("group1"), PortGroup("group2")],
+        ExternalAddresses([]),
+        [Network("network1", "1.1.1.1/24"), Network("network2", "2.2.2.2/24")],
+    )
+    commands = parser.get_commands()
+    print(commands[0])
+    print(commands[1])
+    assert len(commands) == 2, "Two entries in tuple"
+    assert commands[0] == [
+        ["addresses-command", "group1-command", "group2-command"],
+        ["settings-command"],
+        [
+            "network1-command",
+            "network1-command2",
+            "network2-command",
+            "network2-command2",
+        ],
+        ["network1-command3", "network2-command3"],
+    ], "Ordered commands correct"
+    assert commands[1] == [
+        "addresses-command",
+        "group1-command",
+        "group2-command",
+        "settings-command",
+        "network1-command",
+        "network1-command2",
+        "network1-command3",
+        "network2-command",
+        "network2-command2",
+        "network2-command3",
+    ], "Command list correct"
