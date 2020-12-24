@@ -15,6 +15,7 @@ from ubiquiti_config_generator.nodes.validatable import Validatable
 NETWORK_TYPES = {
     "name": type_checker.is_string,
     "cidr": type_checker.is_cidr,
+    "authoritative": type_checker.is_string_boolean,
     "default-router": type_checker.is_ip_address,
     "dns-server": type_checker.is_ip_address,
     "dns-servers": lambda servers: all(
@@ -168,7 +169,55 @@ class Network(Validatable):
         """
         The commands to generate this network
         """
-        return ([], [])
+        all_commands = []
+        ordered_commands = [[]]
+
+        def append_command(command: str):
+            all_commands.append(command)
+            ordered_commands[-1].append(command)
+
+        base = "service dhcp-server shared-network-name " + self.name
+        if hasattr(self, "authoritative"):
+            # pylint: disable=no-member
+            append_command(base + " authoritative " + self.authoritative)
+
+        subnet_base = base + " subnet " + self.cidr
+        for subnet_attribute in [
+            "domain-name",
+            "default-router",
+            "lease",
+            "start",
+            "dns-server",
+        ]:
+            if hasattr(self, subnet_attribute):
+                append_command(
+                    subnet_base
+                    + " {0} {1}".format(
+                        subnet_attribute, getattr(self, subnet_attribute)
+                    )
+                )
+
+        if hasattr(self, "stop"):
+            # pylint: disable=no-member
+            append_command(
+                subnet_base + " start {0} stop {1}".format(self.start, self.stop)
+            )
+
+        for server in getattr(self, "dns-servers", []):
+            append_command(subnet_base + " dns-server " + server)
+
+        for interface in self.interfaces:
+            # TODO: add interface commands
+            pass
+
+        # First, set up address groups and static mappings
+        for host in self.hosts:
+            # TODO: create address group, if needed
+            # TODO: add static mapping for host
+            # TODO: add host commands
+            pass
+
+        return (ordered_commands, all_commands)
 
     def __str__(self) -> str:
         """
