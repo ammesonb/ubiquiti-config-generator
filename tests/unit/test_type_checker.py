@@ -78,6 +78,46 @@ def test_is_cidr(monkeypatch):
     assert not type_checker.is_cidr("1.1.1.1/24"), "Subnet fail not CIDR"
 
 
+def test_is_name():
+    """
+    .
+    """
+    assert not type_checker.is_name(80), "Number is not valid"
+    assert not type_checker.is_name(["in"]), "Array is not valid"
+    assert not type_checker.is_name({"abc": "def"}), "Dictionary is not valid"
+    assert type_checker.is_name("abc"), "String is valid"
+    assert type_checker.is_name("abc123"), "String with numbers is valid"
+    assert type_checker.is_name("123host"), "String starting with numbers is valid"
+    assert type_checker.is_name("valid-host"), "Name with dashes is valid"
+    assert type_checker.is_name("valid_host"), "Host with underscores is valid"
+    assert type_checker.is_name(
+        "valid_host-new"
+    ), "Host with underscores and dash is valid"
+    assert type_checker.is_name(
+        "valid_host-new-1"
+    ), "Host with underscores, dash, and number is valid"
+
+    assert not type_checker.is_name("Invalid#"), "Hash is invalid"
+    assert not type_checker.is_name("Invalid!"), "Exclamation mark invalid"
+    assert not type_checker.is_name("Invalid@"), "At symbol invalid"
+    assert not type_checker.is_name("Invalid^"), "Caret invalid"
+    assert not type_checker.is_name("Invalid&"), "Ampersand invalid"
+    assert not type_checker.is_name("Invalid*"), "Asterisk invalid"
+    assert not type_checker.is_name("Invalid("), "Paren invalid"
+    assert not type_checker.is_name("Invalid<"), "Less than invalid"
+    assert not type_checker.is_name("Invalid."), "Period invalid"
+    assert not type_checker.is_name("Invalid,"), "Comma invalid"
+    assert not type_checker.is_name("Invalid?"), "Question mark invalid"
+    assert not type_checker.is_name("Invalid/"), "Slash invalid"
+    assert not type_checker.is_name("Invalid\\"), "Backslash invalid"
+    assert not type_checker.is_name("Invalid;"), "Semicolon invalid"
+    assert not type_checker.is_name("Invalid:"), "Colon invalid"
+    assert not type_checker.is_name("Invalid$"), "Dollar invalid"
+    assert not type_checker.is_name("Invalid%"), "Percent invalid"
+    assert not type_checker.is_name("Invalid+"), "Plus invalid"
+    assert not type_checker.is_name("Invalid="), "Equals invalid"
+
+
 def test_is_string():
     """
     .

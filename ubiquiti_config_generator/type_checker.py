@@ -63,6 +63,13 @@ def is_cidr(cidr: str) -> bool:
     return is_ip_address(address) and is_subnet_mask(mask)
 
 
+def is_name(value: str) -> bool:
+    """
+    Is the value suitable for a field name
+    """
+    return is_string(value) and bool(re.match(r"^[a-zA-Z0-9\-_]+$", value))
+
+
 def is_string(value) -> bool:
     """
     Is the value a string

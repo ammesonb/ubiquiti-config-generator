@@ -31,7 +31,7 @@ def test_initialization(monkeypatch):
 
     monkeypatch.setattr(Interface, "_add_keyword_attributes", fake_set_attrs)
     monkeypatch.setattr(Interface, "_load_firewalls", fake_load_firewalls)
-    interface = Interface("interface", "network")
+    interface = Interface("interface", ".", "network")
 
     assert interface.name == "interface", "Name set"
     assert interface.network_name == "network", "Network name set"
@@ -54,7 +54,7 @@ def test_load_firewalls(monkeypatch):
         file_paths, "load_yaml_from_file", lambda file_path: {"direction": "in"}
     )
 
-    interface = Interface("interface", "network")
+    interface = Interface("interface", ".", "network")
     assert "firewalls" in interface._validate_attributes, "Firewalls added"
     firewalls = getattr(interface, "firewalls")
     assert "firewall1" in [firewall.name for firewall in firewalls], "Firewall 1 found"
@@ -76,7 +76,7 @@ def test_validate(monkeypatch):
 
     monkeypatch.setattr(file_paths, "get_folders_with_config", lambda folder: [])
     interface = Interface(
-        "interface", "network", firewalls=[Firewall("firewall", "out")],
+        "interface", ".", "network", firewalls=[Firewall("firewall", "out")],
     )
     monkeypatch.setattr(Validatable, "validate", fake_validate)
     monkeypatch.setattr(Firewall, "validate", fake_validate)
@@ -93,6 +93,7 @@ def test_validation_failures(monkeypatch):
 
     interface = Interface(
         "interface",
+        ".",
         "network",
         firewalls=[Firewall("firewall", "out"), Firewall("firewall2", "in")],
     )
@@ -117,6 +118,7 @@ def test_is_consistent(monkeypatch):
 
     interface = Interface(
         "interface",
+        ".",
         "network",
         firewalls=[
             Firewall("firewall1", "out"),

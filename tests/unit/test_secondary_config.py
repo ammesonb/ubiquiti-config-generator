@@ -21,7 +21,7 @@ def test_get_global_settings(monkeypatch):
 
     monkeypatch.setattr(file_paths, "load_yaml_from_file", fake_load_yaml)
 
-    settings = secondary_configs.get_global_configuration()
+    settings = secondary_configs.get_global_configuration(".")
     assert isinstance(settings, GlobalSettings), "Global settings returned"
     assert fake_load_yaml.counter == 1, "Yaml loaded from file"
 
@@ -40,7 +40,7 @@ def test_get_external_addresses(monkeypatch):
 
     monkeypatch.setattr(file_paths, "load_yaml_from_file", fake_load_yaml)
 
-    addresses = secondary_configs.get_external_addresses()
+    addresses = secondary_configs.get_external_addresses(".")
     assert isinstance(addresses, ExternalAddresses), "External addresses returned"
     assert fake_load_yaml.counter == 1, "Yaml loaded from file"
 
@@ -56,7 +56,7 @@ def test_get_port_groups(monkeypatch):
         file_paths, "get_config_files", lambda folder: ["test-port-group"]
     )
 
-    groups = secondary_configs.get_port_groups()
+    groups = secondary_configs.get_port_groups(".")
     assert isinstance(groups, list), "Groups is list"
     assert isinstance(groups[0], PortGroup), "List contains port groups"
     assert groups[0].name == "test-port-group", "Port group name set"

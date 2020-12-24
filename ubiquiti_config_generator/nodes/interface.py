@@ -10,12 +10,13 @@ from ubiquiti_config_generator.nodes.validatable import Validatable
 from ubiquiti_config_generator.nodes import Firewall
 
 
+# TODO: collapse this into the network, with firewalls under that
 INTERFACE_TYPES = {
     "description": type_checker.is_string,
     "duplex": type_checker.is_duplex,
     "speed": type_checker.is_speed,
     "vif": type_checker.is_number,
-    "name": type_checker.is_string,
+    "name": type_checker.is_name,
     "network_name": type_checker.is_string,
     "firewalls": lambda firewalls: all([firewall.validate() for firewall in firewalls]),
 }
@@ -26,7 +27,7 @@ class Interface(Validatable):
     The interface node
     """
 
-    def __init__(self, name: str, network_name: str, **kwargs):
+    def __init__(self, name: str, config_path: str, network_name: str, **kwargs):
         # Address is valid if it either directly corresponds to the parent network or
         # is in itself a valid CIDR address + mask
         validator_map = copy.deepcopy(INTERFACE_TYPES)
@@ -37,6 +38,7 @@ class Interface(Validatable):
         super().__init__(validator_map, ["name, network_name"])
         self.name = name
         self.network_name = network_name
+        self.config_path = config_path
 
         self._add_keyword_attributes(kwargs)
         if "firewalls" not in kwargs:
@@ -54,6 +56,7 @@ class Interface(Validatable):
             for firewall_path in file_paths.get_folders_with_config(
                 file_paths.get_path(
                     [
+                        self.config_path,
                         file_paths.NETWORK_FOLDER,
                         self.network_name,
                         file_paths.INTERFACE_FOLDER,

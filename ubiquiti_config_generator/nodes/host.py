@@ -7,7 +7,7 @@ from ubiquiti_config_generator.nodes.validatable import Validatable
 
 
 HOST_TYPES = {
-    "name": type_checker.is_string,
+    "name": type_checker.is_name,
     "address": type_checker.is_ip_address,
     "mac": type_checker.is_mac,
     "address-groups": lambda groups: all(
@@ -43,9 +43,10 @@ class Host(Validatable):
     A host
     """
 
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str, config_path: str, **kwargs):
         super().__init__(HOST_TYPES, ["name"])
         self.name = name
+        self.config_path = config_path
         self._add_keyword_attributes(kwargs)
 
     def is_consistent(self) -> bool:
@@ -53,7 +54,7 @@ class Host(Validatable):
         Check configuration for consistency
         """
         consistent = True
-        port_groups = secondary_configs.get_port_groups()
+        port_groups = secondary_configs.get_port_groups(self.config_path)
         port_group_names = [group.name for group in port_groups]
         for port in getattr(self, "forward-ports", []):
             if not type_checker.is_number(port) and port not in port_group_names:

@@ -7,6 +7,7 @@ from ubiquiti_config_generator.nodes.validatable import Validatable
 from ubiquiti_config_generator import type_checker, utility
 
 PORT_GROUP_TYPES = {
+    "name": type_checker.is_name,
     "description": type_checker.is_string,
     "ports": lambda ports: ports
     and all([type_checker.is_number(port) for port in ports]),

@@ -19,7 +19,7 @@ def test_host_calls_methods(monkeypatch):
         """
 
     monkeypatch.setattr(Host, "_add_keyword_attributes", fake_set_attrs)
-    host = Host("host")
+    host = Host("host", ".")
 
     assert host.name == "host", "Name set"
     assert fake_set_attrs.counter == 1, "Set attrs called"
@@ -31,33 +31,34 @@ def test_is_consistent(monkeypatch):
     """
     .
     """
-    host = Host("host")
+    host = Host("host", ".")
+    monkeypatch.setattr(secondary_configs, "get_port_groups", lambda config_path: [])
     assert host.is_consistent(), "Empty host is consistent"
 
     monkeypatch.setattr(
-        secondary_configs, "get_port_groups", lambda: [PortGroup("group1")]
+        secondary_configs, "get_port_groups", lambda config_path: [PortGroup("group1")]
     )
     attrs = {"forward-ports": ["group1", "group2"]}
-    host = Host("host", **attrs)
+    host = Host("host", ".", **attrs)
     assert not host.is_consistent(), "Missing forward port group inconsistent"
     assert host.validation_errors() == [
         "Port Group group2 not defined for forwarding in Host host"
     ], "Forward port group error set"
 
     attrs = {"forward-ports": ["group1", 80]}
-    host = Host("host", **attrs)
+    host = Host("host", ".", **attrs)
     assert host.is_consistent(), "Forward port groups consistent"
     assert not host.validation_errors(), "No errors for forward port"
 
     attrs = {"hairpin-ports": ["group1", "group2"]}
-    host = Host("host", **attrs)
+    host = Host("host", ".", **attrs)
     assert not host.is_consistent(), "Missing hairpin port group inconsistent"
     assert host.validation_errors() == [
         "Port Group group2 not defined for hairpin in Host host"
     ], "Hairpin port group error set"
 
     attrs = {"hairpin-ports": ["group1", 80]}
-    host = Host("host", **attrs)
+    host = Host("host", ".", **attrs)
     assert host.is_consistent(), "Hairpin port groups consistent"
     assert not host.validation_errors(), "No errors for hairpin port"
 
@@ -90,7 +91,7 @@ def test_is_consistent(monkeypatch):
             },
         ]
     }
-    host = Host("host", **attrs)
+    host = Host("host", ".", **attrs)
     assert not host.is_consistent(), "Connections inconsistent"
     assert host.validation_errors() == [
         "Source Port Group group2 not defined for blocked connection in Host host",
@@ -99,6 +100,6 @@ def test_is_consistent(monkeypatch):
     ], "Error set for missing port group in connections"
 
     del attrs["connections"][-2:]
-    host = Host("host", **attrs)
+    host = Host("host", ".", **attrs)
     assert host.is_consistent(), "Connections are consistent"
     assert not host.validation_errors(), "No connection errors"

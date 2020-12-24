@@ -41,21 +41,22 @@ class RootNode:
         self.networks = networks
 
     @classmethod
-    def create_from_configs(cls):
+    def create_from_configs(cls, config_path: str):
         """
         Load configuration from files
         """
         return cls(
-            secondary_configs.get_global_configuration(),
-            secondary_configs.get_port_groups(),
-            secondary_configs.get_external_addresses(),
+            secondary_configs.get_global_configuration(config_path),
+            secondary_configs.get_port_groups(config_path),
+            secondary_configs.get_external_addresses(config_path),
             [
                 Network(
-                    name=network_folder.split(path.sep)[-2],
+                    network_folder.split(path.sep)[-2],
+                    config_path,
                     **(file_paths.load_yaml_from_file(network_folder))
                 )
                 for network_folder in file_paths.get_folders_with_config(
-                    file_paths.NETWORK_FOLDER
+                    [config_path, file_paths.NETWORK_FOLDER]
                 )
             ],
         )

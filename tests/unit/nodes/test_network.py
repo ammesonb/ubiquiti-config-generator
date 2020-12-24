@@ -31,7 +31,7 @@ def test_initialization(monkeypatch):
 
     monkeypatch.setattr(Network, "_add_keyword_attributes", fake_set_attrs)
     monkeypatch.setattr(Network, "_load_interfaces", fake_load_interfaces)
-    network = Network("network", "10.0.0.0/8")
+    network = Network("network", ".", "10.0.0.0/8")
 
     assert network.name == "network", "Name set"
     assert network.cidr == "10.0.0.0/8", "CIDR set"
@@ -56,7 +56,7 @@ def test_load_interfaces(monkeypatch):
         file_paths, "load_yaml_from_file", lambda file_path: {"direction": "local"}
     )
 
-    network = Network("network", "10.0.0.0/8")
+    network = Network("network", ".", "10.0.0.0/8")
     assert "interfaces" in network._validate_attributes, "Interfaces added"
     interfaces = getattr(network, "interfaces")
     assert "interface1" in [
@@ -79,7 +79,7 @@ def test_load_hosts(monkeypatch):
     monkeypatch.setattr(Network, "_load_interfaces", lambda self: None)
     monkeypatch.setattr(file_paths, "load_yaml_from_file", lambda file_path: {})
 
-    network = Network("network", "10.0.0.0/8")
+    network = Network("network", ".", "10.0.0.0/8")
     assert "hosts" in network._validate_attributes, "Hosts added"
     hosts = getattr(network, "hosts")
     assert "host1" in [host.name for host in hosts], "Host 1 found"
@@ -102,9 +102,10 @@ def test_validate(monkeypatch):
     monkeypatch.setattr(file_paths, "get_folders_with_config", lambda folder: [])
     network = Network(
         "network",
+        ".",
         "1.1.1.1/24",
-        interfaces=[Interface("interface", "network")],
-        hosts=[Host("host")],
+        interfaces=[Interface("interface", ".", "network")],
+        hosts=[Host("host", ".")],
     )
     monkeypatch.setattr(Validatable, "validate", fake_validate)
     monkeypatch.setattr(Interface, "validate", fake_validate)
@@ -122,9 +123,10 @@ def test_validation_failures(monkeypatch):
 
     network = Network(
         "network",
+        ".",
         "1.1.1.1/24",
-        interfaces=[Interface("interface", "network")],
-        hosts=[Host("host"), Host("host2")],
+        interfaces=[Interface("interface", ".", "network")],
+        hosts=[Host("host", "."), Host("host2", ".")],
     )
     assert network.validation_failures() == [], "No failures added yet"
 
@@ -163,13 +165,13 @@ def test_is_consistent(monkeypatch):
     monkeypatch.setattr(Host, "is_consistent", fake_host_consistent)
     monkeypatch.setattr(Interface, "is_consistent", fake_interface_consistent)
 
-    host1 = Host("test", address="11.0.0.1", mac="ab:cd:ef")
-    host2 = Host("test2", address="10.0.0.1", mac="ab:cd:ef")
-    host3 = Host("test3", address="11.0.0.1", mac="ab:cd:12")
-    host4 = Host("test4", address="10.0.0.2", mac="12:34:56")
+    host1 = Host("test", ".", address="11.0.0.1", mac="ab:cd:ef")
+    host2 = Host("test2", ".", address="10.0.0.1", mac="ab:cd:ef")
+    host3 = Host("test3", ".", address="11.0.0.1", mac="ab:cd:12")
+    host4 = Host("test4", ".", address="10.0.0.2", mac="12:34:56")
 
-    interface1 = Interface("interface", "network")
-    interface2 = Interface("interface2", "network")
+    interface1 = Interface("interface", ".", "network")
+    interface2 = Interface("interface2", ".", "network")
 
     network_properties = {
         "interfaces": [interface1, interface2],
@@ -178,7 +180,7 @@ def test_is_consistent(monkeypatch):
         "start": "10.10.0.100",
         "stop": "10.10.0.255",
     }
-    network = Network("network", "10.0.0.0/24", **network_properties)
+    network = Network("network", ".", "10.0.0.0/24", **network_properties)
 
     assert not network.is_consistent(), "Network is not consistent"
     assert network.validation_errors() == [
@@ -201,6 +203,6 @@ def test_is_consistent(monkeypatch):
         "start": "10.0.0.100",
         "stop": "10.0.0.255",
     }
-    network = Network("network", "10.0.0.0/24", **network_properties)
+    network = Network("network", ".", "10.0.0.0/24", **network_properties)
     assert network.is_consistent(), "Network should be consistent"
     assert not network.validation_errors(), "No validation errors present"

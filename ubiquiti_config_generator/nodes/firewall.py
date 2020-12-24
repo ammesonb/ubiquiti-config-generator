@@ -7,6 +7,7 @@ from ubiquiti_config_generator.nodes.validatable import Validatable
 
 
 FIREWALL_TYPES = {
+    "name": type_checker.is_name,
     "direction": type_checker.is_firewall_direction,
     "default-action": type_checker.is_action,
     "auto-increment": type_checker.is_number,

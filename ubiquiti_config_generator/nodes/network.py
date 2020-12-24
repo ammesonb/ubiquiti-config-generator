@@ -13,7 +13,7 @@ from ubiquiti_config_generator.nodes import Interface, Host
 from ubiquiti_config_generator.nodes.validatable import Validatable
 
 NETWORK_TYPES = {
-    "name": type_checker.is_string,
+    "name": type_checker.is_name,
     "cidr": type_checker.is_cidr,
     "authoritative": type_checker.is_string_boolean,
     "default-router": type_checker.is_ip_address,
@@ -37,10 +37,11 @@ class Network(Validatable):
     A network to be created
     """
 
-    def __init__(self, name: str, cidr: str, **kwargs):
+    def __init__(self, name: str, config_path: str, cidr: str, **kwargs):
         super().__init__(NETWORK_TYPES, ["name", "cidr"])
         self.name = name
         self.cidr = cidr
+        self.config_path = config_path
         self._add_keyword_attributes(kwargs)
 
         if "interfaces" not in kwargs:
@@ -55,12 +56,18 @@ class Network(Validatable):
         self.interfaces = [
             Interface(
                 interface_path.split(path.sep)[-2],
+                self.config_path,
                 self.name,
                 **(file_paths.load_yaml_from_file(interface_path))
             )
             for interface_path in file_paths.get_folders_with_config(
                 file_paths.get_path(
-                    [file_paths.NETWORK_FOLDER, self.name, file_paths.INTERFACE_FOLDER]
+                    [
+                        self.config_path,
+                        file_paths.NETWORK_FOLDER,
+                        self.name,
+                        file_paths.INTERFACE_FOLDER,
+                    ]
                 )
             )
         ]
@@ -73,11 +80,12 @@ class Network(Validatable):
         self.hosts = [
             Host(
                 host_path.split(path.sep)[-2],
+                self.config_path,
                 **(file_paths.load_yaml_from_file(host_path))
             )
             for host_path in file_paths.get_folders_with_config(
                 file_paths.get_path(
-                    [file_paths.NETWORK_FOLDER, self.name, file_paths.HOSTS_FOLDER]
+                    [self.config_path, self.name, file_paths.HOSTS_FOLDER]
                 )
             )
         ]
@@ -207,15 +215,32 @@ class Network(Validatable):
             append_command(subnet_base + " dns-server " + server)
 
         for interface in self.interfaces:
-            # TODO: add interface commands
-            pass
+            interface_commands, interface_command_list = interface.commands()
+            all_commands.extend(interface_command_list)
+            for commands in interface_commands:
+                ordered_commands.extend(commands)
 
+        mapping_base = subnet_base + " static-mapping "
         # First, set up address groups and static mappings
         for host in self.hosts:
-            # TODO: create address group, if needed
-            # TODO: add static mapping for host
-            # TODO: add host commands
-            pass
+            commands = []
+            for group in getattr(host, "address-groups", []):
+                commands.append(
+                    "firewall group address-group {0} address {1}".format(
+                        group, host.address
+                    )
+                )
+
+            commands.extend(
+                [
+                    mapping_base + "{0} ip-address {1}".format(host.name, host.address),
+                    mapping_base + "{0} mac-address {1}".format(host.name, host.mac),
+                ]
+            )
+            host_commands, host_command_list = host.commands()
+
+            ordered_commands.extend([commands, *host_commands])
+            all_commands.extend([*commands, *host_command_list])
 
         return (ordered_commands, all_commands)
 
