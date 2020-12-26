@@ -13,7 +13,6 @@ PORT_GROUPS_FOLDER = "port-groups"
 
 NETWORK_FOLDER = "networks"
 CONFIG_FILE_NAME = "config.yaml"
-INTERFACE_FOLDER = "interfaces"
 HOSTS_FOLDER = "hosts"
 FIREWALL_FOLDER = "firewall"
 

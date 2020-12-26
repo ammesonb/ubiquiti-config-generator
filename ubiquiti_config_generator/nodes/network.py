@@ -9,7 +9,7 @@ from ubiquiti_config_generator import (
     type_checker,
     utility,
 )
-from ubiquiti_config_generator.nodes import Interface, Host
+from ubiquiti_config_generator.nodes import Firewall, Host
 from ubiquiti_config_generator.nodes.validatable import Validatable
 
 NETWORK_TYPES = {
@@ -25,9 +25,13 @@ NETWORK_TYPES = {
     "lease": type_checker.is_number,
     "start": type_checker.is_ip_address,
     "stop": type_checker.is_ip_address,
-    "interfaces": lambda interfaces: all(
-        [interface.validate() for interface in interfaces]
-    ),
+    # Interface properties
+    "interface_name": type_checker.is_name,
+    "interface_description": type_checker.is_string,
+    "duplex": type_checker.is_duplex,
+    "speed": type_checker.is_speed,
+    "vif": type_checker.is_number,
+    "firewalls": lambda firewalls: all([firewall.validate() for firewall in firewalls]),
     "hosts": lambda hosts: all([host.validate() for host in hosts]),
 }
 
@@ -44,34 +48,32 @@ class Network(Validatable):
         self.config_path = config_path
         self._add_keyword_attributes(kwargs)
 
-        if "interfaces" not in kwargs:
-            self._load_interfaces()
+        if "firewalls" not in kwargs:
+            self._load_firewalls()
         if "hosts" not in kwargs:
             self._load_hosts()
 
-    def _load_interfaces(self) -> None:
+    def _load_firewalls(self) -> None:
         """
-        Load interfaces for this network
+        Load firewalls for this network
         """
-        self.interfaces = [
-            Interface(
-                interface_path.split(path.sep)[-2],
-                self.config_path,
-                self.name,
-                **(file_paths.load_yaml_from_file(interface_path))
+        self.firewalls = [
+            Firewall(
+                firewall_path.split(path.sep)[-2],
+                **(file_paths.load_yaml_from_file(firewall_path))
             )
-            for interface_path in file_paths.get_folders_with_config(
+            for firewall_path in file_paths.get_folders_with_config(
                 file_paths.get_path(
                     [
                         self.config_path,
                         file_paths.NETWORK_FOLDER,
                         self.name,
-                        file_paths.INTERFACE_FOLDER,
+                        file_paths.FIREWALL_FOLDER,
                     ]
                 )
             )
         ]
-        self._add_validate_attribute("interfaces")
+        self._add_validate_attribute("firewalls")
 
     def _load_hosts(self) -> None:
         """
@@ -96,8 +98,8 @@ class Network(Validatable):
         Get all validation failures
         """
         failures = self.validation_errors()
-        for interface in self.interfaces:
-            failures.extend(interface.validation_failures())
+        for firewall in self.firewalls:
+            failures.extend(firewall.validation_errors())
         for host in self.hosts:
             failures.extend(host.validation_errors())
         return failures
@@ -157,11 +159,8 @@ class Network(Validatable):
                 )
                 consistent = False
 
-        interfaces_consistent = [
-            interface.is_consistent() for interface in self.interfaces
-        ]
         hosts_consistent = [host.is_consistent() for host in self.hosts]
-        return consistent and all(interfaces_consistent) and all(hosts_consistent)
+        return consistent and all(hosts_consistent)
 
     def validate(self) -> bool:
         """
@@ -169,7 +168,7 @@ class Network(Validatable):
         """
         return (
             super().validate()
-            and all([interface.validate() for interface in self.interfaces])
+            and all([firewall.validate() for firewall in self.firewalls])
             and all([host.validate() for host in self.hosts])
         )
 
@@ -214,10 +213,10 @@ class Network(Validatable):
         for server in getattr(self, "dns-servers", []):
             append_command(subnet_base + " dns-server " + server)
 
-        for interface in self.interfaces:
-            interface_commands, interface_command_list = interface.commands()
-            all_commands.extend(interface_command_list)
-            for commands in interface_commands:
+        for firewall in self.firewalls:
+            firewall_commands, firewall_command_list = firewall.commands()
+            all_commands.extend(firewall_command_list)
+            for commands in firewall_commands:
                 ordered_commands.extend(commands)
 
         mapping_base = subnet_base + " static-mapping "

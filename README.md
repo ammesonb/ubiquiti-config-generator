@@ -33,8 +33,8 @@ First, there are a few auxiliary schemas to call out up front:
 The bulk of the configuration follows.
 - A network is the parent node, which defines a subnet (and any other dhcp server options).
     - Currently only ONE subnet per network is supported, but it should be fairly trivial to extend the YAML to allow for subnets to be a list
-- Underneath that lies an interface, which maps to a physical interface, an address, and any number of virtual interfaces recursively.
-- Firewalls belong to interfaces, and have directions, default actions, and how many numbers to automatically increment.
+    - Interface details are rolled up to be include in the network
+- Firewalls belong to the network, and have directions, default actions, and how of a gap to leave when creating rule numbers (e.g. 10, 20, 30, ...).
     - Firewall rules will be automatically created based on host configurations.
 - A host belongs to a network (not an interface, since interfaces _also_ map to networks), and has many of the properties you would expect for the address/firewall mappings you would expect.
     - Hosts are more complex, so will be better-documented in the next section
