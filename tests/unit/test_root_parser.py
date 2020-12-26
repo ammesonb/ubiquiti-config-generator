@@ -121,7 +121,7 @@ def test_validate(monkeypatch):
         GlobalSettings(),
         [PortGroup("group")],
         ExternalAddresses([]),
-        [Network("Network", ".", "1.1.1.1/24")],
+        [Network("Network", ".", "1.1.1.1/24", "eth0")],
     )
     assert node.is_valid(), "Node is valid"
     assert fake_validate.counter == 4, "All things validated"
@@ -149,7 +149,7 @@ def test_validation_failures(monkeypatch):
         GlobalSettings(),
         [PortGroup("group")],
         ExternalAddresses([]),
-        [Network("Network", ".", "1.1.1.1/24")],
+        [Network("Network", ".", "1.1.1.1/24", "eth0")],
     )
     result = node.validation_failures()
     print(result)
@@ -180,7 +180,7 @@ def test_consistency_checks_called(monkeypatch):
         GlobalSettings(),
         [PortGroup("Ports", [80])],
         ExternalAddresses(["1.1.1.1"]),
-        [Network("Network", ".", "10.0.0.0/24")],
+        [Network("Network", ".", "10.0.0.0/24", "etho0")],
     )
 
     assert root.is_consistent(), "Node is consistent"
@@ -201,9 +201,9 @@ def test_network_overlap_consistency(monkeypatch):
         [PortGroup("Ports", [80])],
         ExternalAddresses(["1.1.1.1"]),
         [
-            Network("Network 1", ".", "10.0.0.0/24"),
-            Network("Network 2", ".", "10.0.1.0/24"),
-            Network("Network 3", ".", "10.0.2.0/24"),
+            Network("Network 1", ".", "10.0.0.0/24", "eth0"),
+            Network("Network 2", ".", "10.0.1.0/24", "eth0"),
+            Network("Network 3", ".", "10.0.2.0/24", "eth0"),
         ],
     )
 
@@ -215,13 +215,13 @@ def test_network_overlap_consistency(monkeypatch):
         ExternalAddresses(["1.1.1.1"]),
         [
             # First network contains all the others
-            Network("Network 1", ".", "10.0.0.0/22"),
+            Network("Network 1", ".", "10.0.0.0/22", "eth0"),
             # This network has no collisions inside it
-            Network("Network 2", ".", "10.0.1.0/24"),
+            Network("Network 2", ".", "10.0.1.0/24", "eth0"),
             # This network collides with the next
-            Network("Network 2", ".", "10.0.2.0/23"),
+            Network("Network 2", ".", "10.0.2.0/23", "eth0"),
             # This network has no collisions inside it
-            Network("Network 3", ".", "10.0.2.0/24"),
+            Network("Network 3", ".", "10.0.2.0/24", "eth0"),
         ],
     )
 
@@ -283,8 +283,8 @@ def test_get_commands(monkeypatch):
         [PortGroup("group1"), PortGroup("group2")],
         ExternalAddresses([]),
         [
-            Network("network1", ".", "1.1.1.1/24"),
-            Network("network2", ".", "2.2.2.2/24"),
+            Network("network1", ".", "1.1.1.1/24", "eth0"),
+            Network("network2", ".", "2.2.2.2/24", "eth0"),
         ],
     )
     commands = parser.get_commands()

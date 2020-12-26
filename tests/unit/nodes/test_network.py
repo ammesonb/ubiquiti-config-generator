@@ -31,7 +31,7 @@ def test_initialization(monkeypatch):
 
     monkeypatch.setattr(Network, "_add_keyword_attributes", fake_set_attrs)
     monkeypatch.setattr(Network, "_load_firewalls", fake_load_firewalls)
-    network = Network("network", ".", "10.0.0.0/8")
+    network = Network("network", ".", "10.0.0.0/8", "eth0")
 
     assert network.name == "network", "Name set"
     assert network.cidr == "10.0.0.0/8", "CIDR set"
@@ -56,7 +56,7 @@ def test_load_firewalls(monkeypatch):
         file_paths, "load_yaml_from_file", lambda file_path: {"direction": "local"}
     )
 
-    network = Network("network", ".", "10.0.0.0/8")
+    network = Network("network", ".", "10.0.0.0/8", "eth0")
     assert "firewalls" in network._validate_attributes, "firewalls added"
     firewalls = getattr(network, "firewalls")
     assert "firewall1" in [firewall.name for firewall in firewalls], "firewall 1 found"
@@ -75,7 +75,7 @@ def test_load_hosts(monkeypatch):
     monkeypatch.setattr(Network, "_load_firewalls", lambda self: None)
     monkeypatch.setattr(file_paths, "load_yaml_from_file", lambda file_path: {})
 
-    network = Network("network", ".", "10.0.0.0/8")
+    network = Network("network", ".", "10.0.0.0/8", "eth0")
     assert "hosts" in network._validate_attributes, "Hosts added"
     hosts = getattr(network, "hosts")
     assert "host1" in [host.name for host in hosts], "Host 1 found"
@@ -100,6 +100,7 @@ def test_validate(monkeypatch):
         "network",
         ".",
         "1.1.1.1/24",
+        "eth0",
         firewalls=[Firewall("firewall", "local")],
         hosts=[Host("host", ".")],
     )
@@ -121,6 +122,7 @@ def test_validation_failures(monkeypatch):
         "network",
         ".",
         "1.1.1.1/24",
+        "eth0",
         firewalls=[Firewall("firewall", "in")],
         hosts=[Host("host", "."), Host("host2", ".")],
     )
@@ -167,6 +169,7 @@ def test_is_consistent(monkeypatch):
         "default-router": "192.168.0.1",
         "start": "10.10.0.100",
         "stop": "10.10.0.255",
+        "interface_name": "eth0",
     }
     network = Network("network", ".", "10.0.0.0/24", **network_properties)
 
@@ -189,6 +192,7 @@ def test_is_consistent(monkeypatch):
         "default-router": "10.0.0.1",
         "start": "10.0.0.100",
         "stop": "10.0.0.255",
+        "interface_name": "eth0",
     }
     network = Network("network", ".", "10.0.0.0/24", **network_properties)
     assert network.is_consistent(), "Network should be consistent"

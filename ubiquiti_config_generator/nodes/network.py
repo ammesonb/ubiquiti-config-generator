@@ -16,6 +16,7 @@ NETWORK_TYPES = {
     "name": type_checker.is_name,
     "cidr": type_checker.is_cidr,
     "authoritative": type_checker.is_string_boolean,
+    # If not set, use DHCP for the interface
     "default-router": type_checker.is_ip_address,
     "dns-server": type_checker.is_ip_address,
     "dns-servers": lambda servers: all(
@@ -41,11 +42,14 @@ class Network(Validatable):
     A network to be created
     """
 
-    def __init__(self, name: str, config_path: str, cidr: str, **kwargs):
+    def __init__(
+        self, name: str, config_path: str, cidr: str, interface_name: str, **kwargs
+    ):
         super().__init__(NETWORK_TYPES, ["name", "cidr"])
         self.name = name
         self.cidr = cidr
         self.config_path = config_path
+        self.interface_name = interface_name
         self._add_keyword_attributes(kwargs)
 
         if "firewalls" not in kwargs:
@@ -188,6 +192,7 @@ class Network(Validatable):
             # pylint: disable=no-member
             append_command(base + " authoritative " + self.authoritative)
 
+        # First set up basic properties of the subnet
         subnet_base = base + " subnet " + self.cidr
         for subnet_attribute in [
             "domain-name",
@@ -204,23 +209,62 @@ class Network(Validatable):
                     )
                 )
 
+        # Set DHCP stop range
         if hasattr(self, "stop"):
             # pylint: disable=no-member
             append_command(
                 subnet_base + " start {0} stop {1}".format(self.start, self.stop)
             )
 
+        # Set DNS servers
         for server in getattr(self, "dns-servers", []):
             append_command(subnet_base + " dns-server " + server)
 
+        # Then add interface attributes
+        interface_base = "interfaces ethernet {0}".format(self.interface_name)
+        for interface_attribute in ["duplex", "speed"]:
+            if hasattr(self, interface_attribute):
+                append_command(
+                    interface_base
+                    + " {0} {1}".format(
+                        interface_attribute, getattr(self, interface_attribute)
+                    )
+                )
+
+        # If there is a VIF on the interface, mark as carrier
+        if hasattr(self, "vif"):
+            append_command(interface_base + " description CARRIER")
+
+        # Address/description should be set on the VIF if there is one
+        address_base = (
+            interface_base + " vif {0}".format(self.vif) if hasattr(self, "vif") else ""
+        )
+        if hasattr(self, "default-router"):
+            append_command(
+                address_base
+                + " address "
+                + getattr(self, "default-router")
+                + "/"
+                + str(self.cidr.split("/")[1])
+            )
+        else:
+            append_command(address_base + " address dhcp")
+
+        if hasattr(self, "interface_description"):
+            append_command(
+                address_base + " description {0}" + self.interface_description
+            )
+
+        # Get firewall commands and add them
         for firewall in self.firewalls:
             firewall_commands, firewall_command_list = firewall.commands()
             all_commands.extend(firewall_command_list)
             for commands in firewall_commands:
                 ordered_commands.extend(commands)
 
+        # Add address groups and static mappings for hosts
+        # Plus the commands for the host itself
         mapping_base = subnet_base + " static-mapping "
-        # First, set up address groups and static mappings
         for host in self.hosts:
             commands = []
             for group in getattr(host, "address-groups", []):
