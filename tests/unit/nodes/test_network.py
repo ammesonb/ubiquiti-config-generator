@@ -241,6 +241,48 @@ def test_interface_commands():
     """
     .
     """
+    network_properties = {
+        "hosts": [],
+        "firewalls": [],
+        "interface_description": "desc",
+        "duplex": "auto",
+        "speed": "auto",
+    }
+    network = Network("network1", ".", "192.168.0.0/24", "eth0", **network_properties)
+    ordered_commands, command_list = network.commands()
+
+    interface_base = "interfaces ethernet eth0 "
+    assert len(ordered_commands) == 1, "No nested commands for interfaces"
+    assert command_list == [
+        interface_base + "duplex auto",
+        interface_base + "speed auto",
+        interface_base + "address dhcp",
+        interface_base + "description 'desc'",
+    ], "Command list for non-VIF interface correct"
+
+    network_properties = {
+        "hosts": [],
+        "firewalls": [],
+        "interface_description": "VLAN 123",
+        "default-router": "192.168.0.1",
+        "duplex": "half",
+        "speed": 100,
+        "vif": "123",
+    }
+    network = Network("network1", ".", "192.168.0.0/24", "eth0", **network_properties)
+    ordered_commands, command_list = network.commands()
+
+    interface_base = "interfaces ethernet eth0 "
+    assert len(ordered_commands) == 1, "No nested commands for interfaces"
+    assert command_list == [
+        "service dhcp-server shared-network-name network1 subnet 192.168.0.0/24 "
+        "default-router 192.168.0.1",
+        interface_base + "duplex half",
+        interface_base + "speed 100",
+        interface_base + "description 'CARRIER'",
+        interface_base + "vif 123 address 192.168.0.1/24",
+        interface_base + "vif 123 description 'VLAN 123'",
+    ], "Command list for VIF interface correct"
 
 
 def test_command_ordering():

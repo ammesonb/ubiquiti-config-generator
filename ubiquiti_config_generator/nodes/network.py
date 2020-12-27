@@ -2,6 +2,7 @@
 Contains the network node
 """
 from os import path
+import shlex
 from typing import List, Tuple
 
 from ubiquiti_config_generator import (
@@ -233,7 +234,7 @@ class Network(Validatable):
 
         # If there is a VIF on the interface, mark as carrier
         if hasattr(self, "vif"):
-            append_command(interface_base + " description CARRIER")
+            append_command(interface_base + " description 'CARRIER'")
 
         # Address/description should be set on the VIF if there is one
         address_base = interface_base + (
@@ -251,10 +252,13 @@ class Network(Validatable):
             append_command(address_base + " address dhcp")
 
         if hasattr(self, "interface_description"):
-            append_command(
-                address_base + " description {0}" + self.interface_description
-            )
+            description = shlex.quote(self.interface_description)
+            if description[0] not in ['"', "'"]:
+                description = "'{0}'".format(description)
 
+            append_command(address_base + " description " + description)
+
+        # TODO: firewalls need to be applied to the interfaces
         # Get firewall commands and add them
         for firewall in self.firewalls:
             firewall_commands, firewall_command_list = firewall.commands()
@@ -266,24 +270,30 @@ class Network(Validatable):
         # Plus the commands for the host itself
         mapping_base = subnet_base + " static-mapping "
         for host in self.hosts:
-            commands = []
+            host_commands, host_command_list = host.commands()
+
+            static_commands = [
+                mapping_base + "{0} ip-address {1}".format(host.name, host.address),
+                mapping_base + "{0} mac-address {1}".format(host.name, host.mac),
+            ]
+
             for group in getattr(host, "address-groups", []):
-                commands.append(
+                static_commands.append(
                     "firewall group address-group {0} address {1}".format(
                         group, host.address
                     )
                 )
 
-            commands.extend(
-                [
-                    mapping_base + "{0} ip-address {1}".format(host.name, host.address),
-                    mapping_base + "{0} mac-address {1}".format(host.name, host.mac),
-                ]
-            )
-            host_commands, host_command_list = host.commands()
+            # Add the static mapping commands to the beginning of the ordered list
+            host_commands.insert(0, [])
+            host_commands[0].extend(static_commands)
+            # Set the flat list to have the static commands at the front of it
+            host_command_list = [*static_commands, *host_command_list]
 
-            ordered_commands.extend([commands, *host_commands])
-            all_commands.extend([*commands, *host_command_list])
+            for commands in host_commands:
+                ordered_commands.extend(commands)
+
+            all_commands.extend(host_command_list)
 
         return (ordered_commands, all_commands)
 
