@@ -197,3 +197,53 @@ def test_is_consistent(monkeypatch):
     network = Network("network", ".", "10.0.0.0/24", **network_properties)
     assert network.is_consistent(), "Network should be consistent"
     assert not network.validation_errors(), "No validation errors present"
+
+
+def test_network_commands():
+    """
+    .
+    """
+    network_properties = {
+        "authoritative": "disable",
+        "domain-name": "test.domain",
+        "default-router": "192.168.0.1",
+        "lease": 86400,
+        "start": "192.168.0.100",
+        "stop": "192.168.0.254",
+        "dns-server": "192.168.0.1",
+        "dns-servers": ["8.8.8.8", "8.8.4.4"],
+        "hosts": [],
+        "firewalls": [],
+    }
+    network = Network("network1", ".", "192.168.0.0/24", "eth0", **network_properties)
+    ordered_commands, command_list = network.commands()
+
+    base = "service dhcp-server shared-network-name network1 "
+    subnet_base = base + "subnet 192.168.0.0/24 "
+
+    assert len(ordered_commands) == 1, "Only one set of commands generated"
+    assert command_list == [
+        base + "authoritative disable",
+        subnet_base + "domain-name test.domain",
+        subnet_base + "default-router 192.168.0.1",
+        subnet_base + "lease 86400",
+        subnet_base + "start 192.168.0.100",
+        subnet_base + "dns-server 192.168.0.1",
+        subnet_base + "start 192.168.0.100 stop 192.168.0.254",
+        subnet_base + "dns-server 8.8.8.8",
+        subnet_base + "dns-server 8.8.4.4",
+        # This is auto-generated so must be included
+        "interfaces ethernet eth0 address 192.168.0.1/24",
+    ], "Correct commands generated"
+
+
+def test_interface_commands():
+    """
+    .
+    """
+
+
+def test_command_ordering():
+    """
+    .
+    """

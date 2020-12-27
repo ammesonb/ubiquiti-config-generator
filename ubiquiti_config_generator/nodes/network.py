@@ -236,8 +236,8 @@ class Network(Validatable):
             append_command(interface_base + " description CARRIER")
 
         # Address/description should be set on the VIF if there is one
-        address_base = (
-            interface_base + " vif {0}".format(self.vif) if hasattr(self, "vif") else ""
+        address_base = interface_base + (
+            " vif {0}".format(self.vif) if hasattr(self, "vif") else ""
         )
         if hasattr(self, "default-router"):
             append_command(
