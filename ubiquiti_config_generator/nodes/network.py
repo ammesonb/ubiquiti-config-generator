@@ -260,14 +260,22 @@ class Network(Validatable):
 
         # TODO: firewalls need to be applied to the interfaces
         # Get firewall commands and add them
+        ordered_firewall_commands = []
         for firewall in self.firewalls:
             firewall_commands, firewall_command_list = firewall.commands()
             all_commands.extend(firewall_command_list)
+            command_index = 0
             for commands in firewall_commands:
-                ordered_commands.extend(commands)
+                while len(ordered_firewall_commands) <= command_index:
+                    ordered_firewall_commands.append([])
+                ordered_firewall_commands[command_index].extend(commands)
+                command_index += 1
+
+        ordered_commands.extend(ordered_firewall_commands)
 
         # Add address groups and static mappings for hosts
         # Plus the commands for the host itself
+        ordered_host_commands = []
         mapping_base = subnet_base + " static-mapping "
         for host in self.hosts:
             host_commands, host_command_list = host.commands()
@@ -290,10 +298,16 @@ class Network(Validatable):
             # Set the flat list to have the static commands at the front of it
             host_command_list = [*static_commands, *host_command_list]
 
+            command_index = 0
             for commands in host_commands:
-                ordered_commands.extend(commands)
+                while len(ordered_host_commands) <= command_index:
+                    ordered_host_commands.append([])
+                ordered_host_commands[command_index].extend(commands)
+                command_index += 1
 
             all_commands.extend(host_command_list)
+
+        ordered_commands.extend(ordered_host_commands)
 
         return (ordered_commands, all_commands)
 

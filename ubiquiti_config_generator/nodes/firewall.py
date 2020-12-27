@@ -1,6 +1,7 @@
 """
 A firewall node
 """
+from typing import Tuple, List
 
 from ubiquiti_config_generator import type_checker
 from ubiquiti_config_generator.nodes.validatable import Validatable
@@ -32,3 +33,9 @@ class Firewall(Validatable):
         String version of this class
         """
         return "Firewall " + self.name
+
+    def commands(self) -> Tuple[List[List[str]], List[str]]:
+        """
+        Commands to create this firewall
+        """
+        pass

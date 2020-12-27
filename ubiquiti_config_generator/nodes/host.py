@@ -1,6 +1,7 @@
 """
 Contains the host node
 """
+from typing import Tuple, List
 
 from ubiquiti_config_generator import secondary_configs, type_checker
 from ubiquiti_config_generator.nodes.validatable import Validatable
@@ -112,3 +113,8 @@ class Host(Validatable):
         String version of this class
         """
         return "Host " + self.name
+
+    def commands(self) -> Tuple[List[List[str]], List[str]]:
+        """
+        Generates commands to create this host
+        """

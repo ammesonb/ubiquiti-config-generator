@@ -285,7 +285,118 @@ def test_interface_commands():
     ], "Command list for VIF interface correct"
 
 
-def test_command_ordering():
+def test_command_ordering(monkeypatch):
     """
     .
     """
+
+    @counter_wrapper
+    def get_firewall_commands(self):
+        """
+        .
+        """
+        if get_firewall_commands.counter == 1:
+            return (
+                [["firewall1-command"], ["firewall1-command2"]],
+                ["firewall1-command", "firewall1-command2"],
+            )
+        else:
+            return (
+                [["firewall2-command", "firewall2-command2"], ["firewall2-command3"]],
+                ["firewall2-command", "firewall2-command2", "firewall2-command3"],
+            )
+
+    @counter_wrapper
+    def get_host_commands(self):
+        """
+        .
+        """
+        if get_host_commands.counter == 1:
+            return (
+                [
+                    ["host1-command", "host1-command2"],
+                    ["host1-command3"],
+                    ["host1-command4"],
+                ],
+                ["host1-command", "host1-command2", "host1-command3", "host1-command4"],
+            )
+        else:
+            return (
+                [["host2-command", "host2-command2"], ["host2-command3"]],
+                ["host2-command", "host2-command2", "host2-command3"],
+            )
+
+    monkeypatch.setattr(Firewall, "commands", get_firewall_commands)
+    monkeypatch.setattr(Host, "commands", get_host_commands)
+
+    network_properties = {
+        "domain-name": "test.domain",
+        "default-router": "192.168.0.1",
+        "lease": 86400,
+        "start": "192.168.0.100",
+        "stop": "192.168.0.254",
+        "interface_description": "the interface",
+        "hosts": [
+            Host("host1", ".", mac="abc", address="123"),
+            Host("host2", ".", mac="def", address="234"),
+        ],
+        "firewalls": [Firewall("firewall1", "in"), Firewall("firewall2", "out"),],
+    }
+    network = Network("network1", ".", "192.168.0.0/24", "eth0", **network_properties)
+    ordered_commands, command_list = network.commands()
+
+    base = "service dhcp-server shared-network-name network1 "
+    subnet_base = base + "subnet 192.168.0.0/24 "
+    mapping_base = subnet_base + "static-mapping "
+    interface_base = "interfaces ethernet eth0 "
+
+    for row in ordered_commands:
+        print(row)
+
+    assert command_list == [
+        subnet_base + "domain-name test.domain",
+        subnet_base + "default-router 192.168.0.1",
+        subnet_base + "lease 86400",
+        subnet_base + "start 192.168.0.100",
+        subnet_base + "start 192.168.0.100 stop 192.168.0.254",
+        interface_base + "address 192.168.0.1/24",
+        interface_base + "description 'the interface'",
+        "firewall1-command",
+        "firewall1-command2",
+        "firewall2-command",
+        "firewall2-command2",
+        "firewall2-command3",
+        mapping_base + "host1 ip-address 123",
+        mapping_base + "host1 mac-address abc",
+        "host1-command",
+        "host1-command2",
+        "host1-command3",
+        "host1-command4",
+        mapping_base + "host2 ip-address 234",
+        mapping_base + "host2 mac-address def",
+        "host2-command",
+        "host2-command2",
+        "host2-command3",
+    ], "Network commands correct"
+    assert ordered_commands == [
+        [
+            subnet_base + "domain-name test.domain",
+            subnet_base + "default-router 192.168.0.1",
+            subnet_base + "lease 86400",
+            subnet_base + "start 192.168.0.100",
+            subnet_base + "start 192.168.0.100 stop 192.168.0.254",
+            interface_base + "address 192.168.0.1/24",
+            interface_base + "description 'the interface'",
+        ],
+        ["firewall1-command", "firewall2-command", "firewall2-command2"],
+        ["firewall1-command2", "firewall2-command3"],
+        [
+            mapping_base + "host1 ip-address 123",
+            mapping_base + "host1 mac-address abc",
+            mapping_base + "host2 ip-address 234",
+            mapping_base + "host2 mac-address def",
+        ],
+        ["host1-command", "host1-command2", "host2-command", "host2-command2"],
+        ["host1-command3", "host2-command3"],
+        ["host1-command4"],
+    ], "Ordered network commands correct"
