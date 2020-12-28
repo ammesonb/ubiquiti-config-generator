@@ -28,6 +28,7 @@ def test_initialization(monkeypatch):
         """
         .
         """
+        self.firewalls = []
 
     monkeypatch.setattr(Network, "_add_keyword_attributes", fake_set_attrs)
     monkeypatch.setattr(Network, "_load_firewalls", fake_load_firewalls)
@@ -72,10 +73,9 @@ def test_load_hosts(monkeypatch):
         "get_folders_with_config",
         lambda folder: ["host1/config.yaml", "host2/config.yaml"],
     )
-    monkeypatch.setattr(Network, "_load_firewalls", lambda self: None)
     monkeypatch.setattr(file_paths, "load_yaml_from_file", lambda file_path: {})
 
-    network = Network("network", ".", "10.0.0.0/8", "eth0")
+    network = Network("network", ".", "10.0.0.0/8", "eth0", firewalls=[])
     assert "hosts" in network._validate_attributes, "Hosts added"
     hosts = getattr(network, "hosts")
     assert "host1" in [host.name for host in hosts], "Host 1 found"
@@ -350,9 +350,6 @@ def test_command_ordering(monkeypatch):
     mapping_base = subnet_base + "static-mapping "
     interface_base = "interfaces ethernet eth0 "
 
-    for row in ordered_commands:
-        print(row)
-
     assert command_list == [
         subnet_base + "domain-name test.domain",
         subnet_base + "default-router 192.168.0.1",
@@ -363,9 +360,11 @@ def test_command_ordering(monkeypatch):
         interface_base + "description 'the interface'",
         "firewall1-command",
         "firewall1-command2",
+        interface_base + "firewall in name firewall1",
         "firewall2-command",
         "firewall2-command2",
         "firewall2-command3",
+        interface_base + "firewall out name firewall2",
         mapping_base + "host1 ip-address 123",
         mapping_base + "host1 mac-address abc",
         "host1-command",
@@ -390,6 +389,10 @@ def test_command_ordering(monkeypatch):
         ],
         ["firewall1-command", "firewall2-command", "firewall2-command2"],
         ["firewall1-command2", "firewall2-command3"],
+        [
+            "interfaces ethernet eth0 firewall in name firewall1",
+            "interfaces ethernet eth0 firewall out name firewall2",
+        ],
         [
             mapping_base + "host1 ip-address 123",
             mapping_base + "host1 mac-address abc",

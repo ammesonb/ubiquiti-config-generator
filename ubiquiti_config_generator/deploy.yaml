@@ -8,6 +8,15 @@ router:
 
 # Apply only the difference in configuration, rather than the entire config file
 apply-difference-only: False
+# Immediately revert failed changes
+auto-rollback-on-failure: True
+# Schedule reboot after N seconds, to ensure you don't accidentally lose access to the router
+# Can be canceled with `shutdown -c`
+shutdown-after: 300
+# Save config after commit
+# NOT RECOMMENDED - manually validate the config after deploying to ensure there are no flaws
+# This could lock you out of the router!!!
+save-after-commit: False
 
 git:
   # Repository for the router config

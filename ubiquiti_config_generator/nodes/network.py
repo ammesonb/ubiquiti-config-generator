@@ -53,8 +53,14 @@ class Network(Validatable):
         self.interface_name = interface_name
         self._add_keyword_attributes(kwargs)
 
+        self.firewalls_by_direction = {}
         if "firewalls" not in kwargs:
             self._load_firewalls()
+
+        for firewall in self.firewalls:
+            if hasattr(firewall, "direction"):
+                self.firewalls_by_direction[firewall.direction] = firewall
+
         if "hosts" not in kwargs:
             self._load_hosts()
 
@@ -238,38 +244,49 @@ class Network(Validatable):
 
         # Address/description should be set on the VIF if there is one
         address_base = interface_base + (
-            " vif {0}".format(self.vif) if hasattr(self, "vif") else ""
+            " vif {0} ".format(self.vif) if hasattr(self, "vif") else " "
         )
         if hasattr(self, "default-router"):
             append_command(
                 address_base
-                + " address "
+                + "address "
                 + getattr(self, "default-router")
                 + "/"
                 + str(self.cidr.split("/")[1])
             )
         else:
-            append_command(address_base + " address dhcp")
+            append_command(address_base + "address dhcp")
 
         if hasattr(self, "interface_description"):
             description = shlex.quote(self.interface_description)
             if description[0] not in ['"', "'"]:
                 description = "'{0}'".format(description)
 
-            append_command(address_base + " description " + description)
+            append_command(address_base + "description " + description)
 
-        # TODO: firewalls need to be applied to the interfaces
         # Get firewall commands and add them
         ordered_firewall_commands = []
+        first_firewall = True
         for firewall in self.firewalls:
             firewall_commands, firewall_command_list = firewall.commands()
             all_commands.extend(firewall_command_list)
+
             command_index = 0
             for commands in firewall_commands:
                 while len(ordered_firewall_commands) <= command_index:
                     ordered_firewall_commands.append([])
                 ordered_firewall_commands[command_index].extend(commands)
                 command_index += 1
+
+            interface_firewall = address_base + "firewall {0} name {1}".format(
+                firewall.direction, firewall.name
+            )
+            if first_firewall:
+                ordered_firewall_commands.append([])
+                first_firewall = False
+
+            ordered_firewall_commands[-1].append(interface_firewall)
+            all_commands.append(interface_firewall)
 
         ordered_commands.extend(ordered_firewall_commands)
 
