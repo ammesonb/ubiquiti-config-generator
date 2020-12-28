@@ -23,6 +23,16 @@ IN = "in"
 OUT = "out"
 LOCAL = "local"
 
+TCP = "tcp"
+UDP = "udp"
+TCP_UDP = "tcp_udp"
+IP = "ip"
+
+NEW = "new"
+INVALID = "invalid"
+ESTABLISHED = "established"
+RELATED = "related"
+
 SPEEDS = [10, 100, 1000, 10000]
 
 
@@ -176,3 +186,27 @@ def is_firewall_direction(value: str) -> bool:
     Is the firewall direction valid
     """
     return value in [IN, OUT, LOCAL]
+
+
+def is_protocol(value: str) -> bool:
+    """
+    Is the value a protocol
+    """
+    return value in [TCP, UDP, TCP_UDP, IP]
+
+
+def is_state(value: dict) -> bool:
+    """
+    Is the value a set of connection states
+    """
+    keys = list(value.keys()) if isinstance(value, dict) else []
+    return (
+        isinstance(value, dict)
+        and not any([key not in [NEW, ESTABLISHED, RELATED, INVALID] for key in keys])
+        and all(
+            [
+                is_string_boolean(value.get(key, ENABLED))
+                for key in [NEW, ESTABLISHED, RELATED, INVALID]
+            ]
+        )
+    )

@@ -6,6 +6,6 @@ install:
   - pip install .
   - pip install codecov
 script:
-  - python -m pytest --cov=ubiquiti_config_generator tests
+  - python -m pytest -vv --cov-report term-missing --cov=ubiquiti_config_generator tests
 after_success:
   - codecov

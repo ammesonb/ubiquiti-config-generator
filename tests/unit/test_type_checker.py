@@ -394,3 +394,50 @@ def test_is_firewall_direction():
     assert type_checker.is_firewall_direction("in"), "In is direction"
     assert type_checker.is_firewall_direction("out"), "Out is direction"
     assert type_checker.is_firewall_direction("local"), "Local is direction"
+
+
+def test_is_protocol():
+    """
+    .
+    """
+    assert not type_checker.is_protocol("abc"), "String not valid"
+    assert not type_checker.is_protocol(80), "Number is not valid"
+    assert not type_checker.is_protocol(["tcp"]), "Array is not valid"
+    assert not type_checker.is_protocol({"tcp"}), "Dictionary not valid"
+    assert type_checker.is_protocol("tcp"), "TCP valid"
+    assert type_checker.is_protocol("udp"), "UDP valid"
+    assert type_checker.is_protocol("tcp_udp"), "TCP/UDP valid"
+    assert type_checker.is_protocol("ip"), "IP valid"
+
+
+def test_is_state():
+    """
+    .
+    """
+    assert not type_checker.is_state("new"), "String not valid"
+    assert not type_checker.is_state(80), "Number is not valid"
+    assert not type_checker.is_state(["related"]), "Array is not valid"
+    assert not type_checker.is_state(
+        {"related": False}
+    ), "Dictionary with bool not valid"
+    assert not type_checker.is_state(
+        {"related": "abcdef"}
+    ), "Dictionary with string not valid"
+    assert not type_checker.is_state(
+        {"log": "enabled"}
+    ), "Dictionary with wrong key not valid"
+    assert not type_checker.is_state(
+        {"related": "enabled", "log": "enabled"}
+    ), "Dictionary with extra key not valid"
+    assert type_checker.is_state({"related": "enabled"}), "Related valid"
+    assert type_checker.is_state(
+        {"related": "enabled", "new": "disabled"}
+    ), "Mixed keys valid"
+    assert type_checker.is_state(
+        {
+            "related": "enabled",
+            "established": "enabled",
+            "new": "disabled",
+            "invalid": "disabled",
+        }
+    ), "All keys valid"

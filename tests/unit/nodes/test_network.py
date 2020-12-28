@@ -54,7 +54,9 @@ def test_load_firewalls(monkeypatch):
     monkeypatch.setattr(Network, "_load_hosts", lambda self: None)
     # Need the direction set here for firewalls
     monkeypatch.setattr(
-        file_paths, "load_yaml_from_file", lambda file_path: {"direction": "local"}
+        file_paths,
+        "load_yaml_from_file",
+        lambda file_path: {"direction": "local" if "1" in file_path else "out"},
     )
 
     network = Network("network", ".", "10.0.0.0/8", "eth0")
@@ -62,6 +64,13 @@ def test_load_firewalls(monkeypatch):
     firewalls = getattr(network, "firewalls")
     assert "firewall1" in [firewall.name for firewall in firewalls], "firewall 1 found"
     assert "firewall2" in [firewall.name for firewall in firewalls], "firewall 2 found"
+    assert network.firewalls_by_direction.get("in", None) is None, "No in firewall"
+    assert (
+        network.firewalls_by_direction.get("local", None).name == "firewall1"
+    ), "Local firewall correct"
+    assert (
+        network.firewalls_by_direction.get("out", None).name == "firewall2"
+    ), "Out firewall correct"
 
 
 def test_load_hosts(monkeypatch):
@@ -128,7 +137,7 @@ def test_validation_failures(monkeypatch):
     )
     assert network.validation_failures() == [], "No failures added yet"
 
-    monkeypatch.setattr(Firewall, "validation_errors", lambda self: ["abc", "def"])
+    monkeypatch.setattr(Firewall, "validation_failures", lambda self: ["abc", "def"])
     monkeypatch.setattr(Host, "validation_errors", lambda self: ["ghi"])
     network.add_validation_error("failure")
 
@@ -329,6 +338,11 @@ def test_command_ordering(monkeypatch):
     monkeypatch.setattr(Firewall, "commands", get_firewall_commands)
     monkeypatch.setattr(Host, "commands", get_host_commands)
 
+    host_properties = {
+        "mac": "abc",
+        "address": "123",
+        "address-groups": ["desktop", "windows"],
+    }
     network_properties = {
         "domain-name": "test.domain",
         "default-router": "192.168.0.1",
@@ -337,7 +351,7 @@ def test_command_ordering(monkeypatch):
         "stop": "192.168.0.254",
         "interface_description": "the interface",
         "hosts": [
-            Host("host1", ".", mac="abc", address="123"),
+            Host("host1", ".", **host_properties),
             Host("host2", ".", mac="def", address="234"),
         ],
         "firewalls": [
@@ -370,6 +384,8 @@ def test_command_ordering(monkeypatch):
         interface_base + "firewall out name firewall2",
         mapping_base + "host1 ip-address 123",
         mapping_base + "host1 mac-address abc",
+        "firewall group address-group desktop address 123",
+        "firewall group address-group windows address 123",
         "host1-command",
         "host1-command2",
         "host1-command3",
@@ -380,6 +396,7 @@ def test_command_ordering(monkeypatch):
         "host2-command2",
         "host2-command3",
     ], "Network commands correct"
+
     assert ordered_commands == [
         [
             subnet_base + "domain-name test.domain",
@@ -399,6 +416,8 @@ def test_command_ordering(monkeypatch):
         [
             mapping_base + "host1 ip-address 123",
             mapping_base + "host1 mac-address abc",
+            "firewall group address-group desktop address 123",
+            "firewall group address-group windows address 123",
             mapping_base + "host2 ip-address 234",
             mapping_base + "host2 mac-address def",
         ],

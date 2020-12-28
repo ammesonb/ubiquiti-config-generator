@@ -14,7 +14,8 @@ PORT_GROUPS_FOLDER = "port-groups"
 NETWORK_FOLDER = "networks"
 CONFIG_FILE_NAME = "config.yaml"
 HOSTS_FOLDER = "hosts"
-FIREWALL_FOLDER = "firewall"
+FIREWALL_FOLDER = "firewalls"
+RULE_FOLDER = "rules"
 
 
 def load_yaml_from_file(file_path: str) -> Union[list, dict]:

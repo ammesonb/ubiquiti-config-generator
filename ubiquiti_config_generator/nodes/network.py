@@ -112,7 +112,7 @@ class Network(Validatable):
         """
         failures = self.validation_errors()
         for firewall in self.firewalls:
-            failures.extend(firewall.validation_errors())
+            failures.extend(firewall.validation_failures())
         for host in self.hosts:
             failures.extend(host.validation_errors())
         return failures
@@ -177,7 +177,7 @@ class Network(Validatable):
 
     def validate(self) -> bool:
         """
-        Is the root node valid
+        Is the network valid
         """
         return (
             super().validate()
