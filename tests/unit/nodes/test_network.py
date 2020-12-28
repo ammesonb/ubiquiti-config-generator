@@ -101,7 +101,7 @@ def test_validate(monkeypatch):
         ".",
         "1.1.1.1/24",
         "eth0",
-        firewalls=[Firewall("firewall", "local")],
+        firewalls=[Firewall("firewall", "local", "network", ".")],
         hosts=[Host("host", ".")],
     )
     monkeypatch.setattr(Validatable, "validate", fake_validate)
@@ -123,7 +123,7 @@ def test_validation_failures(monkeypatch):
         ".",
         "1.1.1.1/24",
         "eth0",
-        firewalls=[Firewall("firewall", "in")],
+        firewalls=[Firewall("firewall", "in", "network", ".")],
         hosts=[Host("host", "."), Host("host2", ".")],
     )
     assert network.validation_failures() == [], "No failures added yet"
@@ -160,8 +160,8 @@ def test_is_consistent(monkeypatch):
     host3 = Host("test3", ".", address="11.0.0.1", mac="ab:cd:12")
     host4 = Host("test4", ".", address="10.0.0.2", mac="12:34:56")
 
-    firewall1 = Firewall("firewall", "in")
-    firewall2 = Firewall("firewall2", "out")
+    firewall1 = Firewall("firewall", "in", "network", ".")
+    firewall2 = Firewall("firewall2", "out", "network", ".")
 
     network_properties = {
         "firewalls": [firewall1, firewall2],
@@ -340,7 +340,10 @@ def test_command_ordering(monkeypatch):
             Host("host1", ".", mac="abc", address="123"),
             Host("host2", ".", mac="def", address="234"),
         ],
-        "firewalls": [Firewall("firewall1", "in"), Firewall("firewall2", "out"),],
+        "firewalls": [
+            Firewall("firewall1", "in", "network", "."),
+            Firewall("firewall2", "out", "network", "."),
+        ],
     }
     network = Network("network1", ".", "192.168.0.0/24", "eth0", **network_properties)
     ordered_commands, command_list = network.commands()

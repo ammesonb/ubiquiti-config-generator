@@ -150,9 +150,12 @@ def is_source_destination(connections: dict) -> bool:
     return (
         isinstance(connections, dict)
         # Only keys permissible are these three
-        and not any([key not in ["destination", "source", "allowed"] for key in keys])
+        and not any(
+            [key not in ["destination", "source", "allow", "rule"] for key in keys]
+        )
         and isinstance(connections.get("source", {}), dict)
         and isinstance(connections.get("destination", {}), dict)
+        and is_number(connections.get("rule", 0))
         # A source or destination must be set
         and (connections.get("source", {}) or connections.get("destination", {}))
         and is_string(connections.get("source", {}).get("address", ""))

@@ -71,6 +71,8 @@ class Network(Validatable):
         self.firewalls = [
             Firewall(
                 firewall_path.split(path.sep)[-2],
+                network_name=self.name,
+                config_path=self.config_path,
                 **(file_paths.load_yaml_from_file(firewall_path))
             )
             for firewall_path in file_paths.get_folders_with_config(
@@ -183,6 +185,7 @@ class Network(Validatable):
             and all([host.validate() for host in self.hosts])
         )
 
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def commands(self) -> Tuple[List[List[str]], List[str]]:
         """
         The commands to generate this network
@@ -243,6 +246,7 @@ class Network(Validatable):
             append_command(interface_base + " description 'CARRIER'")
 
         # Address/description should be set on the VIF if there is one
+        # pylint: disable=no-member
         address_base = interface_base + (
             " vif {0} ".format(self.vif) if hasattr(self, "vif") else " "
         )
@@ -258,6 +262,7 @@ class Network(Validatable):
             append_command(address_base + "address dhcp")
 
         if hasattr(self, "interface_description"):
+            # pylint: disable=no-member
             description = shlex.quote(self.interface_description)
             if description[0] not in ['"', "'"]:
                 description = "'{0}'".format(description)

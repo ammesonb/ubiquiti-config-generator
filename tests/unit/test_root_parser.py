@@ -23,6 +23,8 @@ def test_create_from_config(monkeypatch):
     .
     """
 
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-argument
     @counter_wrapper
     def fake_load_global_settings(config_path: str):
         """
@@ -30,6 +32,7 @@ def test_create_from_config(monkeypatch):
         """
         return GlobalSettings()
 
+    # pylint: disable=unused-argument
     @counter_wrapper
     def fake_load_external_addresses(config_path: str):
         """
@@ -37,6 +40,7 @@ def test_create_from_config(monkeypatch):
         """
         return ExternalAddresses([])
 
+    # pylint: disable=unused-argument
     @counter_wrapper
     def fake_load_port_groups(config_path: str):
         """
@@ -245,31 +249,35 @@ def test_get_commands(monkeypatch):
     .
     """
 
+    # pylint: disable=unused-argument
     @counter_wrapper
     def get_port_group_commands(self):
         """
         .
         """
-        if get_port_group_commands.counter == 1:
-            return ["group1-command"]
-        else:
-            return ["group2-command"]
+        return (
+            ["group1-command"]
+            if get_port_group_commands.counter == 1
+            else ["group2-command"]
+        )
 
+    # pylint: disable=unused-argument
     @counter_wrapper
     def get_network_commands(self):
         """
         .
         """
-        if get_network_commands.counter == 1:
-            return (
+        return (
+            (
                 [["network1-command", "network1-command2"], ["network1-command3"]],
                 ["network1-command", "network1-command2", "network1-command3"],
             )
-        else:
-            return (
+            if get_network_commands.counter == 1
+            else (
                 [["network2-command", "network2-command2"], ["network2-command3"]],
                 ["network2-command", "network2-command2", "network2-command3"],
             )
+        )
 
     monkeypatch.setattr(GlobalSettings, "commands", lambda self: ["settings-command"])
     monkeypatch.setattr(

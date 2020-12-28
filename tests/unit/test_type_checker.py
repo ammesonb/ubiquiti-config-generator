@@ -310,28 +310,26 @@ def test_is_source_destination():
     """
     assert not type_checker.is_source_destination("abc"), "String not valid"
     assert not type_checker.is_source_destination(80), "Number is not valid"
-    assert not type_checker.is_source_destination(["allowed"]), "Array is not valid"
-    assert not type_checker.is_source_destination(
-        {"allowed": "bad"}
-    ), "Dict is not valid"
+    assert not type_checker.is_source_destination(["allow"]), "Array is not valid"
+    assert not type_checker.is_source_destination({"allow": "bad"}), "Dict is not valid"
 
     assert not type_checker.is_source_destination(
-        {"allowed": True}
+        {"allow": True}
     ), "Missing source/destination invalid"
     assert not type_checker.is_source_destination(
-        {"allowed": True, "source": []}
+        {"allow": True, "source": []}
     ), "Non dictionary source invalid"
     assert not type_checker.is_source_destination(
-        {"allowed": True, "destination": "Abc"}
+        {"allow": True, "destination": "Abc"}
     ), "Non dictionary destination invalid"
     assert not type_checker.is_source_destination(
-        {"allowed": True, "source": {}}
+        {"allow": True, "source": {}}
     ), "Empty source invalid"
     assert not type_checker.is_source_destination(
-        {"allowed": True, "destination": {}}
+        {"allow": True, "destination": {}}
     ), "Empty destination invalid"
     assert not type_checker.is_source_destination(
-        {"allowed": True, "source": {}, "destination": {}}
+        {"allow": True, "source": {}, "destination": {}}
     ), "Empty source and destination invalid"
     assert not type_checker.is_source_destination(
         {"a_key": "stuff"}
@@ -339,36 +337,44 @@ def test_is_source_destination():
     assert not type_checker.is_source_destination(
         {
             "a_key": "stuff",
-            "allowed": True,
+            "allow": True,
             "source": {"address": "123"},
             "destination": {"address": "321"},
         }
     ), "Extra key is invalid"
 
     assert not type_checker.is_source_destination(
-        {"allowed": True, "source": {"address": 123, "port": "80"}}
+        {"allow": True, "source": {"address": 123, "port": "80"}}
     ), "Numeric address invalid"
+    assert not type_checker.is_source_destination(
+        {"allow": True, "rule": "abc", "source": {"address": "abc"}}
+    ), "String rule is invalid"
     assert type_checker.is_source_destination(
-        {"allowed": True, "source": {"address": "abc"}}
+        {"allow": True, "source": {"address": "abc"}}
     ), "Source address valid"
     assert type_checker.is_source_destination(
-        {"allowed": True, "source": {"port": "abc"}}
+        {"allow": True, "source": {"port": "abc"}}
     ), "Source port valid"
     assert type_checker.is_source_destination(
-        {"allowed": True, "source": {"address": "123.123.123.123", "port": "80"}}
+        {"allow": True, "source": {"address": "123.123.123.123", "port": "80"}}
     ), "Source address and port is valid"
     assert type_checker.is_source_destination(
-        {"allowed": True, "destination": {"address": "abc"}}
+        {"allow": True, "destination": {"address": "abc"}}
     ), "Destination address valid"
     assert type_checker.is_source_destination(
-        {"allowed": True, "destination": {"port": "abc"}}
+        {"allow": True, "destination": {"port": "abc"}}
     ), "Destination port valid"
     assert type_checker.is_source_destination(
-        {"allowed": True, "destination": {"address": "321.321.321.321", "port": "443"}}
+        {
+            "allow": True,
+            "rule": "20",
+            "destination": {"address": "321.321.321.321", "port": "443"},
+        }
     ), "Destination address and port is valid"
     assert type_checker.is_source_destination(
         {
-            "allowed": True,
+            "allow": True,
+            "rule": 20,
             "source": {"address": "123.123.123.123", "port": "80"},
             "destination": {"address": "hosts", "port": "ports"},
         }

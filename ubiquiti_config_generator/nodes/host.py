@@ -27,6 +27,7 @@ HOST_TYPES = {
     ),
     # This is a dictionary for connections to allow/block, with properties:
     # allow: bool
+    # rule: optional[int] - rule number for use in firewall
     # source:
     #    address: IP/address group
     #    port: port/port group

@@ -4,6 +4,7 @@ A firewall node
 from typing import Tuple, List
 
 from ubiquiti_config_generator import type_checker
+from ubiquiti_config_generator.nodes.rule import Rule
 from ubiquiti_config_generator.nodes.validatable import Validatable
 
 
@@ -15,18 +16,21 @@ FIREWALL_TYPES = {
 }
 
 
-# Disable for now
-# pylint: disable=too-few-public-methods
 class Firewall(Validatable):
     """
     The firewall object
     """
 
-    def __init__(self, name: str, direction: str, **kwargs):
+    def __init__(
+        self, name: str, direction: str, network_name: str, config_path: str, **kwargs
+    ):
         super().__init__(FIREWALL_TYPES, ["name"])
         self.name = name
+        self.network_name = network_name
+        self.config_path = config_path
         self.direction = direction
         self._add_keyword_attributes(kwargs)
+        self._rules = []
 
     def __str__(self) -> str:
         """
@@ -39,3 +43,10 @@ class Firewall(Validatable):
         Commands to create this firewall
         """
         pass
+
+    @property
+    def rules(self) -> List[Rule]:
+        """
+        Get rules for the firewall
+        """
+        return self._rules

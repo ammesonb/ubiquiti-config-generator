@@ -10,10 +10,6 @@ from ubiquiti_config_generator.nodes.validatable import Validatable
 GLOBAL_SETTINGS_TYPES = {}
 
 
-# Allow too few public methods, for now
-# pylint: disable=too-few-public-methods
-
-
 class GlobalSettings(Validatable):
     """
     Global options

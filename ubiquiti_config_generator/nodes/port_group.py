@@ -14,10 +14,6 @@ PORT_GROUP_TYPES = {
 }
 
 
-# Allow too few public methods, for now
-# pylint: disable=too-few-public-methods
-
-
 class PortGroup(Validatable):
     """
     Represents a named grouping of ports
