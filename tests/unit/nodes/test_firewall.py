@@ -48,7 +48,7 @@ def test_load_rules(monkeypatch):
     monkeypatch.setattr(file_paths, "load_yaml_from_file", lambda path: {})
 
     firewall = Firewall("firewall", "in", "network", ".")
-    assert len(firewall.rules) == 3, "Four rules loaded"
+    assert len(firewall.rules) == 3, "Three rules loaded"
     assert [rule.number for rule in firewall.rules] == [
         "10",
         "20",
@@ -60,12 +60,15 @@ def test_get_next_number():
     """
     .
     """
-    properties = {"rules": [Rule(11), Rule(100)], "auto-increment": 100}
+    properties = {
+        "rules": [Rule(11, "firewall"), Rule(100, "firewall")],
+        "auto-increment": 100,
+    }
     firewall = Firewall("firewall", "in", "network", ".", **properties)
     assert getattr(firewall, "auto-increment") == 100, "Auto increment overridden"
     assert firewall.next_rule_number() == 200, "Next rule number correct"
 
-    firewall.add_rule(Rule(200))
+    firewall.add_rule({"number": 200})
     assert (
         firewall.next_rule_number() == 300
     ), "Next rule number updated after adding rule"
@@ -76,11 +79,12 @@ def test_rules():
     .
     """
     firewall = Firewall("firewall", "in", "network", ".")
-    rule1 = Rule(10, action="reject", protocol="tcp")
-    rule2 = Rule(20, action="accept", protocol="udp")
-    firewall.add_rule(rule1)
-    firewall.add_rule(rule2)
-    assert firewall.rules == [rule1, rule2], "Rules returned"
+    firewall.add_rule({"number": "10", "action": "reject", "protocol": "tcp"})
+    firewall.add_rule({"number": "20", "action": "reject", "protocol": "udp"})
+    assert [rule.number for rule in firewall.rules] == [
+        "10",
+        "20",
+    ], "Rule numbers returned"
 
 
 def test_validate(monkeypatch):
@@ -98,7 +102,13 @@ def test_validate(monkeypatch):
     monkeypatch.setattr(Validatable, "validate", fake_validate)
     monkeypatch.setattr(Rule, "validate", fake_validate)
 
-    firewall = Firewall("firewall", "in", "network", ".", rules=[Rule(1), Rule(2)])
+    firewall = Firewall(
+        "firewall",
+        "in",
+        "network",
+        ".",
+        rules=[Rule(1, "firewall"), Rule(2, "firewall")],
+    )
     assert firewall.validate(), "Firewall is valid"
     assert fake_validate.counter == 3, "Validation called three times"
 
@@ -120,7 +130,13 @@ def test_validation_failures(monkeypatch):
     monkeypatch.setattr(Rule, "validation_errors", fake_validation_errors)
     monkeypatch.setattr(Firewall, "validation_errors", lambda self: ["an error"])
 
-    firewall = Firewall("firewall", "in", "network", ".", rules=[Rule(10), Rule(20)])
+    firewall = Firewall(
+        "firewall",
+        "in",
+        "network",
+        ".",
+        rules=[Rule(10, "firewall"), Rule(20, "firewall")],
+    )
     assert firewall.validation_failures() == [
         "an error",
         "error",

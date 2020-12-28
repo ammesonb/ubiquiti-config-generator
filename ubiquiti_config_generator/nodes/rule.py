@@ -24,7 +24,8 @@ class Rule(Validatable):
     Represents a firewall rule
     """
 
-    def __init__(self, number: int, **kwargs):
+    def __init__(self, number: int, firewall_name: str, **kwargs):
         super().__init__(RULE_TYPES, ["number"])
         self.number = number
+        self.firewall_name = firewall_name
         self._add_keyword_attributes(kwargs)

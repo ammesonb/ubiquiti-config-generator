@@ -3,7 +3,7 @@ Contains the host node
 """
 from typing import Tuple, List
 
-from ubiquiti_config_generator import secondary_configs, type_checker
+from ubiquiti_config_generator import secondary_configs, type_checker, utility
 from ubiquiti_config_generator.nodes.validatable import Validatable
 
 
@@ -49,6 +49,7 @@ class Host(Validatable):
         super().__init__(HOST_TYPES, ["name"])
         self.name = name
         self.config_path = config_path
+        self.connections = []
         self._add_keyword_attributes(kwargs)
 
     def is_consistent(self) -> bool:
@@ -106,6 +107,27 @@ class Host(Validatable):
                     )
                 )
                 consistent = False
+
+        # TODO: needs a test
+        # Check for duplicate rule values
+        duplicate_rules = list(
+            filter(
+                lambda rule: rule is not None,
+                utility.get_duplicates(
+                    [
+                        connection["rule"] if "rule" in connection else None
+                        for connection in self.connections
+                    ]
+                ),
+            )
+        )
+        if duplicate_rules:
+            self.add_validation_error(
+                "{0} has duplicate firewall rules: " + ", ".join(duplicate_rules)
+            )
+            consistent = False
+
+        # TODO: check rules defined here against rules already in the firewall
 
         return consistent
 

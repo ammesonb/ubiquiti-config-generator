@@ -25,49 +25,42 @@ class Firewall(Validatable):
     def __init__(
         self, name: str, direction: str, network_name: str, config_path: str, **kwargs
     ):
-        super().__init__(FIREWALL_TYPES, ["name"])
+        super().__init__(FIREWALL_TYPES, ["name", "rules"])
         self.name = name
         self.direction = direction
         self.network_name = network_name
         self.config_path = config_path
-        self._add_keyword_attributes(kwargs)
         if "auto-increment" not in kwargs:
             setattr(self, "auto-increment", 10)
 
+        self.rules = []
         if not "rules" in kwargs:
             self._load_rules()
+
+        self._add_keyword_attributes(kwargs)
 
     def _load_rules(self):
         """
         Load rules for this firewall
         """
-        self.rules = list(
-            filter(
-                lambda rule: rule is not None,
+        for rule_path in file_paths.get_config_files(
+            file_paths.get_path(
                 [
-                    Rule(
-                        rule_path.split(path.sep)[-1].rstrip(".yaml"),
-                        **(file_paths.load_yaml_from_file(rule_path))
-                    )
-                    if type_checker.is_number(
-                        rule_path.split(path.sep)[-1].rstrip(".yaml")
-                    )
-                    else None
-                    for rule_path in file_paths.get_config_files(
-                        file_paths.get_path(
-                            [
-                                self.config_path,
-                                file_paths.NETWORK_FOLDER,
-                                self.network_name,
-                                file_paths.FIREWALL_FOLDER,
-                                self.name,
-                            ]
-                        )
-                    )
-                ],
+                    self.config_path,
+                    file_paths.NETWORK_FOLDER,
+                    self.network_name,
+                    file_paths.FIREWALL_FOLDER,
+                    self.name,
+                ]
             )
-        )
-        self._add_validate_attribute("rules")
+        ):
+            if type_checker.is_number(rule_path.split(path.sep)[-1].rstrip(".yaml")):
+                self.add_rule(
+                    {
+                        "number": rule_path.split(path.sep)[-1].rstrip(".yaml"),
+                        **(file_paths.load_yaml_from_file(rule_path)),
+                    }
+                )
 
     def __str__(self) -> str:
         """
@@ -81,11 +74,16 @@ class Firewall(Validatable):
         """
         pass
 
-    def add_rule(self, rule: Rule):
+    def add_rule(self, rule_properties: dict):
         """
         Add a rule to the list
         """
-        self.rules.append(rule)
+        if "number" not in rule_properties:
+            rule_properties["number"] = self.next_rule_number()
+        if "firewall_name" not in rule_properties:
+            rule_properties["firewall_name"] = self.name
+
+        self.rules.append(Rule(**rule_properties))
 
     def next_rule_number(self) -> int:
         """
