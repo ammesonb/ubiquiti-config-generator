@@ -61,6 +61,20 @@ class Network(Validatable):
             if hasattr(firewall, "direction"):
                 self.firewalls_by_direction[firewall.direction] = firewall
 
+        # Add placeholder for any missing firewalls
+        firewall_properties = {"default-action": "accept"}
+        for firewall_direction in ["in", "out", "local"]:
+            if firewall_direction not in self.firewalls_by_direction:
+                new_firewall = Firewall(
+                    self.name + "-" + firewall_direction.upper(),
+                    firewall_direction,
+                    self.name,
+                    self.config_path,
+                    **firewall_properties
+                )
+                self.firewalls.append(new_firewall)
+                self.firewalls_by_direction[firewall_direction] = new_firewall
+
         if "hosts" not in kwargs:
             self._load_hosts()
 
@@ -95,6 +109,7 @@ class Network(Validatable):
         self.hosts = [
             Host(
                 host_path.split(path.sep)[-2],
+                self,
                 self.config_path,
                 **(file_paths.load_yaml_from_file(host_path))
             )

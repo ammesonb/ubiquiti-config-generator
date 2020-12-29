@@ -45,9 +45,10 @@ class Host(Validatable):
     A host
     """
 
-    def __init__(self, name: str, config_path: str, **kwargs):
+    def __init__(self, name: str, network: "Network", config_path: str, **kwargs):
         super().__init__(HOST_TYPES, ["name"])
         self.name = name
+        self.network = network
         self.config_path = config_path
         self.connections = []
         self._add_keyword_attributes(kwargs)
@@ -108,7 +109,6 @@ class Host(Validatable):
                 )
                 consistent = False
 
-        # TODO: needs a test
         # Check for duplicate rule values
         duplicate_rules = list(
             filter(
@@ -123,11 +123,36 @@ class Host(Validatable):
         )
         if duplicate_rules:
             self.add_validation_error(
-                "{0} has duplicate firewall rules: " + ", ".join(duplicate_rules)
+                str(self)
+                + " has duplicate firewall rules: "
+                + ", ".join([str(rule) for rule in duplicate_rules])
             )
             consistent = False
 
-        # TODO: check rules defined here against rules already in the firewall
+        # Ensure the firewall rule numbers don't conflict with the numbers
+        # set in a host
+        all_firewall_rules = (
+            self.network.firewalls_by_direction["in"].rules
+            + self.network.firewalls_by_direction["out"].rules
+        )
+        for connection in self.connections:
+            rule = connection.get("rule", None)
+            if not rule:
+                continue
+
+            for (
+                firewall_direction,
+                firewall,
+            ) in self.network.firewalls_by_direction.items():
+                if any(
+                    [firewall_rule.number == rule for firewall_rule in firewall.rules]
+                ):
+                    self.add_validation_error(
+                        "{0} has conflicting connection rule with {1}, rule number {2}".format(
+                            str(self), str(firewall), rule
+                        )
+                    )
+                    consistent = False
 
         return consistent
 

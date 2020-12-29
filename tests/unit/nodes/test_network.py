@@ -64,7 +64,9 @@ def test_load_firewalls(monkeypatch):
     firewalls = getattr(network, "firewalls")
     assert "firewall1" in [firewall.name for firewall in firewalls], "firewall 1 found"
     assert "firewall2" in [firewall.name for firewall in firewalls], "firewall 2 found"
-    assert network.firewalls_by_direction.get("in", None) is None, "No in firewall"
+    assert (
+        network.firewalls_by_direction.get("in", None).name == "network-IN"
+    ), "In firewall auto-constructed"
     assert (
         network.firewalls_by_direction.get("local", None).name == "firewall1"
     ), "Local firewall correct"
@@ -111,14 +113,16 @@ def test_validate(monkeypatch):
         "1.1.1.1/24",
         "eth0",
         firewalls=[Firewall("firewall", "local", "network", ".")],
-        hosts=[Host("host", ".")],
+        hosts=[Host("host", None, ".")],
     )
     monkeypatch.setattr(Validatable, "validate", fake_validate)
     monkeypatch.setattr(Firewall, "validate", fake_validate)
     monkeypatch.setattr(Host, "validate", fake_validate)
 
     assert network.validate(), "Network is valid"
-    assert fake_validate.counter == 3, "Called for parent/network, firewall, and host"
+    assert (
+        fake_validate.counter == 5
+    ), "Called for parent/network, all three firewalls, and host"
 
 
 def test_validation_failures(monkeypatch):
@@ -133,7 +137,7 @@ def test_validation_failures(monkeypatch):
         "1.1.1.1/24",
         "eth0",
         firewalls=[Firewall("firewall", "in", "network", ".")],
-        hosts=[Host("host", "."), Host("host2", ".")],
+        hosts=[Host("host", None, "."), Host("host2", None, ".")],
     )
     assert network.validation_failures() == [], "No failures added yet"
 
@@ -143,6 +147,11 @@ def test_validation_failures(monkeypatch):
 
     assert network.validation_failures() == [
         "failure",
+        # Firewall failures repeated three times, one for each
+        "abc",
+        "def",
+        "abc",
+        "def",
         "abc",
         "def",
         "ghi",
@@ -164,10 +173,10 @@ def test_is_consistent(monkeypatch):
 
     monkeypatch.setattr(Host, "is_consistent", fake_host_consistent)
 
-    host1 = Host("test", ".", address="11.0.0.1", mac="ab:cd:ef")
-    host2 = Host("test2", ".", address="10.0.0.1", mac="ab:cd:ef")
-    host3 = Host("test3", ".", address="11.0.0.1", mac="ab:cd:12")
-    host4 = Host("test4", ".", address="10.0.0.2", mac="12:34:56")
+    host1 = Host("test", None, ".", address="11.0.0.1", mac="ab:cd:ef")
+    host2 = Host("test2", None, ".", address="10.0.0.1", mac="ab:cd:ef")
+    host3 = Host("test3", None, ".", address="11.0.0.1", mac="ab:cd:12")
+    host4 = Host("test4", None, ".", address="10.0.0.2", mac="12:34:56")
 
     firewall1 = Firewall("firewall", "in", "network", ".")
     firewall2 = Firewall("firewall2", "out", "network", ".")
@@ -208,7 +217,7 @@ def test_is_consistent(monkeypatch):
     assert not network.validation_errors(), "No validation errors present"
 
 
-def test_network_commands():
+def test_network_commands(monkeypatch):
     """
     .
     """
@@ -224,14 +233,15 @@ def test_network_commands():
         "hosts": [],
         "firewalls": [],
     }
+    monkeypatch.setattr(Firewall, "commands", lambda self: ([[]], []))
+    monkeypatch.setattr(Host, "commands", lambda self: ([[]], []))
     network = Network("network1", ".", "192.168.0.0/24", "eth0", **network_properties)
     ordered_commands, command_list = network.commands()
 
     base = "service dhcp-server shared-network-name network1 "
     subnet_base = base + "subnet 192.168.0.0/24 "
 
-    assert len(ordered_commands) == 1, "Only one set of commands generated"
-    assert command_list == [
+    expected_commands = [
         base + "authoritative disable",
         subnet_base + "domain-name test.domain",
         subnet_base + "default-router 192.168.0.1",
@@ -243,13 +253,31 @@ def test_network_commands():
         subnet_base + "dns-server 8.8.4.4",
         # This is auto-generated so must be included
         "interfaces ethernet eth0 address 192.168.0.1/24",
-    ], "Correct commands generated"
+    ]
+
+    assert command_list == expected_commands + [
+        "interfaces ethernet eth0 firewall in name network1-IN",
+        "interfaces ethernet eth0 firewall out name network1-OUT",
+        "interfaces ethernet eth0 firewall local name network1-LOCAL",
+    ], "Command list correct"
+    assert ordered_commands == [
+        expected_commands,
+        [],  # Firewall commands would go here - checked in later test
+        [
+            "interfaces ethernet eth0 firewall in name network1-IN",
+            "interfaces ethernet eth0 firewall out name network1-OUT",
+            "interfaces ethernet eth0 firewall local name network1-LOCAL",
+        ],
+    ], "Ordered commands correct"
 
 
-def test_interface_commands():
+def test_interface_commands(monkeypatch):
     """
     .
     """
+    monkeypatch.setattr(Firewall, "commands", lambda self: ([[]], []))
+    monkeypatch.setattr(Host, "commands", lambda self: ([[]], []))
+
     network_properties = {
         "hosts": [],
         "firewalls": [],
@@ -261,13 +289,27 @@ def test_interface_commands():
     ordered_commands, command_list = network.commands()
 
     interface_base = "interfaces ethernet eth0 "
-    assert len(ordered_commands) == 1, "No nested commands for interfaces"
-    assert command_list == [
+    expected_commands = [
         interface_base + "duplex auto",
         interface_base + "speed auto",
         interface_base + "address dhcp",
         interface_base + "description 'desc'",
+    ]
+    assert command_list == [
+        *expected_commands,
+        interface_base + "firewall in name network1-IN",
+        interface_base + "firewall out name network1-OUT",
+        interface_base + "firewall local name network1-LOCAL",
     ], "Command list for non-VIF interface correct"
+    assert ordered_commands == [
+        expected_commands,
+        [],  # Firewall commands empty
+        [
+            interface_base + "firewall in name network1-IN",
+            interface_base + "firewall out name network1-OUT",
+            interface_base + "firewall local name network1-LOCAL",
+        ],
+    ], "Ordered commands correct"
 
     network_properties = {
         "hosts": [],
@@ -282,8 +324,7 @@ def test_interface_commands():
     ordered_commands, command_list = network.commands()
 
     interface_base = "interfaces ethernet eth0 "
-    assert len(ordered_commands) == 1, "No nested commands for interfaces"
-    assert command_list == [
+    expected_commands = [
         "service dhcp-server shared-network-name network1 subnet 192.168.0.0/24 "
         "default-router 192.168.0.1",
         interface_base + "duplex half",
@@ -291,7 +332,22 @@ def test_interface_commands():
         interface_base + "description 'CARRIER'",
         interface_base + "vif 123 address 192.168.0.1/24",
         interface_base + "vif 123 description 'VLAN 123'",
+    ]
+    assert command_list == [
+        *expected_commands,
+        interface_base + "vif 123 firewall in name network1-IN",
+        interface_base + "vif 123 firewall out name network1-OUT",
+        interface_base + "vif 123 firewall local name network1-LOCAL",
     ], "Command list for VIF interface correct"
+    assert ordered_commands == [
+        expected_commands,
+        [],  # Firewall commands empty
+        [
+            interface_base + "vif 123 firewall in name network1-IN",
+            interface_base + "vif 123 firewall out name network1-OUT",
+            interface_base + "vif 123 firewall local name network1-LOCAL",
+        ],
+    ]
 
 
 def test_command_ordering(monkeypatch):
@@ -309,11 +365,13 @@ def test_command_ordering(monkeypatch):
                 [["firewall1-command"], ["firewall1-command2"]],
                 ["firewall1-command", "firewall1-command2"],
             )
-        else:
+        elif get_firewall_commands.counter == 2:
             return (
                 [["firewall2-command", "firewall2-command2"], ["firewall2-command3"]],
                 ["firewall2-command", "firewall2-command2", "firewall2-command3"],
             )
+        else:
+            return ([["firewall3-command"]], ["firewall3-command"])
 
     @counter_wrapper
     def get_host_commands(self):
@@ -351,8 +409,8 @@ def test_command_ordering(monkeypatch):
         "stop": "192.168.0.254",
         "interface_description": "the interface",
         "hosts": [
-            Host("host1", ".", **host_properties),
-            Host("host2", ".", mac="def", address="234"),
+            Host("host1", None, ".", **host_properties),
+            Host("host2", None, ".", mac="def", address="234"),
         ],
         "firewalls": [
             Firewall("firewall1", "in", "network", "."),
@@ -382,6 +440,8 @@ def test_command_ordering(monkeypatch):
         "firewall2-command2",
         "firewall2-command3",
         interface_base + "firewall out name firewall2",
+        "firewall3-command",
+        interface_base + "firewall local name network1-LOCAL",
         mapping_base + "host1 ip-address 123",
         mapping_base + "host1 mac-address abc",
         "firewall group address-group desktop address 123",
@@ -407,11 +467,17 @@ def test_command_ordering(monkeypatch):
             interface_base + "address 192.168.0.1/24",
             interface_base + "description 'the interface'",
         ],
-        ["firewall1-command", "firewall2-command", "firewall2-command2"],
+        [
+            "firewall1-command",
+            "firewall2-command",
+            "firewall2-command2",
+            "firewall3-command",
+        ],
         ["firewall1-command2", "firewall2-command3"],
         [
             "interfaces ethernet eth0 firewall in name firewall1",
             "interfaces ethernet eth0 firewall out name firewall2",
+            "interfaces ethernet eth0 firewall local name network1-LOCAL",
         ],
         [
             mapping_base + "host1 ip-address 123",
