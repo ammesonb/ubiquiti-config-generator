@@ -143,11 +143,14 @@ def is_address_and_or_port(value: dict) -> bool:
     """
     return (
         isinstance(value, dict)
-        and isinstance(value.get(ADDRESS, []), list)
-        and isinstance(value.get(PORT, []), list)
         and list(value.keys()) in [[ADDRESS], [PORT], [ADDRESS, PORT]]
-        and all([is_string(address) for address in value.get(ADDRESS, [])])
-        and all([is_number(port) or is_string(port) for port in value.get(PORT, [])])
+        and len(value.keys())
+        and (ADDRESS not in value or is_string(value.get(ADDRESS, None)))
+        and (
+            PORT not in value
+            or is_number(value.get(PORT, None))
+            or is_string(value.get(PORT, None))
+        )
     )
 
 

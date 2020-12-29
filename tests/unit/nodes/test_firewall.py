@@ -80,10 +80,10 @@ def test_rules():
     """
     firewall = Firewall("firewall", "in", "network", ".")
     firewall.add_rule({"number": "10", "action": "reject", "protocol": "tcp"})
-    firewall.add_rule({"number": "20", "action": "reject", "protocol": "udp"})
+    firewall.add_rule({"action": "reject", "protocol": "udp"})
     assert [rule.number for rule in firewall.rules] == [
         "10",
-        "20",
+        20,
     ], "Rule numbers returned"
 
 

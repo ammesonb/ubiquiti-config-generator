@@ -59,5 +59,6 @@ def test_command():
         "firewall group port-group printer-ports port 515",
         "firewall group port-group printer-ports port 631",
         "firewall group port-group printer-ports port 9100",
-        'firewall group port-group printer-ports description "Ports for printer connections"',
+        "firewall group port-group printer-ports description "
+        "'Ports for printer connections'",
     ], "Description port group correct"

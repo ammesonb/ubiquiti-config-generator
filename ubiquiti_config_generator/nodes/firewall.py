@@ -2,6 +2,7 @@
 A firewall node
 """
 from os import path
+import shlex
 from typing import Tuple, List
 
 from ubiquiti_config_generator import type_checker, file_paths
@@ -14,6 +15,7 @@ FIREWALL_TYPES = {
     "direction": type_checker.is_firewall_direction,
     "default-action": type_checker.is_action,
     "auto-increment": type_checker.is_number,
+    "description": type_checker.is_string,
 }
 
 
@@ -72,7 +74,36 @@ class Firewall(Validatable):
         """
         Commands to create this firewall
         """
-        pass
+        firewall_base = "firewall name {0} ".format(self.name)
+        ordered_commands = [[]]
+        command_list = []
+
+        def append_command(command: str):
+            """
+            .
+            """
+            command_list.append(command)
+            ordered_commands[-1].append(command)
+
+        append_command(
+            firewall_base
+            + "default-action "
+            + getattr(self, "default-action", "accept")
+        )
+
+        if hasattr(self, "description"):
+            # pylint: disable=no-member
+            description = shlex.quote(self.description)
+            if description[0] not in ['"', "'"]:
+                description = "'{0}'".format(description)
+
+            append_command(firewall_base + "description " + description)
+
+        for rule in self.rules:
+            for command in rule.commands():
+                append_command(command)
+
+        return (ordered_commands, command_list)
 
     def add_rule(self, rule_properties: dict):
         """
@@ -80,6 +111,7 @@ class Firewall(Validatable):
         """
         if "number" not in rule_properties:
             rule_properties["number"] = self.next_rule_number()
+
         if "firewall_name" not in rule_properties:
             rule_properties["firewall_name"] = self.name
 
@@ -92,7 +124,7 @@ class Firewall(Validatable):
         next_number = None
         to_check = getattr(self, "auto-increment")
         while next_number is None:
-            if to_check in [rule.number for rule in self.rules]:
+            if int(to_check) in [int(rule.number) for rule in self.rules]:
                 to_check += getattr(self, "auto-increment")
             else:
                 next_number = to_check

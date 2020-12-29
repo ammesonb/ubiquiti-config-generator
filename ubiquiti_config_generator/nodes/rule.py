@@ -1,11 +1,12 @@
 """
 A firewall rule
 """
+import shlex
+from typing import List
+
 from ubiquiti_config_generator import type_checker
 from ubiquiti_config_generator.nodes.validatable import Validatable
 
-# protocol
-# state
 
 RULE_TYPES = {
     "number": type_checker.is_number,
@@ -29,3 +30,65 @@ class Rule(Validatable):
         self.number = number
         self.firewall_name = firewall_name
         self._add_keyword_attributes(kwargs)
+
+    def commands(self) -> List[str]:
+        """
+        Get the command for this rule
+        """
+        command_base = "firewall name {0} rule {1} ".format(
+            self.firewall_name, self.number
+        )
+
+        commands = [command_base + getattr(self, "action", "accept")]
+
+        if hasattr(self, "description"):
+            # pylint: disable=no-member
+            description = shlex.quote(self.description)
+            if description[0] not in ["'", '"']:
+                description = '"{0}"'.format(description)
+
+            commands.append(command_base + "description " + description)
+
+        for part in ["log", "protocol"]:
+            if hasattr(self, part):
+                commands.append(command_base + part + " " + getattr(self, part))
+
+        if hasattr(self, "state"):
+            # pylint: disable=no-member
+            for state, enabled in self.state.items():
+                commands.append(command_base + "state {0} {1}".format(state, enabled))
+
+        connections = ["source", "destination"]
+        for connection in connections:
+            if hasattr(self, connection):
+                data = getattr(self, connection)
+
+                if "address" in data:
+                    if type_checker.is_ip_address(
+                        data["address"]
+                    ) or type_checker.is_cidr(data["address"]):
+                        commands.append(
+                            command_base + connection + " address " + data["address"]
+                        )
+                    else:
+                        commands.append(
+                            command_base
+                            + connection
+                            + " group address-group "
+                            + data["address"]
+                        )
+
+                if "port" in data:
+                    if type_checker.is_number(data["port"]):
+                        commands.append(
+                            command_base + connection + " port " + data["port"]
+                        )
+                    else:
+                        commands.append(
+                            command_base
+                            + connection
+                            + " group port-group "
+                            + data["port"]
+                        )
+
+        return commands

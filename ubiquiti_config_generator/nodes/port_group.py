@@ -1,6 +1,7 @@
 """
 Contains port groups
 """
+import shlex
 from typing import List
 
 from ubiquiti_config_generator.nodes.validatable import Validatable
@@ -79,7 +80,7 @@ class PortGroup(Validatable):
         """
         base_command = "firewall group port-group {0}".format(self.name)
         return [base_command + " port {0}".format(port) for port in self.ports] + (
-            [base_command + ' description "{0}"'.format(self.description)]
+            [base_command + " description {0}".format(shlex.quote(self.description))]
             if hasattr(self, "description")
             else []
         )
