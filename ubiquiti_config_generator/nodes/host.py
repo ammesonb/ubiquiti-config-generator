@@ -131,26 +131,18 @@ class Host(Validatable):
 
         # Ensure the firewall rule numbers don't conflict with the numbers
         # set in a host
-        all_firewall_rules = (
-            self.network.firewalls_by_direction["in"].rules
-            + self.network.firewalls_by_direction["out"].rules
-        )
         for connection in self.connections:
             rule = connection.get("rule", None)
             if not rule:
                 continue
 
-            for (
-                firewall_direction,
-                firewall,
-            ) in self.network.firewalls_by_direction.items():
+            for firewall in self.network.firewalls_by_direction.values():
                 if any(
                     [firewall_rule.number == rule for firewall_rule in firewall.rules]
                 ):
                     self.add_validation_error(
-                        "{0} has conflicting connection rule with {1}, rule number {2}".format(
-                            str(self), str(firewall), rule
-                        )
+                        "{0} has conflicting connection rule with {1}, "
+                        "rule number {2}".format(str(self), str(firewall), rule)
                     )
                     consistent = False
 

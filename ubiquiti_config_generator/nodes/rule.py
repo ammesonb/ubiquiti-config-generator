@@ -31,6 +31,7 @@ class Rule(Validatable):
         self.firewall_name = firewall_name
         self._add_keyword_attributes(kwargs)
 
+    # pylint: disable=too-many-branches
     def commands(self) -> List[str]:
         """
         Get the command for this rule

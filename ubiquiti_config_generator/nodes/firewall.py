@@ -36,7 +36,7 @@ class Firewall(Validatable):
             setattr(self, "auto-increment", 10)
 
         self.rules = []
-        if not "rules" in kwargs:
+        if "rules" not in kwargs:
             self._load_rules()
 
         self._add_keyword_attributes(kwargs)
@@ -100,6 +100,7 @@ class Firewall(Validatable):
             append_command(firewall_base + "description " + description)
 
         for rule in self.rules:
+            ordered_commands.append([])
             for command in rule.commands():
                 append_command(command)
 

@@ -143,3 +143,54 @@ def test_validation_failures(monkeypatch):
         "failure",
         "issue",
     ], "Validation failures are correct"
+
+
+def test_commands(monkeypatch):
+    """
+    .
+    """
+
+    @counter_wrapper
+    def rule_commands(self) -> List[str]:
+        commands = []
+        if rule_commands.counter == 1:
+            commands = ["rule1-command1", "rule1-command2"]
+        else:
+            commands = ["rule2-command1", "rule2-command2", "rule2-command3"]
+
+        return commands
+
+    monkeypatch.setattr(Rule, "commands", rule_commands)
+
+    firewall_properties = {
+        "default-action": "drop",
+        "description": "A in-firewall description",
+        "rules": [Rule(10, "firewall1"), Rule(20, "firewall1")],
+    }
+    firewall = Firewall("firewall1", "in", "network1", ".", **firewall_properties)
+    ordered_commands, command_list = firewall.commands()
+    assert command_list == [
+        "firewall name firewall1 default-action drop",
+        "firewall name firewall1 description 'A in-firewall description'",
+        "rule1-command1",
+        "rule1-command2",
+        "rule2-command1",
+        "rule2-command2",
+        "rule2-command3",
+    ], "Commands generated correctly"
+
+    assert ordered_commands == [
+        [
+            "firewall name firewall1 default-action drop",
+            "firewall name firewall1 description 'A in-firewall description'",
+        ],
+        ["rule1-command1", "rule1-command2"],
+        ["rule2-command1", "rule2-command2", "rule2-command3"],
+    ], "Ordered commands correct"
+
+    firewall = Firewall("firewall1", "in", "network1", ".", description="Description")
+    ordered_commands, command_list = firewall.commands()
+    assert command_list == [
+        "firewall name firewall1 default-action accept",
+        "firewall name firewall1 description 'Description'",
+    ], "Description command is quoted"
