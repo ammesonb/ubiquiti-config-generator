@@ -84,7 +84,9 @@ def test_load_hosts(monkeypatch):
         "get_folders_with_config",
         lambda folder: ["host1/config.yaml", "host2/config.yaml"],
     )
-    monkeypatch.setattr(file_paths, "load_yaml_from_file", lambda file_path: {})
+    monkeypatch.setattr(
+        file_paths, "load_yaml_from_file", lambda file_path: {"address": "192.168.0.1"}
+    )
 
     network = Network("network", ".", "10.0.0.0/8", "eth0", firewalls=[])
     assert "hosts" in network._validate_attributes, "Hosts added"
@@ -113,7 +115,7 @@ def test_validate(monkeypatch):
         "1.1.1.1/24",
         "eth0",
         firewalls=[Firewall("firewall", "local", "network", ".")],
-        hosts=[Host("host", None, ".")],
+        hosts=[Host("host", None, ".", "192.168.0.1")],
     )
     monkeypatch.setattr(Validatable, "validate", fake_validate)
     monkeypatch.setattr(Firewall, "validate", fake_validate)
@@ -137,7 +139,10 @@ def test_validation_failures(monkeypatch):
         "1.1.1.1/24",
         "eth0",
         firewalls=[Firewall("firewall", "in", "network", ".")],
-        hosts=[Host("host", None, "."), Host("host2", None, ".")],
+        hosts=[
+            Host("host", None, ".", "192.168.0.1"),
+            Host("host2", None, ".", "192.168.0.1"),
+        ],
     )
     assert network.validation_failures() == [], "No failures added yet"
 

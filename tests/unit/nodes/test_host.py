@@ -19,7 +19,7 @@ def test_host_calls_methods(monkeypatch):
         """
 
     monkeypatch.setattr(Host, "_add_keyword_attributes", fake_set_attrs)
-    host = Host("host", None, ".")
+    host = Host("host", None, ".", "192.168.0.1")
 
     assert host.name == "host", "Name set"
     assert fake_set_attrs.counter == 1, "Set attrs called"
@@ -32,7 +32,7 @@ def test_is_consistent(monkeypatch):
     .
     """
     network = Network("network", ".", "192.168.0.1/24", "eth0")
-    host = Host("host", network, ".")
+    host = Host("host", network, ".", "192.168.0.1")
     monkeypatch.setattr(secondary_configs, "get_port_groups", lambda config_path: [])
     assert host.is_consistent(), "Empty host is consistent"
 
@@ -40,26 +40,26 @@ def test_is_consistent(monkeypatch):
         secondary_configs, "get_port_groups", lambda config_path: [PortGroup("group1")]
     )
     attrs = {"forward-ports": ["group1", "group2"]}
-    host = Host("host", network, ".", **attrs)
+    host = Host("host", network, ".", "192.168.0.1", **attrs)
     assert not host.is_consistent(), "Missing forward port group inconsistent"
     assert host.validation_errors() == [
         "Port Group group2 not defined for forwarding in Host host"
     ], "Forward port group error set"
 
     attrs = {"forward-ports": ["group1", 80]}
-    host = Host("host", network, ".", **attrs)
+    host = Host("host", network, ".", "192.168.0.1", **attrs)
     assert host.is_consistent(), "Forward port groups consistent"
     assert not host.validation_errors(), "No errors for forward port"
 
     attrs = {"hairpin-ports": ["group1", "group2"]}
-    host = Host("host", network, ".", **attrs)
+    host = Host("host", network, ".", "192.168.0.1", **attrs)
     assert not host.is_consistent(), "Missing hairpin port group inconsistent"
     assert host.validation_errors() == [
         "Port Group group2 not defined for hairpin in Host host"
     ], "Hairpin port group error set"
 
     attrs = {"hairpin-ports": ["group1", 80]}
-    host = Host("host", network, ".", **attrs)
+    host = Host("host", network, ".", "192.168.0.1", **attrs)
     assert host.is_consistent(), "Hairpin port groups consistent"
     assert not host.validation_errors(), "No errors for hairpin port"
 
@@ -92,7 +92,7 @@ def test_is_consistent(monkeypatch):
             },
         ]
     }
-    host = Host("host", network, ".", **attrs)
+    host = Host("host", network, ".", "192.168.0.1", **attrs)
     assert not host.is_consistent(), "Connections inconsistent"
     assert host.validation_errors() == [
         "Source Port Group group2 not defined for blocked connection in Host host",
@@ -101,7 +101,7 @@ def test_is_consistent(monkeypatch):
     ], "Error set for missing port group in connections"
 
     del attrs["connections"][-2:]
-    host = Host("host", network, ".", **attrs)
+    host = Host("host", network, ".", "192.168.0.1", **attrs)
     assert host.is_consistent(), "Connections are consistent"
     assert not host.validation_errors(), "No connection errors"
 
@@ -111,10 +111,12 @@ def test_host_firewall_consistency(monkeypatch):
     .
     """
     monkeypatch.setattr(secondary_configs, "get_port_groups", lambda config_path: [])
+    monkeypatch.setattr(Host, "add_firewall_rules", lambda self: None)
 
     network = Network("network", ".", "192.168.0.1/24", "eth0")
 
     attrs = {
+        "address-groups": ["an-address"],
         "connections": [
             {
                 "allow": True,
@@ -127,11 +129,21 @@ def test_host_firewall_consistency(monkeypatch):
                 "rule": 10,
                 "source": {"address": "12.10.12.12", "port": 8080},
             },
-            {"allow": False, "rule": 20, "destination": {"port": 443},},
-            {"allow": False, "rule": 20, "destination": {"port": 4443},},
-        ]
+            {
+                "allow": False,
+                "rule": 20,
+                "source": {"address": "an-address"},
+                "destination": {"port": 443},
+            },
+            {
+                "allow": False,
+                "rule": 20,
+                "source": {"address": "an-address"},
+                "destination": {"port": 4443},
+            },
+        ],
     }
-    host = Host("host", network, ".", **attrs)
+    host = Host("host", network, ".", "12.10.12.12", **attrs)
     assert not host.is_consistent(), "Duplicate rules inconsistent"
     assert host.validation_errors() == [
         "Host host has duplicate firewall rules: 10, 20"
@@ -155,6 +167,7 @@ def test_host_firewall_consistency(monkeypatch):
         "network", ".", "192.168.0.1/24", "eth0", firewalls=[firewall_in, firewall_out]
     )
     attrs = {
+        "address-groups": ["an-address"],
         "connections": [
             {
                 "allow": True,
@@ -162,12 +175,19 @@ def test_host_firewall_consistency(monkeypatch):
                 "source": {"address": "an-address"},
                 "destination": {"port": 80},
             },
-            {"allow": False, "rule": 20, "destination": {"port": 443},},
-        ]
+            {
+                "allow": False,
+                "rule": 20,
+                "source": {"address": "an-address"},
+                "destination": {"port": 443},
+            },
+        ],
     }
-    host = Host("host", network, ".", **attrs)
+    host = Host("host", network, ".", "192.168.0.1", **attrs)
     assert not host.is_consistent(), "Rules conflicting with firewall is inconsistent"
     assert host.validation_errors() == [
-        "Host host has conflicting connection rule with Firewall firewall-in, rule number 10",
-        "Host host has conflicting connection rule with Firewall firewall-out, rule number 20",
+        "Host host has conflicting connection rule with Firewall firewall-in, "
+        "rule number 10",
+        "Host host has conflicting connection rule with Firewall firewall-out, "
+        "rule number 20",
     ], "Firewall rule conflict errors set"
