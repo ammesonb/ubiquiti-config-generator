@@ -154,7 +154,6 @@ class Host(Validatable):
                     )
                     consistent = False
 
-            # TODO: test this
             # Ensure either the source or destination contains this host
             # in each connection, otherwise can't know what firewall to add a rule to
             source = None
@@ -167,7 +166,7 @@ class Host(Validatable):
             if source is None and destination is None:
                 self.add_validation_error(
                     str(self)
-                    + " has connection with no source address or destination address!"
+                    + " has connection with no source address or destination address"
                 )
                 consistent = False
             elif self.address not in [source, destination] and not any(
@@ -179,7 +178,7 @@ class Host(Validatable):
             ):
                 self.add_validation_error(
                     str(self)
-                    + " has connection where its address is not used in source or destination!"
+                    + " has connection where its address is not used in source or destination"
                 )
                 consistent = False
 

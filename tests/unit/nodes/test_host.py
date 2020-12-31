@@ -191,3 +191,35 @@ def test_host_firewall_consistency(monkeypatch):
         "Host host has conflicting connection rule with Firewall firewall-out, "
         "rule number 20",
     ], "Firewall rule conflict errors set"
+
+
+def test_connection_consistency(monkeypatch):
+    """
+    .
+    """
+    monkeypatch.setattr(
+        secondary_configs, "get_port_groups", lambda config_path: [PortGroup("a-group")]
+    )
+    monkeypatch.setattr(Host, "add_firewall_rules", lambda self: None)
+
+    network = Network("network", ".", "192.168.0.1/24", "eth0")
+
+    attributes = {
+        "connections": [
+            {"allow": True, "rule": 10},
+            {
+                "allow": True,
+                "rule": 20,
+                "source": {"address": "123.123.123.123"},
+                "destination": {"address": "a-group"},
+            },
+        ]
+    }
+    host = Host("host", network, ".", "192.168.0.1", **attributes)
+
+    assert not host.is_consistent(), "Host is not consistent"
+    assert host.validation_errors() == [
+        "Host host has connection with no source address or destination address",
+        "Host host has connection where its address is not used "
+        "in source or destination",
+    ]
