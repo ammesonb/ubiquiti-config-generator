@@ -118,6 +118,27 @@ def test_is_name():
     assert not type_checker.is_name("Invalid="), "Equals invalid"
 
 
+def test_is_description():
+    """
+    .
+    """
+    assert not type_checker.is_description(80), "Number is not valid"
+    assert not type_checker.is_description(["in"]), "Array is not valid"
+    assert not type_checker.is_description({"abc": "def"}), "Dictionary is not valid"
+    assert type_checker.is_description("abc"), "String is valid"
+    assert type_checker.is_description("abc123"), "String with numbers is valid"
+    assert type_checker.is_description(
+        "123host"
+    ), "String starting with numbers is valid"
+    assert type_checker.is_description("valid-host"), "Description with dashes is valid"
+    assert type_checker.is_description("valid_host"), "Underscores is valid"
+    assert type_checker.is_description(
+        "valid_host!@#$%^&*()_+-="
+    ), "Various punctuation is valid"
+    assert not type_checker.is_description("it's a host"), "Single quote invalid"
+    assert not type_checker.is_description('it\'s a "host"'), "Double quote invalid"
+
+
 def test_is_string():
     """
     .

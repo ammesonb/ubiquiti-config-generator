@@ -80,6 +80,14 @@ def is_name(value: str) -> bool:
     return is_string(value) and bool(re.match(r"^[a-zA-Z0-9\-_]+$", value))
 
 
+def is_description(value: str) -> bool:
+    """
+    Is the value suitable for a description
+    """
+    # Can't contain quotes
+    return is_string(value) and not "'" in value and not '"' in value
+
+
 def is_string(value) -> bool:
     """
     Is the value a string

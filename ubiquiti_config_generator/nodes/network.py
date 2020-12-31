@@ -29,7 +29,7 @@ NETWORK_TYPES = {
     "stop": type_checker.is_ip_address,
     # Interface properties
     "interface_name": type_checker.is_name,
-    "interface_description": type_checker.is_string,
+    "interface_description": type_checker.is_description,
     "duplex": type_checker.is_duplex,
     "speed": type_checker.is_speed,
     "vif": type_checker.is_number,

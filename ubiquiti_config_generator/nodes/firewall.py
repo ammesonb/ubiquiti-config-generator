@@ -15,7 +15,7 @@ FIREWALL_TYPES = {
     "direction": type_checker.is_firewall_direction,
     "default-action": type_checker.is_action,
     "auto-increment": type_checker.is_number,
-    "description": type_checker.is_string,
+    "description": type_checker.is_description,
 }
 
 

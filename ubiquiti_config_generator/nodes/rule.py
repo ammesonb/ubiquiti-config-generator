@@ -11,7 +11,7 @@ from ubiquiti_config_generator.nodes.validatable import Validatable
 RULE_TYPES = {
     "number": type_checker.is_number,
     "action": type_checker.is_action,
-    "description": type_checker.is_string,
+    "description": type_checker.is_description,
     "log": type_checker.is_string_boolean,
     "source": type_checker.is_address_and_or_port,
     "destination": type_checker.is_address_and_or_port,
@@ -40,7 +40,7 @@ class Rule(Validatable):
             self.firewall_name, self.number
         )
 
-        commands = [command_base + getattr(self, "action", "accept")]
+        commands = [command_base + "action " + getattr(self, "action", "accept")]
 
         if hasattr(self, "description"):
             # pylint: disable=no-member
@@ -82,7 +82,7 @@ class Rule(Validatable):
                 if "port" in data:
                     if type_checker.is_number(data["port"]):
                         commands.append(
-                            command_base + connection + " port " + data["port"]
+                            command_base + connection + " port " + str(data["port"])
                         )
                     else:
                         commands.append(
