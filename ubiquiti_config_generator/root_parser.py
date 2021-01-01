@@ -10,6 +10,7 @@ from ubiquiti_config_generator.nodes import (
     GlobalSettings,
     PortGroup,
     ExternalAddresses,
+    NAT,
     Network,
 )
 
@@ -34,11 +35,13 @@ class RootNode:
         port_groups: List[PortGroup],
         external_addresses: ExternalAddresses,
         networks: List[Network],
+        nat: NAT,
     ):
         self.global_settings = global_settings
         self.port_groups = port_groups
         self.external_addresses = external_addresses
         self.networks = networks
+        self.nat = nat
 
     @classmethod
     def create_from_configs(cls, config_path: str):
@@ -59,6 +62,7 @@ class RootNode:
                     [config_path, file_paths.NETWORK_FOLDER]
                 )
             ],
+            NAT(config_path),
         )
 
     def is_valid(self) -> bool:
@@ -70,6 +74,7 @@ class RootNode:
             and self.external_addresses.validate()
             and all([port.validate() for port in self.port_groups])
             and all([network.validate() for network in self.networks])
+            and self.nat.validate()
         )
 
     def is_consistent(self) -> bool:
@@ -80,6 +85,7 @@ class RootNode:
         globals_consistent = self.global_settings.is_consistent()
         port_groups_consistent = [group.is_consistent() for group in self.port_groups]
         networks_consistent = [network.is_consistent() for network in self.networks]
+        nat_consistent = self.nat.is_consistent()
 
         networks_consistent = all(networks_consistent) and True
 
@@ -104,6 +110,7 @@ class RootNode:
             and globals_consistent
             and all(port_groups_consistent)
             and networks_consistent
+            and nat_consistent
         )
 
     def validate(self) -> bool:
@@ -119,6 +126,7 @@ class RootNode:
         failures = (
             self.global_settings.validation_errors()
             + self.external_addresses.validation_errors()
+            + self.nat.validation_failures()
         )
         for port in self.port_groups:
             failures.extend(port.validation_errors())
@@ -142,10 +150,15 @@ class RootNode:
         for group in self.port_groups:
             port_groups.extend(group.commands())
         global_settings = self.global_settings.commands()
+        nat_commands = self.nat.commands()
 
-        ordered_commands = [[*external_addresses, *port_groups], global_settings]
+        ordered_commands = [
+            [*external_addresses, *port_groups],
+            global_settings,
+            nat_commands,
+        ]
 
-        all_commands = external_addresses + port_groups + global_settings
+        all_commands = external_addresses + port_groups + global_settings + nat_commands
 
         # Group ordered network commands together, extending the list of ordered
         # commands by all of them after they've all been created

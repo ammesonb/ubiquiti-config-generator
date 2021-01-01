@@ -1,61 +1,42 @@
 """
-A firewall node
+NAT for all networks
 """
 from os import path
 import shlex
 from typing import Tuple, List
 
 from ubiquiti_config_generator import type_checker, file_paths, utility
-from ubiquiti_config_generator.nodes.rule import Rule
+from ubiquiti_config_generator.nodes.nat_rule import NATRule
 from ubiquiti_config_generator.nodes.validatable import Validatable
 
 
-FIREWALL_TYPES = {
-    "name": type_checker.is_name,
-    "direction": type_checker.is_firewall_direction,
-    "default-action": type_checker.is_action,
-    "auto-increment": type_checker.is_number,
-    "description": type_checker.is_description,
+NAT_TYPES = {
     "rules": lambda rules: all([rule.validate() for rule in rules]),
 }
 
 
-class Firewall(Validatable):
+class NAT(Validatable):
     """
-    The firewall object
+    The NAT object
     """
 
     def __init__(
-        self, name: str, direction: str, network_name: str, config_path: str, **kwargs
+        self, config_path: str, rules: List[NATRule] = None, auto_increment: int = 10
     ):
-        super().__init__(FIREWALL_TYPES, ["name", "rules"])
-        self.name = name
-        self.direction = direction
-        self.network_name = network_name
+        super().__init__(NAT_TYPES, ["rules"])
         self.config_path = config_path
-        if "auto-increment" not in kwargs:
-            setattr(self, "auto-increment", 10)
+        self.auto_increment = auto_increment
 
-        self.rules = []
-        if "rules" not in kwargs:
+        self.rules = rules or []
+        if not rules:
             self._load_rules()
-
-        self._add_keyword_attributes(kwargs)
 
     def _load_rules(self):
         """
         Load rules for this firewall
         """
         for rule_path in file_paths.get_config_files(
-            file_paths.get_path(
-                [
-                    self.config_path,
-                    file_paths.NETWORK_FOLDER,
-                    self.network_name,
-                    file_paths.FIREWALL_FOLDER,
-                    self.name,
-                ]
-            )
+            file_paths.get_path([self.config_path, file_paths.NAT_FOLDER,])
         ):
             if type_checker.is_number(rule_path.split(path.sep)[-1].rstrip(".yaml")):
                 self.add_rule(
@@ -69,13 +50,12 @@ class Firewall(Validatable):
         """
         String version of this class
         """
-        return "Firewall " + self.name
+        return "NAT"
 
     def commands(self) -> Tuple[List[List[str]], List[str]]:
         """
         Commands to create this firewall
         """
-        firewall_base = "firewall name {0} ".format(self.name)
         ordered_commands = [[]]
         command_list = []
 
@@ -85,20 +65,6 @@ class Firewall(Validatable):
             """
             command_list.append(command)
             ordered_commands[-1].append(command)
-
-        append_command(
-            firewall_base
-            + "default-action "
-            + getattr(self, "default-action", "accept")
-        )
-
-        if hasattr(self, "description"):
-            # pylint: disable=no-member
-            description = shlex.quote(self.description)
-            if description[0] not in ['"', "'"]:
-                description = "'{0}'".format(description)
-
-            append_command(firewall_base + "description " + description)
 
         for rule in self.rules:
             ordered_commands.append([])
@@ -114,9 +80,6 @@ class Firewall(Validatable):
         if "number" not in rule_properties:
             rule_properties["number"] = self.next_rule_number()
 
-        if "firewall_name" not in rule_properties:
-            rule_properties["firewall_name"] = self.name
-
         self.rules.append(Rule(**rule_properties))
 
     def next_rule_number(self) -> int:
@@ -124,10 +87,10 @@ class Firewall(Validatable):
         Find the next number usable for a rule
         """
         next_number = None
-        to_check = getattr(self, "auto-increment")
+        to_check = self.auto_increment
         while next_number is None:
             if int(to_check) in [int(rule.number) for rule in self.rules]:
-                to_check += getattr(self, "auto-increment")
+                to_check += self.auto_increment
             else:
                 next_number = to_check
 
@@ -141,3 +104,18 @@ class Firewall(Validatable):
         for rule in self.rules:
             failures.extend(rule.validation_errors())
         return failures
+
+    def is_consistent(self) -> bool:
+        """
+        Are the NAT rules consistent
+        """
+        consistent = True
+        duplicate_numbers = utility.get_duplicates([rule.number for rule in self.rules])
+        if duplicate_numbers:
+            self.add_validation_error(
+                "NAT has duplicate rules: "
+                + ", ".join([str(rule) for rule in duplicate_numbers])
+            )
+            consistent = False
+
+        return consistent

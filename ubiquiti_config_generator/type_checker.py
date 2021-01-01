@@ -35,6 +35,10 @@ RELATED = "related"
 
 SPEEDS = [10, 100, 1000, 10000]
 
+SOURCE = "source"
+DESTINATION = "destination"
+MASQUERADE = "masquerade"
+
 
 def is_string_boolean(value: str) -> bool:
     """
@@ -221,3 +225,10 @@ def is_state(value: dict) -> bool:
             ]
         )
     )
+
+
+def is_nat_type(value: str) -> bool:
+    """
+    Is the value a NAT type
+    """
+    return value in [SOURCE, DESTINATION, MASQUERADE]

@@ -20,11 +20,11 @@ class Validatable:
         """
         valid = True
         for attribute in self._validate_attributes:
-            valid = (
-                valid
-                and attribute in self._validator_map
-                and self._validator_map[attribute](getattr(self, attribute))
-            )
+            instance_valid = attribute in self._validator_map and self._validator_map[
+                attribute
+            ](getattr(self, attribute))
+
+            valid = valid and instance_valid
 
             if attribute not in self._validator_map:
                 self.add_validation_error(
@@ -32,7 +32,7 @@ class Validatable:
                         str(self), attribute
                     )
                 )
-            elif not self._validator_map[attribute](getattr(self, attribute)):
+            elif not instance_valid:
                 self.add_validation_error(
                     "{0} attribute {1} has failed validation".format(
                         str(self), attribute
@@ -45,7 +45,8 @@ class Validatable:
         """
         Add a validatable attribute
         """
-        self._validate_attributes.append(attribute)
+        if attribute not in self._validate_attributes:
+            self._validate_attributes.append(attribute)
 
     def _add_keyword_attributes(self, kwargs: dict) -> None:
         """

@@ -10,7 +10,7 @@ from ubiquiti_config_generator import (
     type_checker,
     utility,
 )
-from ubiquiti_config_generator.nodes import Firewall, Host
+from ubiquiti_config_generator.nodes import Firewall, Host, NAT
 from ubiquiti_config_generator.nodes.validatable import Validatable
 
 NETWORK_TYPES = {
@@ -44,10 +44,17 @@ class Network(Validatable):
     """
 
     def __init__(
-        self, name: str, config_path: str, cidr: str, interface_name: str, **kwargs
+        self,
+        name: str,
+        nat: NAT,
+        config_path: str,
+        cidr: str,
+        interface_name: str,
+        **kwargs
     ):
-        super().__init__(NETWORK_TYPES, ["name", "cidr"])
+        super().__init__(NETWORK_TYPES, ["name", "cidr", "firewalls", "hosts"])
         self.name = name
+        self.nat = nat
         self.cidr = cidr
         self.config_path = config_path
         self.interface_name = interface_name
@@ -100,7 +107,13 @@ class Network(Validatable):
                 )
             )
         ]
-        self._add_validate_attribute("firewalls")
+
+    def validate(self):
+        print(self.firewalls)
+        print(self.hosts)
+        print(self._validate_attributes)
+        print(self._validator_map)
+        return super().validate()
 
     def _load_hosts(self) -> None:
         """
@@ -119,7 +132,6 @@ class Network(Validatable):
                 )
             )
         ]
-        self._add_validate_attribute("hosts")
 
     def validation_failures(self) -> List[str]:
         """
@@ -189,16 +201,6 @@ class Network(Validatable):
 
         hosts_consistent = [host.is_consistent() for host in self.hosts]
         return consistent and all(hosts_consistent)
-
-    def validate(self) -> bool:
-        """
-        Is the network valid
-        """
-        return (
-            super().validate()
-            and all([firewall.validate() for firewall in self.firewalls])
-            and all([host.validate() for host in self.hosts])
-        )
 
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def commands(self) -> Tuple[List[List[str]], List[str]]:

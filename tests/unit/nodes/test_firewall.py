@@ -99,7 +99,6 @@ def test_validate(monkeypatch):
         """
         return True
 
-    monkeypatch.setattr(Validatable, "validate", fake_validate)
     monkeypatch.setattr(Rule, "validate", fake_validate)
 
     firewall = Firewall(
@@ -110,7 +109,7 @@ def test_validate(monkeypatch):
         rules=[Rule(1, "firewall"), Rule(2, "firewall")],
     )
     assert firewall.validate(), "Firewall is valid"
-    assert fake_validate.counter == 3, "Validation called three times"
+    assert fake_validate.counter == 2, "Validation called for each rule"
 
     monkeypatch.setattr(Rule, "validate", lambda self: False)
     assert not firewall.validate(), "Rule validation fails"

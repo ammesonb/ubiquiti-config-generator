@@ -11,6 +11,7 @@ GLOBAL_CONFIG = "global.yaml"
 EXTERNAL_ADDRESSES_CONFIG = "external_addresses.yaml"
 PORT_GROUPS_FOLDER = "port-groups"
 
+NAT_FOLDER = "nat"
 NETWORK_FOLDER = "networks"
 CONFIG_FILE_NAME = "config.yaml"
 HOSTS_FOLDER = "hosts"

@@ -25,7 +25,7 @@ HOST_TYPES = {
     ),
     # TODO: commands for this
     "hairpin-ports": lambda hosts: all(
-        [type_checker.is_address_and_or_port(host) for host in hosts]
+        [type_checker.is_source_destination(host) for host in hosts]
     ),
     # This is a dictionary for connections to allow/block, with properties:
     # allow: bool

@@ -32,7 +32,7 @@ def test_initialization(monkeypatch):
 
     monkeypatch.setattr(Network, "_add_keyword_attributes", fake_set_attrs)
     monkeypatch.setattr(Network, "_load_firewalls", fake_load_firewalls)
-    network = Network("network", ".", "10.0.0.0/8", "eth0")
+    network = Network("network", None, ".", "10.0.0.0/8", "eth0")
 
     assert network.name == "network", "Name set"
     assert network.cidr == "10.0.0.0/8", "CIDR set"
@@ -59,7 +59,7 @@ def test_load_firewalls(monkeypatch):
         lambda file_path: {"direction": "local" if "1" in file_path else "out"},
     )
 
-    network = Network("network", ".", "10.0.0.0/8", "eth0")
+    network = Network("network", None, ".", "10.0.0.0/8", "eth0")
     assert "firewalls" in network._validate_attributes, "firewalls added"
     firewalls = getattr(network, "firewalls")
     assert "firewall1" in [firewall.name for firewall in firewalls], "firewall 1 found"
@@ -88,7 +88,7 @@ def test_load_hosts(monkeypatch):
         file_paths, "load_yaml_from_file", lambda file_path: {"address": "192.168.0.1"}
     )
 
-    network = Network("network", ".", "10.0.0.0/8", "eth0", firewalls=[])
+    network = Network("network", None, ".", "10.0.0.0/8", "eth0", firewalls=[])
     assert "hosts" in network._validate_attributes, "Hosts added"
     hosts = getattr(network, "hosts")
     assert "host1" in [host.name for host in hosts], "Host 1 found"
@@ -109,22 +109,20 @@ def test_validate(monkeypatch):
         return True
 
     monkeypatch.setattr(file_paths, "get_folders_with_config", lambda folder: [])
+    monkeypatch.setattr(Firewall, "validate", fake_validate)
+    monkeypatch.setattr(Host, "validate", fake_validate)
     network = Network(
         "network",
+        None,
         ".",
         "1.1.1.1/24",
         "eth0",
         firewalls=[Firewall("firewall", "local", "network", ".")],
         hosts=[Host("host", None, ".", "192.168.0.1")],
     )
-    monkeypatch.setattr(Validatable, "validate", fake_validate)
-    monkeypatch.setattr(Firewall, "validate", fake_validate)
-    monkeypatch.setattr(Host, "validate", fake_validate)
 
     assert network.validate(), "Network is valid"
-    assert (
-        fake_validate.counter == 5
-    ), "Called for parent/network, all three firewalls, and host"
+    assert fake_validate.counter == 4, "Called for all three firewalls and host"
 
 
 def test_validation_failures(monkeypatch):
@@ -135,6 +133,7 @@ def test_validation_failures(monkeypatch):
 
     network = Network(
         "network",
+        None,
         ".",
         "1.1.1.1/24",
         "eth0",
@@ -194,7 +193,7 @@ def test_is_consistent(monkeypatch):
         "stop": "10.10.0.255",
         "interface_name": "eth0",
     }
-    network = Network("network", ".", "10.0.0.0/24", **network_properties)
+    network = Network("network", None, ".", "10.0.0.0/24", **network_properties)
 
     assert not network.is_consistent(), "Network is not consistent"
     assert network.validation_errors() == [
@@ -217,7 +216,7 @@ def test_is_consistent(monkeypatch):
         "stop": "10.0.0.255",
         "interface_name": "eth0",
     }
-    network = Network("network", ".", "10.0.0.0/24", **network_properties)
+    network = Network("network", None, ".", "10.0.0.0/24", **network_properties)
     assert network.is_consistent(), "Network should be consistent"
     assert not network.validation_errors(), "No validation errors present"
 
@@ -240,7 +239,9 @@ def test_network_commands(monkeypatch):
     }
     monkeypatch.setattr(Firewall, "commands", lambda self: ([[]], []))
     monkeypatch.setattr(Host, "commands", lambda self: ([[]], []))
-    network = Network("network1", ".", "192.168.0.0/24", "eth0", **network_properties)
+    network = Network(
+        "network1", None, ".", "192.168.0.0/24", "eth0", **network_properties
+    )
     ordered_commands, command_list = network.commands()
 
     base = "service dhcp-server shared-network-name network1 "
@@ -290,7 +291,9 @@ def test_interface_commands(monkeypatch):
         "duplex": "auto",
         "speed": "auto",
     }
-    network = Network("network1", ".", "192.168.0.0/24", "eth0", **network_properties)
+    network = Network(
+        "network1", None, ".", "192.168.0.0/24", "eth0", **network_properties
+    )
     ordered_commands, command_list = network.commands()
 
     interface_base = "interfaces ethernet eth0 "
@@ -325,7 +328,9 @@ def test_interface_commands(monkeypatch):
         "speed": 100,
         "vif": "123",
     }
-    network = Network("network1", ".", "192.168.0.0/24", "eth0", **network_properties)
+    network = Network(
+        "network1", None, ".", "192.168.0.0/24", "eth0", **network_properties
+    )
     ordered_commands, command_list = network.commands()
 
     interface_base = "interfaces ethernet eth0 "
@@ -422,7 +427,9 @@ def test_command_ordering(monkeypatch):
             Firewall("firewall2", "out", "network", "."),
         ],
     }
-    network = Network("network1", ".", "192.168.0.0/24", "eth0", **network_properties)
+    network = Network(
+        "network1", None, ".", "192.168.0.0/24", "eth0", **network_properties
+    )
     ordered_commands, command_list = network.commands()
 
     base = "service dhcp-server shared-network-name network1 "

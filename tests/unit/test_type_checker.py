@@ -443,3 +443,17 @@ def test_is_state():
             "invalid": "disabled",
         }
     ), "All keys valid"
+
+
+def test_is_nat_type():
+    """
+    .
+    """
+    assert not type_checker.is_nat_type("abc"), "String not valid"
+    assert not type_checker.is_nat_type(80), "Number is not valid"
+    assert not type_checker.is_nat_type(["in"]), "Array is not valid"
+    assert not type_checker.is_nat_type({"source": True}), "Dictionary is not valid"
+
+    assert type_checker.is_nat_type("source"), "Source is valid"
+    assert type_checker.is_nat_type("destination"), "Destination is valid"
+    assert type_checker.is_nat_type("masquerade"), "Masquerade is valid"

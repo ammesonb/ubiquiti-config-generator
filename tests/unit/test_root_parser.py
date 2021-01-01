@@ -14,6 +14,7 @@ from ubiquiti_config_generator.nodes import (
     ExternalAddresses,
     PortGroup,
     Network,
+    NAT,
 )
 from ubiquiti_config_generator.testing_utils import counter_wrapper
 
@@ -94,7 +95,7 @@ def test_is_valid(monkeypatch):
         """
         return False
 
-    node = root_parser.RootNode(None, None, None, None)
+    node = root_parser.RootNode(None, None, None, None, None)
     monkeypatch.setattr(node, "is_valid", fake_validate)
     monkeypatch.setattr(node, "is_consistent", fake_consistent)
 
@@ -120,15 +121,17 @@ def test_validate(monkeypatch):
     monkeypatch.setattr(ExternalAddresses, "validate", fake_validate)
     monkeypatch.setattr(PortGroup, "validate", fake_validate)
     monkeypatch.setattr(Network, "validate", fake_validate)
+    monkeypatch.setattr(NAT, "validate", fake_validate)
 
     node = root_parser.RootNode(
         GlobalSettings(),
         [PortGroup("group")],
         ExternalAddresses([]),
-        [Network("Network", ".", "1.1.1.1/24", "eth0")],
+        [Network("Network", None, ".", "1.1.1.1/24", "eth0")],
+        NAT("."),
     )
     assert node.is_valid(), "Node is valid"
-    assert fake_validate.counter == 4, "All things validated"
+    assert fake_validate.counter == 5, "All things validated"
 
 
 def test_validation_failures(monkeypatch):
@@ -148,16 +151,18 @@ def test_validation_failures(monkeypatch):
     monkeypatch.setattr(ExternalAddresses, "validation_errors", fake_validate)
     monkeypatch.setattr(PortGroup, "validation_errors", fake_validate)
     monkeypatch.setattr(Network, "validation_failures", fake_validate)
+    monkeypatch.setattr(NAT, "validation_failures", fake_validate)
 
     node = root_parser.RootNode(
         GlobalSettings(),
         [PortGroup("group")],
         ExternalAddresses([]),
-        [Network("Network", ".", "1.1.1.1/24", "eth0")],
+        [Network("Network", None, ".", "1.1.1.1/24", "eth0")],
+        NAT("."),
     )
     result = node.validation_failures()
     print(result)
-    assert result == ["failure"] * 4, "Validation failures returned"
+    assert result == ["failure"] * 5, "Validation failures returned"
 
 
 def test_consistency_checks_called(monkeypatch):
@@ -177,6 +182,7 @@ def test_consistency_checks_called(monkeypatch):
     monkeypatch.setattr(ExternalAddresses, "is_consistent", check_consistency)
     monkeypatch.setattr(PortGroup, "is_consistent", check_consistency)
     monkeypatch.setattr(Network, "is_consistent", check_consistency)
+    monkeypatch.setattr(NAT, "is_consistent", check_consistency)
 
     monkeypatch.setattr(file_paths, "get_folders_with_config", lambda folder: [])
 
@@ -184,11 +190,12 @@ def test_consistency_checks_called(monkeypatch):
         GlobalSettings(),
         [PortGroup("Ports", [80])],
         ExternalAddresses(["1.1.1.1"]),
-        [Network("Network", ".", "10.0.0.0/24", "etho0")],
+        [Network("Network", None, ".", "10.0.0.0/24", "etho0")],
+        NAT("."),
     )
 
     assert root.is_consistent(), "Node is consistent"
-    assert check_consistency.counter == 4, "Consistency checked for each object"
+    assert check_consistency.counter == 5, "Consistency checked for each object"
 
 
 def test_network_overlap_consistency(monkeypatch):
@@ -199,16 +206,18 @@ def test_network_overlap_consistency(monkeypatch):
     monkeypatch.setattr(ExternalAddresses, "is_consistent", lambda self: True)
     monkeypatch.setattr(PortGroup, "is_consistent", lambda self: True)
     monkeypatch.setattr(Network, "is_consistent", lambda self: True)
+    monkeypatch.setattr(NAT, "is_consistent", lambda self: True)
 
     root = root_parser.RootNode(
         GlobalSettings(),
         [PortGroup("Ports", [80])],
         ExternalAddresses(["1.1.1.1"]),
         [
-            Network("Network 1", ".", "10.0.0.0/24", "eth0"),
-            Network("Network 2", ".", "10.0.1.0/24", "eth0"),
-            Network("Network 3", ".", "10.0.2.0/24", "eth0"),
+            Network("Network 1", None, ".", "10.0.0.0/24", "eth0"),
+            Network("Network 2", None, ".", "10.0.1.0/24", "eth0"),
+            Network("Network 3", None, ".", "10.0.2.0/24", "eth0"),
         ],
+        NAT("."),
     )
 
     assert root.is_consistent(), "Networks do not overlap"
@@ -219,14 +228,15 @@ def test_network_overlap_consistency(monkeypatch):
         ExternalAddresses(["1.1.1.1"]),
         [
             # First network contains all the others
-            Network("Network 1", ".", "10.0.0.0/22", "eth0"),
+            Network("Network 1", None, ".", "10.0.0.0/22", "eth0"),
             # This network has no collisions inside it
-            Network("Network 2", ".", "10.0.1.0/24", "eth0"),
+            Network("Network 2", None, ".", "10.0.1.0/24", "eth0"),
             # This network collides with the next
-            Network("Network 2", ".", "10.0.2.0/23", "eth0"),
+            Network("Network 2", None, ".", "10.0.2.0/23", "eth0"),
             # This network has no collisions inside it
-            Network("Network 3", ".", "10.0.2.0/24", "eth0"),
+            Network("Network 3", None, ".", "10.0.2.0/24", "eth0"),
         ],
+        NAT("."),
     )
 
     assert not overlap_root.is_consistent(), "Networks overlap"
@@ -285,23 +295,24 @@ def test_get_commands(monkeypatch):
     )
     monkeypatch.setattr(PortGroup, "commands", get_port_group_commands)
     monkeypatch.setattr(Network, "commands", get_network_commands)
+    monkeypatch.setattr(NAT, "commands", lambda self: ["nat-command"])
 
     parser = root_parser.RootNode(
         GlobalSettings(),
         [PortGroup("group1"), PortGroup("group2")],
         ExternalAddresses([]),
         [
-            Network("network1", ".", "1.1.1.1/24", "eth0"),
-            Network("network2", ".", "2.2.2.2/24", "eth0"),
+            Network("network1", None, ".", "1.1.1.1/24", "eth0"),
+            Network("network2", None, ".", "2.2.2.2/24", "eth0"),
         ],
+        NAT("."),
     )
     commands = parser.get_commands()
-    print(commands[0])
-    print(commands[1])
     assert len(commands) == 2, "Two entries in tuple"
     assert commands[0] == [
         ["addresses-command", "group1-command", "group2-command"],
         ["settings-command"],
+        ["nat-command"],
         [
             "network1-command",
             "network1-command2",
@@ -315,6 +326,7 @@ def test_get_commands(monkeypatch):
         "group1-command",
         "group2-command",
         "settings-command",
+        "nat-command",
         "network1-command",
         "network1-command2",
         "network1-command3",
