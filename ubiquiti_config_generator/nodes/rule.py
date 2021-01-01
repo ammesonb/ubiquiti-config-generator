@@ -4,7 +4,7 @@ A firewall rule
 import shlex
 from typing import List
 
-from ubiquiti_config_generator import type_checker
+from ubiquiti_config_generator import type_checker, secondary_configs
 from ubiquiti_config_generator.nodes.validatable import Validatable
 
 
@@ -19,16 +19,19 @@ RULE_TYPES = {
     "state": type_checker.is_state,
 }
 
+# pylint: disable=duplicate-code
+
 
 class Rule(Validatable):
     """
     Represents a firewall rule
     """
 
-    def __init__(self, number: int, firewall_name: str, **kwargs):
+    def __init__(self, number: int, firewall_name: str, config_path: str, **kwargs):
         super().__init__(RULE_TYPES, ["number"])
         self.number = number
         self.firewall_name = firewall_name
+        self.config_path = config_path
         self._add_keyword_attributes(kwargs)
 
     # pylint: disable=too-many-branches
@@ -72,6 +75,9 @@ class Rule(Validatable):
                             command_base + connection + " address " + data["address"]
                         )
                     else:
+                        # Address groups defined by hosts or statically, so can't know
+                        # this exhaustively, unlike port groups
+                        # So have to assume user knows what they're doing on this one
                         commands.append(
                             command_base
                             + connection
@@ -93,3 +99,31 @@ class Rule(Validatable):
                         )
 
         return commands
+
+    # TODO: test this
+    # pylint: disable=duplicate-code
+    def validate(self) -> bool:
+        """
+        Is the rule valid
+        """
+        valid = super().validate()
+
+        port_groups = [
+            group.name for group in secondary_configs.get_port_groups(self.config_path)
+        ]
+        for connection in ["source", "destination"]:
+            if hasattr(self, connection) and "port" in getattr(self, connection):
+                if (
+                    not type_checker.is_number(getattr(self, connection)["port"])
+                    and getattr(self, connection)["port"] not in port_groups
+                ):
+                    print(port_groups)
+                    print(getattr(self, connection)["port"])
+                    self.add_validation_error(
+                        "Rule {0} has nonexistent {1} port group {2}".format(
+                            self.number, connection, getattr(self, connection)["port"]
+                        )
+                    )
+                    valid = False
+
+        return valid

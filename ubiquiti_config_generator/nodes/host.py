@@ -206,6 +206,7 @@ class Host(Validatable):
                 "action": "accept" if connection["allow"] else "drop",
                 "protocol": connection.get("protocol", "tcp_udp"),
                 "log": "enable" if connection.get("log", False) else "disable",
+                "config_path": self.config_path,
             }
 
             if "rule" in connection:

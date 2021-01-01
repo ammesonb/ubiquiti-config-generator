@@ -5,7 +5,7 @@ from os import path
 import shlex
 from typing import Tuple, List
 
-from ubiquiti_config_generator import type_checker, file_paths, utility
+from ubiquiti_config_generator import type_checker, file_paths
 from ubiquiti_config_generator.nodes.rule import Rule
 from ubiquiti_config_generator.nodes.validatable import Validatable
 
@@ -61,6 +61,7 @@ class Firewall(Validatable):
                 self.add_rule(
                     {
                         "number": rule_path.split(path.sep)[-1].rstrip(".yaml"),
+                        "config_path": self.config_path,
                         **(file_paths.load_yaml_from_file(rule_path)),
                     }
                 )

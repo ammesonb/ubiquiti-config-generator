@@ -61,14 +61,14 @@ def test_get_next_number():
     .
     """
     properties = {
-        "rules": [Rule(11, "firewall"), Rule(100, "firewall")],
+        "rules": [Rule(11, "firewall", "."), Rule(100, "firewall", ".")],
         "auto-increment": 100,
     }
     firewall = Firewall("firewall", "in", "network", ".", **properties)
     assert getattr(firewall, "auto-increment") == 100, "Auto increment overridden"
     assert firewall.next_rule_number() == 200, "Next rule number correct"
 
-    firewall.add_rule({"number": 200})
+    firewall.add_rule({"number": 200, "config_path": "."})
     assert (
         firewall.next_rule_number() == 300
     ), "Next rule number updated after adding rule"
@@ -79,8 +79,10 @@ def test_rules():
     .
     """
     firewall = Firewall("firewall", "in", "network", ".")
-    firewall.add_rule({"number": "10", "action": "reject", "protocol": "tcp"})
-    firewall.add_rule({"action": "reject", "protocol": "udp"})
+    firewall.add_rule(
+        {"number": "10", "action": "reject", "protocol": "tcp", "config_path": "."}
+    )
+    firewall.add_rule({"action": "reject", "protocol": "udp", "config_path": "."})
     assert [rule.number for rule in firewall.rules] == [
         "10",
         20,
@@ -106,7 +108,7 @@ def test_validate(monkeypatch):
         "in",
         "network",
         ".",
-        rules=[Rule(1, "firewall"), Rule(2, "firewall")],
+        rules=[Rule(1, "firewall", "."), Rule(2, "firewall", ".")],
     )
     assert firewall.validate(), "Firewall is valid"
     assert fake_validate.counter == 2, "Validation called for each rule"
@@ -134,7 +136,7 @@ def test_validation_failures(monkeypatch):
         "in",
         "network",
         ".",
-        rules=[Rule(10, "firewall"), Rule(20, "firewall")],
+        rules=[Rule(10, "firewall", "."), Rule(20, "firewall", ".")],
     )
     assert firewall.validation_failures() == [
         "an error",
@@ -164,7 +166,7 @@ def test_commands(monkeypatch):
     firewall_properties = {
         "default-action": "drop",
         "description": "A in-firewall description",
-        "rules": [Rule(10, "firewall1"), Rule(20, "firewall1")],
+        "rules": [Rule(10, "firewall1", "."), Rule(20, "firewall1", ".")],
     }
     firewall = Firewall("firewall1", "in", "network1", ".", **firewall_properties)
     ordered_commands, command_list = firewall.commands()

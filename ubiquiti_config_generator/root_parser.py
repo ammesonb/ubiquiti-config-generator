@@ -29,6 +29,7 @@ class RootNode:
     Represents the root config node, from which everything else is based off of
     """
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         global_settings: GlobalSettings,

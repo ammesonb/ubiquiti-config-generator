@@ -2,7 +2,6 @@
 NAT for all networks
 """
 from os import path
-import shlex
 from typing import Tuple, List
 
 from ubiquiti_config_generator import type_checker, file_paths, utility
@@ -15,6 +14,7 @@ NAT_TYPES = {
 }
 
 
+# TODO: test this, based on the firewall tests
 class NAT(Validatable):
     """
     The NAT object
@@ -42,7 +42,8 @@ class NAT(Validatable):
                 self.add_rule(
                     {
                         "number": rule_path.split(path.sep)[-1].rstrip(".yaml"),
-                        **(file_paths.load_yaml_from_file(rule_path)),
+                        "config_path": self.config_path
+                        ** (file_paths.load_yaml_from_file(rule_path)),
                     }
                 )
 
@@ -80,7 +81,7 @@ class NAT(Validatable):
         if "number" not in rule_properties:
             rule_properties["number"] = self.next_rule_number()
 
-        self.rules.append(Rule(**rule_properties))
+        self.rules.append(NATRule(**rule_properties))
 
     def next_rule_number(self) -> int:
         """

@@ -154,14 +154,14 @@ def test_host_firewall_consistency(monkeypatch):
         "in",
         "network",
         ".",
-        rules=[Rule(10, "firewall-in"), Rule(30, "firewall-in")],
+        rules=[Rule(10, "firewall-in", "."), Rule(30, "firewall-in", ".")],
     )
     firewall_out = Firewall(
         "firewall-out",
         "out",
         "network",
         ".",
-        rules=[Rule(20, "firewall-out"), Rule(40, "firewall-out")],
+        rules=[Rule(20, "firewall-out", "."), Rule(40, "firewall-out", ".")],
     )
     network = Network(
         "network",

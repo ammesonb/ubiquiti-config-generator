@@ -38,11 +38,13 @@ NETWORK_TYPES = {
 }
 
 
+# pylint: disable=too-many-instance-attributes
 class Network(Validatable):
     """
     A network to be created
     """
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         name: str,
