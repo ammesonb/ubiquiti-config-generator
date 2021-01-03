@@ -15,12 +15,13 @@ RULE_TYPES = {
     "source": type_checker.is_address_and_or_port,
     "destination": type_checker.is_address_and_or_port,
     "protocol": type_checker.is_protocol,
-    "inside_address": type_checker.is_address_and_or_port,
-    "inbound_interface": type_checker.is_string,
-    "outbound_interface": type_checker.is_string,
+    "inside-address": type_checker.is_address_and_or_port,
+    "inbound-interface": type_checker.is_string,
+    "outbound-interface": type_checker.is_string,
     "type": type_checker.is_nat_type,
 }
 
+# Maybe someday this disabling of duplicate will actually be honored
 # pylint: disable=duplicate-code
 
 # TODO: test this, based on the firewall rule
@@ -41,7 +42,7 @@ class NATRule(Validatable):
         Get the command for this rule
         """
         commands = []
-        command_base = "service nat rule {1} ".format(self.number)
+        command_base = "service nat rule {0} ".format(self.number)
 
         if hasattr(self, "description"):
             # pylint: disable=no-member
@@ -55,8 +56,8 @@ class NATRule(Validatable):
             "log",
             "protocol",
             "type",
-            "inbound_interface",
-            "outbound_interface",
+            "inbound-interface",
+            "outbound-interface",
         ]:
             if hasattr(self, part):
                 commands.append(command_base + part + " " + getattr(self, part))
@@ -106,20 +107,32 @@ class NATRule(Validatable):
         """
         valid = super().validate()
 
+        if not hasattr(self, "inside-address"):
+            self.add_validation_error(
+                "{0} does not have inside address".format(str(self))
+            )
+            valid = False
+
         port_groups = [
             group.name for group in secondary_configs.get_port_groups(self.config_path)
         ]
         for connection in ["source", "destination"]:
             if hasattr(self, connection) and "port" in getattr(self, connection):
                 if (
-                    type_checker.is_number(getattr(self, connection)["port"])
-                    not in port_groups
+                    not type_checker.is_number(getattr(self, connection)["port"])
+                    and getattr(self, connection)["port"] not in port_groups
                 ):
                     self.add_validation_error(
-                        "Rule {0} has nonexistent {1} port group {2}".format(
-                            self.number, connection, getattr(self, connection)["port"],
+                        "{0} has nonexistent {1} port group {2}".format(
+                            str(self), connection, getattr(self, connection)["port"],
                         )
                     )
                     valid = False
 
         return valid
+
+    def __str__(self) -> str:
+        """
+        String version of this
+        """
+        return "NAT rule {0}".format(self.number)

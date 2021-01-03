@@ -19,6 +19,7 @@ RULE_TYPES = {
     "state": type_checker.is_state,
 }
 
+# Maybe someday this disabling of duplicate will actually be honored
 # pylint: disable=duplicate-code
 
 
@@ -100,7 +101,6 @@ class Rule(Validatable):
 
         return commands
 
-    # TODO: test this
     # pylint: disable=duplicate-code
     def validate(self) -> bool:
         """
@@ -117,8 +117,6 @@ class Rule(Validatable):
                     not type_checker.is_number(getattr(self, connection)["port"])
                     and getattr(self, connection)["port"] not in port_groups
                 ):
-                    print(port_groups)
-                    print(getattr(self, connection)["port"])
                     self.add_validation_error(
                         "Rule {0} has nonexistent {1} port group {2}".format(
                             self.number, connection, getattr(self, connection)["port"]
