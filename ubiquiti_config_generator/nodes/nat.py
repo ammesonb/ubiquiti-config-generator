@@ -10,6 +10,7 @@ from ubiquiti_config_generator.nodes.validatable import Validatable
 
 
 NAT_TYPES = {
+    "auto-increment": type_checker.is_number,
     "rules": lambda rules: all([rule.validate() for rule in rules]),
 }
 
@@ -20,12 +21,10 @@ class NAT(Validatable):
     The NAT object
     """
 
-    def __init__(
-        self, config_path: str, rules: List[NATRule] = None, auto_increment: int = 10
-    ):
+    def __init__(self, config_path: str, rules: List[NATRule] = None, **kwargs):
         super().__init__(NAT_TYPES, ["rules"])
         self.config_path = config_path
-        self.auto_increment = auto_increment
+        setattr(self, "auto-increment", kwargs.get("auto-increment", 10))
 
         self.rules = rules or []
         if not rules:
@@ -42,8 +41,8 @@ class NAT(Validatable):
                 self.add_rule(
                     {
                         "number": rule_path.split(path.sep)[-1].rstrip(".yaml"),
-                        "config_path": self.config_path
-                        ** (file_paths.load_yaml_from_file(rule_path)),
+                        "config_path": self.config_path,
+                        **(file_paths.load_yaml_from_file(rule_path)),
                     }
                 )
 
@@ -57,7 +56,7 @@ class NAT(Validatable):
         """
         Commands to create this firewall
         """
-        ordered_commands = [[]]
+        ordered_commands = []
         command_list = []
 
         def append_command(command: str):
@@ -88,10 +87,10 @@ class NAT(Validatable):
         Find the next number usable for a rule
         """
         next_number = None
-        to_check = self.auto_increment
+        to_check = getattr(self, "auto-increment")
         while next_number is None:
             if int(to_check) in [int(rule.number) for rule in self.rules]:
-                to_check += self.auto_increment
+                to_check += getattr(self, "auto-increment")
             else:
                 next_number = to_check
 

@@ -24,7 +24,7 @@ RULE_TYPES = {
 # Maybe someday this disabling of duplicate will actually be honored
 # pylint: disable=duplicate-code
 
-# TODO: test this, based on the firewall rule
+
 class NATRule(Validatable):
     """
     Represents a firewall rule
