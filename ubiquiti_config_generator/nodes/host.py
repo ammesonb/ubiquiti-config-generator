@@ -24,8 +24,16 @@ HOST_TYPES = {
         ]
     ),
     # TODO: commands for this
-    "hairpin-ports": lambda hosts: all(
-        [type_checker.is_source_destination(host) for host in hosts]
+    # Hairpin needs to contain:
+    # connection (at least one of):
+    #     source: address and/or port
+    #     destination: address and/or port
+    # interface: ethernet interface to redirect
+    "hairpin-ports": lambda ports: all(
+        [
+            type_checker.is_source_destination(port["connection"])
+            for port in ports and type_checker.is_string(port["interface"])
+        ]
     ),
     # This is a dictionary for connections to allow/block, with properties:
     # allow: bool
@@ -185,6 +193,7 @@ class Host(Validatable):
         return consistent
 
     # TODO: test this
+    # TODO: add NAT rules here too, probably?
     def add_firewall_rules(self):
         """
         Add rules to the firewalls in the network for the host's connections
@@ -220,12 +229,42 @@ class Host(Validatable):
                 "in" if connection_is_source else "out"
             ].add_rule(rule_properties)
 
+        for forward in getattr(self, "forward-ports", []):
+            nat_rule_properties = {
+                "description": "Forward port {0} to {1}".format(forward, self.name),
+                "type": "destination",
+                "protocol": "tcp_udp",
+                "inbound-interface": "eth0",
+                "inside-address": {"address": self.address},
+            }
+            if type_checker.is_string(forward) or type_checker.is_number(forward):
+                nat_rule_properties["destination"] = {"port": forward}
+            elif type_checker.is_translated_port(forward):
+                nat_rule_properties["destination"] = {"port": forward.keys()[0]}
+                nat_rule_properties["inside-address"]["port"] = forward.values()[0]
+
+            self.network.nat.add_rule(nat_rule_properties)
+
+        for hairpin in getattr(self, "hairpin-ports", []):
+            nat_rule_properties = {
+                "description": "Hairpin for port {0} to {1}".format(forward, self.name),
+                "type": "destination",
+                "protocol": "tcp_udp",
+                "inside-address": {"address": self.address},
+                "source": hairpin["connection"].get("source", {}),
+                "destination": hairpin["connection"].get("destination", {}),
+                "inbound-interface": hairpin["interface"],
+            }
+
+            self.network.nat.add_rule(nat_rule_properties)
+
     def __str__(self) -> str:
         """
         String version of this class
         """
         return "Host " + self.name
 
+    # TODO: delete this? Think everything left here is all firewall stuff, right?
     def commands(self) -> Tuple[List[List[str]], List[str]]:
         """
         Generates commands to create this host
