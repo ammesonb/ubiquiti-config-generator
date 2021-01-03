@@ -319,7 +319,8 @@ class Network(Validatable):
         ordered_host_commands = []
         mapping_base = subnet_base + " static-mapping "
         for host in self.hosts:
-            host_commands, host_command_list = host.commands()
+            host_commands = []
+            host_command_list = []
 
             static_commands = [
                 mapping_base + "{0} ip-address {1}".format(host.name, host.address),

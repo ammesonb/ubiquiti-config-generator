@@ -238,7 +238,6 @@ def test_network_commands(monkeypatch):
         "firewalls": [],
     }
     monkeypatch.setattr(Firewall, "commands", lambda self: ([[]], []))
-    monkeypatch.setattr(Host, "commands", lambda self: ([[]], []))
     network = Network(
         "network1", None, ".", "192.168.0.0/24", "eth0", **network_properties
     )
@@ -282,7 +281,6 @@ def test_interface_commands(monkeypatch):
     .
     """
     monkeypatch.setattr(Firewall, "commands", lambda self: ([[]], []))
-    monkeypatch.setattr(Host, "commands", lambda self: ([[]], []))
 
     network_properties = {
         "hosts": [],
@@ -383,28 +381,7 @@ def test_command_ordering(monkeypatch):
         else:
             return ([["firewall3-command"]], ["firewall3-command"])
 
-    @counter_wrapper
-    def get_host_commands(self):
-        """
-        .
-        """
-        if get_host_commands.counter == 1:
-            return (
-                [
-                    ["host1-command", "host1-command2"],
-                    ["host1-command3"],
-                    ["host1-command4"],
-                ],
-                ["host1-command", "host1-command2", "host1-command3", "host1-command4"],
-            )
-        else:
-            return (
-                [["host2-command", "host2-command2"], ["host2-command3"]],
-                ["host2-command", "host2-command2", "host2-command3"],
-            )
-
     monkeypatch.setattr(Firewall, "commands", get_firewall_commands)
-    monkeypatch.setattr(Host, "commands", get_host_commands)
 
     host_properties = {
         "mac": "abc",
@@ -458,15 +435,8 @@ def test_command_ordering(monkeypatch):
         mapping_base + "host1 mac-address abc",
         "firewall group address-group desktop address 123",
         "firewall group address-group windows address 123",
-        "host1-command",
-        "host1-command2",
-        "host1-command3",
-        "host1-command4",
         mapping_base + "host2 ip-address 234",
         mapping_base + "host2 mac-address def",
-        "host2-command",
-        "host2-command2",
-        "host2-command3",
     ], "Network commands correct"
 
     assert ordered_commands == [
@@ -499,7 +469,4 @@ def test_command_ordering(monkeypatch):
             mapping_base + "host2 ip-address 234",
             mapping_base + "host2 mac-address def",
         ],
-        ["host1-command", "host1-command2", "host2-command", "host2-command2"],
-        ["host1-command3", "host2-command3"],
-        ["host1-command4"],
     ], "Ordered network commands correct"

@@ -193,7 +193,6 @@ class Host(Validatable):
         return consistent
 
     # TODO: test this
-    # TODO: add NAT rules here too, probably?
     def add_firewall_rules(self):
         """
         Add rules to the firewalls in the network for the host's connections
@@ -263,9 +262,3 @@ class Host(Validatable):
         String version of this class
         """
         return "Host " + self.name
-
-    # TODO: delete this? Think everything left here is all firewall stuff, right?
-    def commands(self) -> Tuple[List[List[str]], List[str]]:
-        """
-        Generates commands to create this host
-        """
