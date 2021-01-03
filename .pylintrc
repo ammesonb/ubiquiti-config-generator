@@ -11,3 +11,6 @@ ignore-docstrings=yes
 
 # Ignore imports when computing similarities.
 ignore-imports=yes
+
+# Ignore duplicate code, since can't do it per file/line
+disable=duplicate-code
