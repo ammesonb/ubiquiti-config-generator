@@ -31,6 +31,7 @@ def test_is_consistent(monkeypatch):
     """
     .
     """
+    monkeypatch.setattr(Host, "add_firewall_rules", lambda self: None)
     network = Network("network", None, ".", "192.168.0.1/24", "eth0")
     host = Host("host", network, ".", "192.168.0.1")
     monkeypatch.setattr(secondary_configs, "get_port_groups", lambda config_path: [])
