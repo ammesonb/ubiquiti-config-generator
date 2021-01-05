@@ -1,7 +1,6 @@
 """
 Contains the host node
 """
-from typing import Tuple, List
 
 from ubiquiti_config_generator import secondary_configs, type_checker, utility
 from ubiquiti_config_generator.nodes.validatable import Validatable
@@ -14,7 +13,6 @@ HOST_TYPES = {
     "address-groups": lambda groups: all(
         [type_checker.is_string(group) for group in groups]
     ),
-    # TODO: commands for this
     "forward-ports": lambda ports: all(
         [
             type_checker.is_number(port)
@@ -23,16 +21,18 @@ HOST_TYPES = {
             for port in ports
         ]
     ),
-    # TODO: commands for this
     # Hairpin needs to contain:
     # connection (at least one of):
     #     source: address and/or port
     #     destination: address and/or port
+    # description
     # interface: ethernet interface to redirect
     "hairpin-ports": lambda ports: all(
         [
             type_checker.is_source_destination(port["connection"])
-            for port in ports and type_checker.is_string(port["interface"])
+            for port in ports
+            and type_checker.is_string(port["interface"])
+            and type_checker.is_string(port["description"])
         ]
     ),
     # This is a dictionary for connections to allow/block, with properties:
@@ -177,12 +177,17 @@ class Host(Validatable):
                     + " has connection with no source address or destination address"
                 )
                 consistent = False
-            elif self.address not in [source, destination] and not any(
-                [
-                    group
-                    for group in getattr(self, "address-groups", [])
-                    if group in [source, destination]
-                ]
+            elif (
+                self.address not in [source, destination]
+                and not any(
+                    [
+                        group
+                        for group in getattr(self, "address-groups", [])
+                        if group in [source, destination]
+                    ]
+                )
+                and not utility.address_in_subnet(source, self.address)
+                and not utility.address_in_subnet(destination, self.address)
             ):
                 self.add_validation_error(
                     str(self)
@@ -192,7 +197,6 @@ class Host(Validatable):
 
         return consistent
 
-    # TODO: test this
     def add_firewall_rules(self):
         """
         Add rules to the firewalls in the network for the host's connections
@@ -208,6 +212,9 @@ class Host(Validatable):
                         for group in getattr(self, "address-groups", [])
                     ]
                 )
+                or utility.address_in_subnet(
+                    connection["source"].get("address", ""), self.address
+                )
             )
 
             rule_properties = {
@@ -218,7 +225,7 @@ class Host(Validatable):
             }
 
             if "rule" in connection:
-                rule_properties["rule"] = connection["rule"]
+                rule_properties["number"] = connection["rule"]
             if "source" in connection:
                 rule_properties["source"] = connection["source"]
             if "destination" in connection:
@@ -230,7 +237,11 @@ class Host(Validatable):
 
         for forward in getattr(self, "forward-ports", []):
             nat_rule_properties = {
-                "description": "Forward port {0} to {1}".format(forward, self.name),
+                "description": "Forward port {0} to {1}".format(
+                    list(forward.keys())[0] if isinstance(forward, dict) else forward,
+                    self.name,
+                ),
+                "config_path": self.config_path,
                 "type": "destination",
                 "protocol": "tcp_udp",
                 "inbound-interface": "eth0",
@@ -239,14 +250,17 @@ class Host(Validatable):
             if type_checker.is_string(forward) or type_checker.is_number(forward):
                 nat_rule_properties["destination"] = {"port": forward}
             elif type_checker.is_translated_port(forward):
-                nat_rule_properties["destination"] = {"port": forward.keys()[0]}
-                nat_rule_properties["inside-address"]["port"] = forward.values()[0]
+                nat_rule_properties["destination"] = {"port": list(forward.keys())[0]}
+                nat_rule_properties["inside-address"]["port"] = list(forward.values())[
+                    0
+                ]
 
             self.network.nat.add_rule(nat_rule_properties)
 
         for hairpin in getattr(self, "hairpin-ports", []):
             nat_rule_properties = {
-                "description": "Hairpin for port {0} to {1}".format(forward, self.name),
+                "description": hairpin.get("description", ""),
+                "config_path": self.config_path,
                 "type": "destination",
                 "protocol": "tcp_udp",
                 "inside-address": {"address": self.address},

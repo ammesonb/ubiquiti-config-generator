@@ -21,4 +21,10 @@ def address_in_subnet(cidr: str, address: str) -> bool:
     Check if a given address is in a subnet
     Wil return True if address is empty
     """
-    return (not address) or ipaddress.ip_address(address) in ipaddress.ip_network(cidr)
+    try:
+        ipaddress.ip_address(address)
+        ipaddress.ip_network(cidr)
+    except ValueError:
+        return False
+
+    return ipaddress.ip_address(address) in ipaddress.ip_network(cidr)

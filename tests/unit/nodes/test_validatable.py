@@ -84,3 +84,20 @@ def test_validate():
         "Test node has attribute with no validation provided: 'nonexistent-attr'",
         "Test node attribute invalid-attr has failed validation",
     ], "Validation error added for invalid attribute"
+
+
+def test_equals():
+    valid = Validatable({"stuff": lambda: True})
+    valid._add_keyword_attributes({"stuff": 123})
+    valid2 = Validatable({"stuff": lambda: True})
+    valid2._add_keyword_attributes({"stuff": 234})
+
+    assert valid != 123, "Not equal to int"
+    assert valid != "123", "Not equal to str"
+    assert valid != [123], "Not equal to list"
+    assert valid != {"stuff": 123}, "Not equal to dict"
+    assert valid != valid2, "Not equal to other valid with different value"
+
+    valid2.stuff = 123
+    assert valid == valid2, "Is equal, with correct value"
+    assert [valid] == [valid2], "Is equal in list as well"

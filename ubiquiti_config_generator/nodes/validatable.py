@@ -67,3 +67,22 @@ class Validatable:
         Adds a validation error
         """
         self._validation_errors.append(error)
+
+    def attributes(self) -> List[str]:
+        """
+        The attributes set on this instance
+        """
+        return self._validate_attributes
+
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return False
+
+        my_attrs = self.attributes()
+        my_attrs.sort()
+        other_attrs = other.attributes()
+        other_attrs.sort()
+
+        return my_attrs == other_attrs and all(
+            [getattr(self, attr) == getattr(other, attr) for attr in my_attrs]
+        )

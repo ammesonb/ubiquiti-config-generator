@@ -15,7 +15,6 @@ NAT_TYPES = {
 }
 
 
-# TODO: test this, based on the firewall tests
 class NAT(Validatable):
     """
     The NAT object
