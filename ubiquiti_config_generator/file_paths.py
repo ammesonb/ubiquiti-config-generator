@@ -7,7 +7,7 @@ from typing import List, Union
 import yaml
 
 CURRENT_CONFIG_DIRECTORY = "router_config"
-GLOBAL_CONFIG = "global.yaml"
+GLOBAL_CONFIG = "global_settings.yaml"
 EXTERNAL_ADDRESSES_CONFIG = "external_addresses.yaml"
 PORT_GROUPS_FOLDER = "port-groups"
 

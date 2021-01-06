@@ -1,0 +1,7 @@
+---
+description: "Masquerade"
+log: "disable"
+outbound-interface: "eth0"
+type: "masquerade"
+protocol: "all"
+---

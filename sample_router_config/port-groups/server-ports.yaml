@@ -1,0 +1,6 @@
+---
+description: "Ports to forward to the server"
+ports:
+  - web-ports
+  - 22
+---
