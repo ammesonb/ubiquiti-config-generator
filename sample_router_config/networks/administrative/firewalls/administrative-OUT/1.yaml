@@ -1,0 +1,9 @@
+---
+description: Allow established/related
+action: accept
+log: disables
+protocol: all
+state:
+  related: enable
+  established: enable
+---

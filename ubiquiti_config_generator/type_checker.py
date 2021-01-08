@@ -23,6 +23,7 @@ IN = "in"
 OUT = "out"
 LOCAL = "local"
 
+ALL = "all"
 TCP = "tcp"
 UDP = "udp"
 TCP_UDP = "tcp_udp"
@@ -207,7 +208,7 @@ def is_protocol(value: str) -> bool:
     """
     Is the value a protocol
     """
-    return value in [TCP, UDP, TCP_UDP, IP]
+    return value in [ALL, TCP, UDP, TCP_UDP, IP]
 
 
 def is_state(value: dict) -> bool:
