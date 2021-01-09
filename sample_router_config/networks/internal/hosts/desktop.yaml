@@ -1,0 +1,23 @@
+---
+description: "A desktop"
+address: 10.10.12
+mac: "ab:98:cd:65:ef:54"
+address-groups:
+  - user-machines
+  - windows
+
+connections:
+  - allow: True
+    source:
+      address: 10.200.0.0/24
+      port: web
+    destination:
+      address: user-machines
+
+  - allow: False
+    log: True
+    source:
+      address: 10.200.0.0/24
+    destination:
+      address: user-machines
+---

@@ -1,0 +1,16 @@
+---
+description: "Rack-mount switch"
+address: 10.0.10.2
+mac: "ba:21:dc:43:fe:65"
+address-groups:
+  - infrastructure
+forward-ports:
+  - 8081: 80
+
+connections:
+  - allow: False
+    destination:
+      address: 10.0.10.2
+    source:
+      address: 10.200.0.0/24
+---

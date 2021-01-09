@@ -179,6 +179,7 @@ def is_source_destination(connections: dict) -> bool:
         and not any(
             [key not in ["destination", "source", "allow", "rule"] for key in keys]
         )
+        and isinstance(connections.get("allow", True), bool)
         and isinstance(connections.get("source", {}), dict)
         and isinstance(connections.get("destination", {}), dict)
         and is_number(connections.get("rule", 0))

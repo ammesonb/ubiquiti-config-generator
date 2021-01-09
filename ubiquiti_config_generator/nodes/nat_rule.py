@@ -1,5 +1,5 @@
 """
-A firewall rule
+A NAT rule
 """
 import shlex
 from typing import List

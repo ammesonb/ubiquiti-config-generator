@@ -1,0 +1,48 @@
+---
+address: 10.0.10.10
+mac: "ab:12:cd:34:ef:5x6"
+address-groups:
+  - infrastructure
+  - unix
+
+forward-ports:
+  - server-ports
+  - 8080: 80
+
+hairpin-ports:
+  - description: "Redirect web to server"
+    interface: eth1.20
+    connection:
+      destination:
+        port: web
+  - description: "Redirect SSH to server"
+    interface: eth1.20
+    connection:
+      destination:
+        port: 22
+
+connections:
+  - allow: True
+    destination:
+      address: 10.0.10.10
+      port: web
+
+  - allow: True
+    destination:
+      address: 10.0.10.10
+      port: 22
+    source:
+      address: 10.0.10.0/23
+
+  - allow: True
+    destination:
+      address: 10.0.10.10
+      port: 22
+    source:
+      address: 10.0.12.0/24
+
+  - allow: False
+    log: True
+    destination:
+      address: 10.0.10.10
+---

@@ -1,5 +1,5 @@
 ---
-cidr: 10.10.0.0/23
+cidr: 10.0.10.0/23
 authoritative: True
 default-router: 10.10.0.1
 dns-server: 10.10.0.1
