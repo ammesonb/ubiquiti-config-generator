@@ -22,7 +22,7 @@ def test_get_config_files():
     """
     Check getting yaml files from a directory
     """
-    paths = file_paths.get_config_files("tests/unit/test_yaml")
+    paths = file_paths.get_config_files(["tests/unit/", "test_yaml"])
     assert len(paths) == 2, "Two files found"
     paths.sort()
 
@@ -36,7 +36,7 @@ def test_get_config_directories():
     """
     Skip directories to find configuration yaml files
     """
-    paths = file_paths.get_folders_with_config("tests/unit/test_yaml")
+    paths = file_paths.get_folders_with_config(["tests/unit", "test_yaml"])
     assert len(paths) == 2, "Two paths found"
     paths.sort()
 

@@ -5,4 +5,4 @@ mac: "fe:98:dc:76:ba:54"
 address-groups:
   - user-machines
   - unix
----
+...

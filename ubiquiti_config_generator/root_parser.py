@@ -49,6 +49,7 @@ class RootNode:
         """
         Load configuration from files
         """
+        nat = (NAT(config_path),)
         return cls(
             secondary_configs.get_global_configuration(config_path),
             secondary_configs.get_port_groups(config_path),
@@ -56,6 +57,7 @@ class RootNode:
             [
                 Network(
                     network_folder.split(path.sep)[-2],
+                    nat,
                     config_path,
                     **(file_paths.load_yaml_from_file(network_folder))
                 )
@@ -63,7 +65,7 @@ class RootNode:
                     [config_path, file_paths.NETWORK_FOLDER]
                 )
             ],
-            NAT(config_path),
+            nat,
         )
 
     def is_valid(self) -> bool:

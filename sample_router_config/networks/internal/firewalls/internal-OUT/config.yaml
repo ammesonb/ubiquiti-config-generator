@@ -2,4 +2,4 @@
 direction: out
 default-action: drop
 description: Internal outbound firewall
----
+...

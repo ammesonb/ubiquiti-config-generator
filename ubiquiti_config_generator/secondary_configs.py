@@ -47,5 +47,6 @@ def get_external_addresses(config_path: str) -> ExternalAddresses:
     return ExternalAddresses(
         file_paths.load_yaml_from_file(
             file_paths.get_path([config_path, file_paths.EXTERNAL_ADDRESSES_CONFIG])
-        ).get("addresses", [])
+            or []
+        )
     )
