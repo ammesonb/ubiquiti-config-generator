@@ -5,8 +5,8 @@ import ipaddress
 import re
 from typing import Union
 
-ENABLED = "enabled"
-DISABLED = "disabled"
+ENABLE = "enable"
+DISABLE = "disable"
 
 AUTO = "auto"
 FULL = "full"
@@ -45,7 +45,7 @@ def is_string_boolean(value: str) -> bool:
     """
     Checks if a given value is either enabled or disabled
     """
-    return value in [ENABLED, DISABLED]
+    return value in [ENABLE, DISABLE]
 
 
 def is_ip_address(address: str) -> bool:
@@ -222,7 +222,7 @@ def is_state(value: dict) -> bool:
         and not any([key not in [NEW, ESTABLISHED, RELATED, INVALID] for key in keys])
         and all(
             [
-                is_string_boolean(value.get(key, ENABLED))
+                is_string_boolean(value.get(key, ENABLE))
                 for key in [NEW, ESTABLISHED, RELATED, INVALID]
             ]
         )

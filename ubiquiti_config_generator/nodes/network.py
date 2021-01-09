@@ -99,23 +99,14 @@ class Network(Validatable):
                 **(file_paths.load_yaml_from_file(firewall_path))
             )
             for firewall_path in file_paths.get_folders_with_config(
-                file_paths.get_path(
-                    [
-                        self.config_path,
-                        file_paths.NETWORK_FOLDER,
-                        self.name,
-                        file_paths.FIREWALL_FOLDER,
-                    ]
-                )
+                [
+                    self.config_path,
+                    file_paths.NETWORK_FOLDER,
+                    self.name,
+                    file_paths.FIREWALL_FOLDER,
+                ]
             )
         ]
-
-    def validate(self):
-        print(self.firewalls)
-        print(self.hosts)
-        print(self._validate_attributes)
-        print(self._validator_map)
-        return super().validate()
 
     def _load_hosts(self) -> None:
         """

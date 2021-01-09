@@ -1,7 +1,7 @@
 ---
 description: Allow established/related
 action: accept
-log: disables
+log: disable
 protocol: all
 state:
   related: enable

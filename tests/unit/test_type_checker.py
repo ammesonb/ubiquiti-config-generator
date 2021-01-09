@@ -16,13 +16,13 @@ def test_is_string_boolean():
     assert not type_checker.is_string_boolean(1), "Int 1 isn't boolean"
     assert not type_checker.is_string_boolean("other"), "Other string isn't boolean"
     assert not type_checker.is_string_boolean(
-        [type_checker.ENABLED]
-    ), "Array with enabled isn't boolean"
+        [type_checker.ENABLE]
+    ), "Array with enable isn't boolean"
     assert not type_checker.is_string_boolean(
-        {type_checker.ENABLED: type_checker.DISABLED}
-    ), "Dictionary with enabed isn't boolean"
-    assert type_checker.is_string_boolean(type_checker.ENABLED), "Enabled is boolean"
-    assert type_checker.is_string_boolean(type_checker.DISABLED), "Disabled is boolean"
+        {type_checker.ENABLE: type_checker.DISABLE}
+    ), "Dictionary with enable isn't boolean"
+    assert type_checker.is_string_boolean(type_checker.ENABLE), "Enable is boolean"
+    assert type_checker.is_string_boolean(type_checker.DISABLE), "Disable is boolean"
 
 
 def test_is_ip_address():
@@ -426,21 +426,21 @@ def test_is_state():
         {"related": "abcdef"}
     ), "Dictionary with string not valid"
     assert not type_checker.is_state(
-        {"log": "enabled"}
+        {"log": "enable"}
     ), "Dictionary with wrong key not valid"
     assert not type_checker.is_state(
-        {"related": "enabled", "log": "enabled"}
+        {"related": "enable", "log": "enable"}
     ), "Dictionary with extra key not valid"
-    assert type_checker.is_state({"related": "enabled"}), "Related valid"
+    assert type_checker.is_state({"related": "enable"}), "Related valid"
     assert type_checker.is_state(
-        {"related": "enabled", "new": "disabled"}
+        {"related": "enable", "new": "disable"}
     ), "Mixed keys valid"
     assert type_checker.is_state(
         {
-            "related": "enabled",
-            "established": "enabled",
-            "new": "disabled",
-            "invalid": "disabled",
+            "related": "enable",
+            "established": "enable",
+            "new": "disable",
+            "invalid": "disable",
         }
     ), "All keys valid"
 

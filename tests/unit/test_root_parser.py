@@ -161,7 +161,6 @@ def test_validation_failures(monkeypatch):
         NAT("."),
     )
     result = node.validation_failures()
-    print(result)
     assert result == ["failure"] * 5, "Validation failures returned"
 
 

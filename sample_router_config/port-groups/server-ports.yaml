@@ -1,6 +1,7 @@
 ---
 description: "Ports to forward to the server"
 ports:
-  - web
+  - 80
+  - 443
   - 22
 ...

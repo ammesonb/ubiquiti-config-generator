@@ -107,7 +107,13 @@ class NATRule(Validatable):
         """
         valid = super().validate()
 
-        if not hasattr(self, "inside-address"):
+        if not hasattr(self, "type"):
+            self.add_validation_error("{0} does not have type".format(str(self)))
+            valid = False
+        elif (
+            not hasattr(self, "inside-address")
+            and getattr(self, "type") != "masquerade"
+        ):
             self.add_validation_error(
                 "{0} does not have inside address".format(str(self))
             )

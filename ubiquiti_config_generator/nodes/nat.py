@@ -34,7 +34,7 @@ class NAT(Validatable):
         Load rules for this firewall
         """
         for rule_path in file_paths.get_config_files(
-            file_paths.get_path([self.config_path, file_paths.NAT_FOLDER,])
+            [self.config_path, file_paths.NAT_FOLDER,]
         ):
             if type_checker.is_number(rule_path.split(path.sep)[-1].rstrip(".yaml")):
                 self.add_rule(

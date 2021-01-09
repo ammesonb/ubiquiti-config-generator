@@ -1,14 +1,14 @@
 ---
 cidr: 10.0.10.0/23
-authoritative: True
-default-router: 10.10.0.1
-dns-server: 10.10.0.1
+authoritative: enable
+default-router: 10.0.10.1
+dns-server: 10.0.10.1
 dns-servers:
   - 8.8.8.8
   - 8.8.4.4
 domain-name: admin.home
-start: 10.10.1.1
-stop: 10.10.1.254
+start: 10.0.11.1
+stop: 10.0.11.254
 lease: 86400
 interface_name: eth1
 interface_description: "Internal interface"

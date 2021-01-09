@@ -129,3 +129,11 @@ def test_validate(monkeypatch):
         "Rule 10 has nonexistent source port group group3",
         "Rule 10 has nonexistent destination port group group4",
     ], "Errors added"
+
+
+def test_string():
+    """
+    .
+    """
+    rule = Rule(123, "a-firewall", ".")
+    assert str(rule) == "Firewall a-firewall rule 123", "String correct"

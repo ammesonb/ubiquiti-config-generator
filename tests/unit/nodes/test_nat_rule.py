@@ -113,18 +113,28 @@ def test_validate(monkeypatch):
     assert not rule.validate(), "Validation fails without inside address"
     assert fake_validate_true.counter == 1, "Parent validation called"
     assert rule.validation_errors() == [
-        "NAT rule 10 does not have inside address"
+        "NAT rule 10 does not have type"
     ], "Validation errors set"
 
     properties = {
         "source": {"port": "group1"},
         "destination": {"port": "group2"},
-        "inside-address": {"address": "192.168.0.2"},
     }
     rule = NATRule(10, ".", **properties)
 
-    rule.validate()
-    print(rule.validation_errors())
+    assert not rule.validate(), "Missing type invalid"
+    assert rule.validation_errors() == ["NAT rule 10 does not have type"], "Errors set"
+
+    properties["type"] = "source"
+    rule = NATRule(10, ".", **properties)
+    assert not rule.validate(), "Missing type invalid"
+    assert rule.validation_errors() == [
+        "NAT rule 10 does not have inside address"
+    ], "Errors set"
+
+    properties["inside-address"] = ({"address": "192.168.0.2"},)
+
+    rule = NATRule(10, ".", **properties)
     assert rule.validate(), "Rule is valid if groups are valid"
     rule = NATRule(10, ".", **properties)
 
@@ -135,3 +145,20 @@ def test_validate(monkeypatch):
         "NAT rule 10 has nonexistent source port group group3",
         "NAT rule 10 has nonexistent destination port group group4",
     ], "Errors added"
+
+
+def test_masquerade():
+    """
+    Masquerade differs from normal rules, check that separately
+    """
+    properties = {"type": "masquerade", "protocol": "all", "outbound-interface": "eth0"}
+    rule = NATRule(1000, ".", **properties)
+    assert rule.validate(), "Masquerade rule valid"
+
+
+def test_string():
+    """
+    .
+    """
+    rule = NATRule(123, ".")
+    assert str(rule) == "NAT rule 123", "String correct"

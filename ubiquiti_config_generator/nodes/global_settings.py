@@ -16,6 +16,14 @@ class GlobalSettings(Validatable):
     """
 
     def __init__(self, **kwargs):
+        # Default validation to True if one is not provided for the given setting
+        # Too many possibilities to exhaustively list them, so assume use knows what
+        # they are doing in setting these
+        for attr in kwargs:
+            GLOBAL_SETTINGS_TYPES[attr] = GLOBAL_SETTINGS_TYPES.get(
+                attr, lambda *args, **kwargs: True
+            )
+
         super().__init__(GLOBAL_SETTINGS_TYPES)
         self._add_keyword_attributes(kwargs)
 

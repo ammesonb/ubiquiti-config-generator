@@ -51,7 +51,11 @@ def test_get_port_groups(monkeypatch):
     """
 
     # pylint: disable=unused-argument
-    monkeypatch.setattr(file_paths, "load_yaml_from_file", lambda path: [80, 443])
+    monkeypatch.setattr(
+        file_paths,
+        "load_yaml_from_file",
+        lambda path: {"description": "web", "ports": [80, 443]},
+    )
     monkeypatch.setattr(
         file_paths, "get_config_files", lambda folder: ["test-port-group"]
     )
@@ -61,3 +65,4 @@ def test_get_port_groups(monkeypatch):
     assert isinstance(groups[0], PortGroup), "List contains port groups"
     assert groups[0].name == "test-port-group", "Port group name set"
     assert groups[0].ports == [80, 443], "Port group ports set"
+    assert groups[0].description == "web", "Description set"

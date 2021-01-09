@@ -49,7 +49,7 @@ class RootNode:
         """
         Load configuration from files
         """
-        nat = (NAT(config_path),)
+        nat = NAT(config_path)
         return cls(
             secondary_configs.get_global_configuration(config_path),
             secondary_configs.get_port_groups(config_path),

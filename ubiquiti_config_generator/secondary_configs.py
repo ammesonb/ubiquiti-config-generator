@@ -34,8 +34,9 @@ def get_port_groups(config_path: str) -> List[PortGroup]:
         [config_path, file_paths.PORT_GROUPS_FOLDER]
     ):
         group_name = path.basename(port_group).replace(".yaml", "")
-        ports = file_paths.load_yaml_from_file(port_group)
-        port_groups.append(PortGroup(group_name, ports))
+        port_groups.append(
+            PortGroup(group_name, **file_paths.load_yaml_from_file(port_group))
+        )
 
     return port_groups
 

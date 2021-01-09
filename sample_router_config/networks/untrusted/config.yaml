@@ -1,14 +1,14 @@
 ---
 cidr: 10.200.0.0/24
-authoritative: False
+authoritative: disable
 default-router: 10.200.0.1
 dns-server: 10.200.0.1
 dns-servers:
   - 8.8.8.8
   - 8.8.4.4
 domain-name: untrusted.home
-start: 10.200.1.100
-stop: 10.200.1.254
+start: 10.200.0.100
+stop: 10.200.0.254
 lease: 3600
 interface_name: eth2
 interface_description: "Untrusted interface"

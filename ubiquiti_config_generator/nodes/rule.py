@@ -125,3 +125,9 @@ class Rule(Validatable):
                     valid = False
 
         return valid
+
+    def __str__(self) -> str:
+        """
+        A string representation of the rule
+        """
+        return "Firewall {0} rule {1}".format(self.firewall_name, self.number)
