@@ -79,7 +79,11 @@ class Host(Validatable):
         port_groups = secondary_configs.get_port_groups(self.config_path)
         port_group_names = [group.name for group in port_groups]
         for port in getattr(self, "forward-ports", []):
-            if not type_checker.is_number(port) and port not in port_group_names:
+            if (
+                not type_checker.is_number(port)
+                and not isinstance(port, dict)
+                and port not in port_group_names
+            ):
                 self.add_validation_error(
                     "Port Group {0} not defined for forwarding in {1}".format(
                         port, str(self)
@@ -87,14 +91,18 @@ class Host(Validatable):
                 )
                 consistent = False
 
-        for port in getattr(self, "hairpin-ports", []):
-            if not type_checker.is_number(port) and port not in port_group_names:
-                self.add_validation_error(
-                    "Port Group {0} not defined for hairpin in {1}".format(
-                        port, str(self)
+        for hairpin in getattr(self, "hairpin-ports", []):
+            for port in [
+                hairpin["connection"].get("destination", {}).get("port", 0),
+                hairpin["connection"].get("source", {}).get("port", 0),
+            ]:
+                if not type_checker.is_number(port) and port not in port_group_names:
+                    self.add_validation_error(
+                        "Port Group {0} not defined for hairpin in {1}".format(
+                            port, str(self)
+                        )
                     )
-                )
-                consistent = False
+                    consistent = False
 
         for connection in getattr(self, "connections", []):
             source_port = connection.get("source", {}).get("port", 0)

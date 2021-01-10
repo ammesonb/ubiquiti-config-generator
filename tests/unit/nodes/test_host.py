@@ -57,19 +57,45 @@ def test_is_consistent(monkeypatch):
         "Port Group group2 not defined for forwarding in Host host"
     ], "Forward port group error set"
 
-    attrs = {"forward-ports": ["group1", 80]}
+    attrs = {"forward-ports": ["group1", 80, {8080: 80}]}
     host = Host("host", network, ".", "192.168.0.1", **attrs)
     assert host.is_consistent(), "Forward port groups consistent"
     assert not host.validation_errors(), "No errors for forward port"
 
-    attrs = {"hairpin-ports": ["group1", "group2"]}
+    attrs = {
+        "hairpin-ports": [
+            {
+                "description": "hairpin",
+                "interface": "eth1.10",
+                "connection": {"destination": {"port": "group1"}},
+            },
+            {
+                "description": "hairpin2",
+                "interface": "eth1.20",
+                "connection": {"destination": {"port": "group2"}},
+            },
+        ]
+    }
     host = Host("host", network, ".", "192.168.0.1", **attrs)
     assert not host.is_consistent(), "Missing hairpin port group inconsistent"
     assert host.validation_errors() == [
         "Port Group group2 not defined for hairpin in Host host"
     ], "Hairpin port group error set"
 
-    attrs = {"hairpin-ports": ["group1", 80]}
+    attrs = {
+        "hairpin-ports": [
+            {
+                "description": "hairpin",
+                "interface": "eth1.10",
+                "connection": {"destination": {"port": "group1"}},
+            },
+            {
+                "description": "web",
+                "interface": "eth1.20",
+                "connection": {"destination": {"port": 80}},
+            },
+        ]
+    }
     host = Host("host", network, ".", "192.168.0.2", **attrs)
     assert host.is_consistent(), "Hairpin port groups consistent"
     assert not host.validation_errors(), "No errors for hairpin port"
