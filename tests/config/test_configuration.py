@@ -210,13 +210,15 @@ def test_load_sample_config():
             "connections": [
                 {
                     "allow": False,
-                    "description": "Disallow all connections to switch from untrusted network",
+                    "description": "Disallow all connections to switch from "
+                    "untrusted network",
                     "destination": {"address": "10.0.10.2"},
                     "source": {"address": "10.200.0.0/24"},
                 }
             ],
         }
     )
+    networks[0].hosts.append(rack_switch)
     server = nodes.Host(
         "server",
         networks[0],
@@ -265,6 +267,48 @@ def test_load_sample_config():
             ],
         }
     )
+    networks[0].hosts.append(server)
+
+    desktop = nodes.Host(
+        "desktop",
+        networks[1],
+        ".",
+        **{
+            "address": "10.0.12.100",
+            "mac": "ab:98:cd:65:ef:54",
+            "address-groups": ["user-machines", "windows"],
+            "connections": [
+                {
+                    "allow": True,
+                    "description": "Allow connections to user devices from web "
+                    "IOT ports",
+                    "source": {"address": "10.200.0.0/24", "port": "web"},
+                    "destination": {"address": "user-machines"},
+                },
+                {
+                    "allow": False,
+                    "description": "Block all other attempts to access user machines "
+                    "from IOT",
+                    "log": True,
+                    "source": {"address": "10.200.0.0/24"},
+                    "destination": {"address": "user-machines"},
+                },
+            ],
+        }
+    )
+    networks[1].hosts.append(desktop)
+
+    laptop = nodes.Host(
+        "laptop",
+        networks[1],
+        ".",
+        **{
+            "address": "10.0.12.101",
+            "mac": "fe:98:dc:76:ba:54",
+            "address-groups": ["user-machines", "unix"],
+        }
+    )
+    networks[1].hosts.append(laptop)
 
     command_list_pointer = 0
     # Rather than checking all 100+ commands explicitly, leverage unit tests to ensure
