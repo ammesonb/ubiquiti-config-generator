@@ -11,9 +11,6 @@ def test_load_sample_config():
     """
     node = root_parser.RootNode.create_from_configs("sample_router_config")
     valid = node.validate()
-    if not valid:
-        for failure in node.validation_failures():
-            print(failure)
 
     assert node.is_valid(), "Created node is valid"
     assert node.is_consistent(), "Created node is consistent"
@@ -309,6 +306,65 @@ def test_load_sample_config():
         }
     )
     networks[1].hosts.append(laptop)
+
+    echo = nodes.Host(
+        "amazon-echo",
+        networks[2],
+        ".",
+        **{
+            "address": "10.200.0.10",
+            "mac": "ab:12:bc:23:cd:34",
+            "address-groups": ["IOT"],
+            "connections": [
+                {
+                    "description": "Allow access to IOT from admin addresses",
+                    "allow": True,
+                    "log": False,
+                    "source": {"address": "10.10.0.0/23"},
+                    "destination": {"address": "IOT"},
+                },
+                {
+                    "description": "Allow access to IOT from internal addresses",
+                    "allow": True,
+                    "log": False,
+                    "source": {"address": "10.12.0.0/24"},
+                    "destination": {"address": "IOT"},
+                },
+                {
+                    "description": "Block access to IOT from others, unless "
+                    "established already",
+                    "allow": False,
+                    "log": True,
+                    "destination": {"address": "IOT"},
+                },
+            ],
+        }
+    )
+    networks[2].hosts.append(echo)
+
+    printer = nodes.Host(
+        "printer",
+        networks[2],
+        ".",
+        **{
+            "address": "10.200.0.20",
+            "mac": "fe:98:ed:87:dc:76",
+            "address-groups": ["IOT"],
+        }
+    )
+    networks[2].hosts.append(printer)
+
+    teapot = nodes.Host(
+        "teapot",
+        networks[2],
+        ".",
+        **{
+            "address": "10.200.0.30",
+            "mac": "ad:14:be:25:cf:36",
+            "address-groups": ["IOT"],
+        }
+    )
+    networks[2].hosts.append(teapot)
 
     command_list_pointer = 0
     # Rather than checking all 100+ commands explicitly, leverage unit tests to ensure
