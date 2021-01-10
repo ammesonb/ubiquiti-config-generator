@@ -114,15 +114,18 @@ class Network(Validatable):
         """
         self.hosts = [
             Host(
-                host_path.split(path.sep)[-2],
+                host_path.split(path.sep)[-1][:-5],
                 self,
                 self.config_path,
                 **(file_paths.load_yaml_from_file(host_path))
             )
-            for host_path in file_paths.get_folders_with_config(
-                file_paths.get_path(
-                    [self.config_path, self.name, file_paths.HOSTS_FOLDER]
-                )
+            for host_path in file_paths.get_config_files(
+                [
+                    self.config_path,
+                    file_paths.NETWORK_FOLDER,
+                    self.name,
+                    file_paths.HOSTS_FOLDER,
+                ]
             )
         ]
 

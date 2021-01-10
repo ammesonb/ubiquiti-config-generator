@@ -1,6 +1,5 @@
 ---
-description: "A desktop"
-address: 10.10.12
+address: 10.0.12.100
 mac: "ab:98:cd:65:ef:54"
 address-groups:
   - user-machines
@@ -8,6 +7,7 @@ address-groups:
 
 connections:
   - allow: True
+    description: "Allow connections to user devices from web IOT ports"
     source:
       address: 10.200.0.0/24
       port: web
@@ -15,6 +15,7 @@ connections:
       address: user-machines
 
   - allow: False
+    description: "Block all other attempts to access user machines from IOT"
     log: True
     source:
       address: 10.200.0.0/24

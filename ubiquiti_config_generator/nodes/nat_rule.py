@@ -142,3 +142,10 @@ class NATRule(Validatable):
         String version of this
         """
         return "NAT rule {0}".format(self.number)
+
+    def print(self) -> None:
+        """
+        Print the rule
+        """
+        for attr in self.attributes():
+            print("{0} | {1}".format(attr, getattr(self, attr)))

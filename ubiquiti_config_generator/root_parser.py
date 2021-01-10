@@ -72,12 +72,18 @@ class RootNode:
         """
         Are all fields in the configuration valid
         """
+        settings_valid = self.global_settings.validate()
+        addresses_valid = self.external_addresses.validate()
+        ports_valid = all([port.validate() for port in self.port_groups])
+        networks_valid = all([network.validate() for network in self.networks])
+        nat_valid = self.nat.validate()
+
         return (
-            self.global_settings.validate()
-            and self.external_addresses.validate()
-            and all([port.validate() for port in self.port_groups])
-            and all([network.validate() for network in self.networks])
-            and self.nat.validate()
+            settings_valid
+            and addresses_valid
+            and ports_valid
+            and networks_valid
+            and nat_valid
         )
 
     def is_consistent(self) -> bool:
@@ -120,7 +126,10 @@ class RootNode:
         """
         Is the root node valid
         """
-        return self.is_valid() and self.is_consistent()
+        # Ensure both are checked, for complete error messages
+        valid = self.is_valid()
+        consistent = self.is_consistent()
+        return valid and consistent
 
     def validation_failures(self) -> List[str]:
         """

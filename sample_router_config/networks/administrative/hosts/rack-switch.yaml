@@ -1,5 +1,4 @@
 ---
-description: "Rack-mount switch"
 address: 10.0.10.2
 mac: "ba:21:dc:43:fe:65"
 address-groups:
@@ -9,6 +8,7 @@ forward-ports:
 
 connections:
   - allow: False
+    description: "Disallow all connections to switch from untrusted network"
     destination:
       address: 10.0.10.2
     source:

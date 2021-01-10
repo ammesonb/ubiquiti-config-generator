@@ -344,6 +344,15 @@ def test_is_source_destination():
             "destination": {"address": "321"},
         }
     ), "Extra key is invalid"
+    assert not type_checker.is_source_destination(
+        {
+            "a_key": "stuff",
+            "allow": True,
+            "log": "abc",
+            "source": {"address": "123"},
+            "destination": {"address": "321"},
+        }
+    ), "Non bool log invalid"
 
     assert not type_checker.is_source_destination(
         {"allow": True, "source": {"address": 123, "port": "80"}}
@@ -377,6 +386,9 @@ def test_is_source_destination():
         {
             "allow": True,
             "rule": 20,
+            "log": True,
+            "protocol": "all",
+            "description": "A connection",
             "source": {"address": "123.123.123.123", "port": "80"},
             "destination": {"address": "hosts", "port": "ports"},
         }

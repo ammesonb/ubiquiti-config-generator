@@ -1,6 +1,5 @@
 ---
-description: "A laptop"
-address: 10.10.12
+address: 10.0.12.101
 mac: "fe:98:dc:76:ba:54"
 address-groups:
   - user-machines

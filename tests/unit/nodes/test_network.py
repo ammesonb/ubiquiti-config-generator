@@ -81,8 +81,8 @@ def test_load_hosts(monkeypatch):
     """
     monkeypatch.setattr(
         file_paths,
-        "get_folders_with_config",
-        lambda folder: ["host1/config.yaml", "host2/config.yaml"],
+        "get_config_files",
+        lambda folder: ["network1/hosts/host1.yaml", "network1/hosts/host2.yaml"],
     )
     monkeypatch.setattr(
         file_paths, "load_yaml_from_file", lambda file_path: {"address": "192.168.0.1"}

@@ -55,22 +55,12 @@ class NAT(Validatable):
         """
         Commands to create this firewall
         """
-        ordered_commands = []
         command_list = []
 
-        def append_command(command: str):
-            """
-            .
-            """
-            command_list.append(command)
-            ordered_commands[-1].append(command)
-
         for rule in self.rules:
-            ordered_commands.append([])
-            for command in rule.commands():
-                append_command(command)
+            command_list.extend(rule.commands())
 
-        return (ordered_commands, command_list)
+        return command_list
 
     def add_rule(self, rule_properties: dict):
         """

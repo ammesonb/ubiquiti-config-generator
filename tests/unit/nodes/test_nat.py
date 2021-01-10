@@ -143,19 +143,13 @@ def test_commands(monkeypatch):
         "rules": [NATRule(10, "."), NATRule(20, ".")],
     }
     nat = NAT(".", **nat_properties)
-    ordered_commands, command_list = nat.commands()
-    assert command_list == [
+    assert nat.commands() == [
         "rule1-command1",
         "rule1-command2",
         "rule2-command1",
         "rule2-command2",
         "rule2-command3",
     ], "Commands generated correctly"
-
-    assert ordered_commands == [
-        ["rule1-command1", "rule1-command2"],
-        ["rule2-command1", "rule2-command2", "rule2-command3"],
-    ], "Ordered commands correct"
 
 
 def test_consistency():

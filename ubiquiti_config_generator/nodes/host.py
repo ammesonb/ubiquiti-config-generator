@@ -30,15 +30,17 @@ HOST_TYPES = {
     "hairpin-ports": lambda ports: all(
         [
             type_checker.is_source_destination(port["connection"])
-            for port in ports
             and type_checker.is_string(port["interface"])
             and type_checker.is_string(port["description"])
+            for port in ports
         ]
     ),
     # This is a dictionary for connections to allow/block, with properties:
     # allow: bool
     # rule: optional[int] - rule number for use in firewall
     # log: optional[bool] - log this connection
+    # protocol: optional[str] - protocol to match
+    # description: optional[str] - description for firewall rule/s
     # source:
     #    address: IP/address group
     #    port: port/port group
@@ -224,12 +226,10 @@ class Host(Validatable):
                 "config_path": self.config_path,
             }
 
-            if "rule" in connection:
-                rule_properties["number"] = connection["rule"]
-            if "source" in connection:
-                rule_properties["source"] = connection["source"]
-            if "destination" in connection:
-                rule_properties["destination"] = connection["destination"]
+            for attribute in ["rule", "description", "source", "destination"]:
+                if attribute in connection:
+                    rule_attribute = attribute if attribute != "rule" else "number"
+                    rule_properties[rule_attribute] = connection[attribute]
 
             self.network.firewalls_by_direction[
                 "in" if connection_is_source else "out"
@@ -264,10 +264,12 @@ class Host(Validatable):
                 "type": "destination",
                 "protocol": "tcp_udp",
                 "inside-address": {"address": self.address},
-                "source": hairpin["connection"].get("source", {}),
-                "destination": hairpin["connection"].get("destination", {}),
                 "inbound-interface": hairpin["interface"],
             }
+
+            for conn in ["source", "destination"]:
+                if hairpin["connection"].get(conn, {}):
+                    nat_rule_properties[conn] = hairpin["connection"][conn]
 
             self.network.nat.add_rule(nat_rule_properties)
 

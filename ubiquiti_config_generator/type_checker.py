@@ -156,7 +156,7 @@ def is_address_and_or_port(value: dict) -> bool:
     """
     return (
         isinstance(value, dict)
-        and list(value.keys()) in [[ADDRESS], [PORT], [ADDRESS, PORT]]
+        and list(value.keys()) in [[ADDRESS], [PORT], [ADDRESS, PORT], [PORT, ADDRESS]]
         and len(value.keys())
         and (ADDRESS not in value or is_string(value.get(ADDRESS, None)))
         and (
@@ -167,33 +167,48 @@ def is_address_and_or_port(value: dict) -> bool:
     )
 
 
-def is_source_destination(connections: dict) -> bool:
+def is_source_destination(connection: dict) -> bool:
     """
     This is a dictionary with a source and/or destination property,
     containing addresses and ports
     """
-    keys = list(connections.keys()) if isinstance(connections, dict) else []
+    keys = list(connection.keys()) if isinstance(connection, dict) else []
     return (
-        isinstance(connections, dict)
-        # Only keys permissible are these three
+        isinstance(connection, dict)
+        # Only keys permissible are these
         and not any(
-            [key not in ["destination", "source", "allow", "rule"] for key in keys]
+            [
+                key
+                not in [
+                    "description",
+                    "protocol",
+                    "log",
+                    "destination",
+                    "source",
+                    "allow",
+                    "rule",
+                ]
+                for key in keys
+            ]
         )
-        and isinstance(connections.get("allow", True), bool)
-        and isinstance(connections.get("source", {}), dict)
-        and isinstance(connections.get("destination", {}), dict)
-        and is_number(connections.get("rule", 0))
+        and isinstance(connection.get("allow", True), bool)
+        and is_string(connection.get("description", ""))
+        and isinstance(connection.get("source", {}), dict)
+        and isinstance(connection.get("destination", {}), dict)
+        and is_number(connection.get("rule", 0))
+        and is_protocol(connection.get("protocol", ALL))
+        and isinstance(connection.get("log", True), bool)
         # A source or destination must be set
-        and (connections.get("source", {}) or connections.get("destination", {}))
-        and is_string(connections.get("source", {}).get("address", ""))
-        and is_string(connections.get("destination", {}).get("address", ""))
+        and (connection.get("source", {}) or connection.get("destination", {}))
+        and is_string(connection.get("source", {}).get("address", "addr"))
+        and is_string(connection.get("destination", {}).get("address", "addr"))
         and (
-            is_string(connections.get("source", {}).get("port", ""))
-            or is_number(connections.get("source", {}).get("port", ""))
+            is_string(connection.get("source", {}).get("port", ""))
+            or is_number(connection.get("source", {}).get("port", 0))
         )
         and (
-            is_string(connections.get("destination", {}).get("port", ""))
-            or is_number(connections.get("destination", {}).get("port", ""))
+            is_string(connection.get("destination", {}).get("port", ""))
+            or is_number(connection.get("destination", {}).get("port", 0))
         )
     )
 

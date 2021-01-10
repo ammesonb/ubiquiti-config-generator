@@ -131,3 +131,10 @@ class Rule(Validatable):
         A string representation of the rule
         """
         return "Firewall {0} rule {1}".format(self.firewall_name, self.number)
+
+    def print(self) -> None:
+        """
+        Print the rule
+        """
+        for attr in self.attributes():
+            print("{0} | {1}".format(attr, getattr(self, attr)))

@@ -1,5 +1,4 @@
 ---
-description: "A teapot that really should not exist"
 address: 10.200.0.30
 mac: "ad:14:be:25:cf:36"
 address-groups:

@@ -38,7 +38,9 @@ def get_folders_with_config(folder_paths: List[str]) -> List[str]:
     """
     Looks for config.yaml in nested folders under the provided one
     """
-    return glob.glob(path.join(*folder_paths, "*", "config.yaml"))
+    folders = glob.glob(path.join(*folder_paths, "*", "config.yaml"))
+    folders.sort()
+    return folders
 
 
 def get_path(config_paths: List[str]):

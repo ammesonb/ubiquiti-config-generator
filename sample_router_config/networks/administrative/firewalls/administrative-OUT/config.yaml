@@ -1,5 +1,5 @@
 ---
-direction: ou
+direction: out
 default-action: drop
 description: Administrative outbound firewall
 ...
