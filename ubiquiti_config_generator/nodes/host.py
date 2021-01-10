@@ -255,6 +255,7 @@ class Host(Validatable):
                 "inbound-interface": "eth0",
                 "inside-address": {"address": self.address},
             }
+
             if type_checker.is_string(forward) or type_checker.is_number(forward):
                 nat_rule_properties["destination"] = {"port": forward}
             elif type_checker.is_translated_port(forward):

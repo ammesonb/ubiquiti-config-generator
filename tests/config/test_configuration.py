@@ -12,7 +12,8 @@ def test_load_sample_config():
     node = root_parser.RootNode.create_from_configs("sample_router_config")
     valid = node.validate()
     if not valid:
-        [print(failure) for failure in node.validation_failures()]
+        for failure in node.validation_failures():
+            print(failure)
 
     assert node.is_valid(), "Created node is valid"
     assert node.is_consistent(), "Created node is consistent"
@@ -205,13 +206,62 @@ def test_load_sample_config():
             "address": "10.0.10.2",
             "mac": "ba:21:dc:43:fe:65",
             "address-groups": ["infrastructure"],
-            "forward-ports": {8081: 80},
+            "forward-ports": [{8081: 80}],
             "connections": [
                 {
                     "allow": False,
+                    "description": "Disallow all connections to switch from untrusted network",
                     "destination": {"address": "10.0.10.2"},
                     "source": {"address": "10.200.0.0/24"},
                 }
+            ],
+        }
+    )
+    server = nodes.Host(
+        "server",
+        networks[0],
+        ".",
+        **{
+            "address": "10.0.10.10",
+            "mac": "ab:12:cd:34:ef:56",
+            "address-groups": ["infrastructure", "unix"],
+            "forward-ports": ["server-ports", {8080: 80}],
+            "hairpin-ports": [
+                {
+                    "description": "Redirect web to server",
+                    "interface": "eth1.20",
+                    "connection": {"destination": {"port": "web"}},
+                },
+                {
+                    "description": "Redirect SSH to server",
+                    "interface": "eth1.20",
+                    "connection": {"destination": {"port": 22}},
+                },
+            ],
+            "connections": [
+                {
+                    "allow": True,
+                    "description": "Allow access to web ports",
+                    "destination": {"address": "10.0.10.10", "port": "web"},
+                },
+                {
+                    "allow": True,
+                    "description": "Allow access to SSH from admin network",
+                    "destination": {"address": "10.0.10.10", "port": "22"},
+                    "source": {"address": "10.0.10.0/23"},
+                },
+                {
+                    "allow": True,
+                    "description": "Allow access to SSH from internal network",
+                    "destination": {"address": "10.0.10.10", "port": "22"},
+                    "source": {"address": "10.0.12.0/24"},
+                },
+                {
+                    "allow": False,
+                    "description": "Block all other access",
+                    "log": True,
+                    "destination": {"address": "10.0.10.10"},
+                },
             ],
         }
     )

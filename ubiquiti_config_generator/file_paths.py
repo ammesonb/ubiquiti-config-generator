@@ -31,7 +31,9 @@ def get_config_files(config_folders: List[str]) -> List[str]:
     """
     Returns a list of yaml files in a given directory
     """
-    return glob.glob(path.join(*config_folders, "*.yaml"))
+    files = glob.glob(path.join(*config_folders, "*.yaml"))
+    files.sort()
+    return files
 
 
 def get_folders_with_config(folder_paths: List[str]) -> List[str]:
