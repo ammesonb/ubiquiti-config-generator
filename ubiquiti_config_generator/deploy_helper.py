@@ -4,6 +4,8 @@ Functionality needed for deploying and checking configurations
 import shlex
 from typing import List, Optional
 
+from ubiquiti_config_generator import root_parser, file_paths
+
 
 class ConfigDifference:
     """
@@ -58,6 +60,13 @@ class ConfigDifference:
             self.change(current_command)
 
 
+def get_command_key(command: str) -> str:
+    """
+    Gets the command key, everything except the last space-separated value
+    """
+    return " ".join(shlex.split(command)[:-1])
+
+
 def diff_configurations(
     current_commands: List[str], previous_commands: List[str]
 ) -> ConfigDifference:
@@ -68,14 +77,10 @@ def diff_configurations(
     previous_commands_by_key = {}
 
     for command in current_commands:
-        current_commands_by_key[" ".join(shlex.split(command)[:-1])] = shlex.split(
-            command
-        )[-1]
+        current_commands_by_key[get_command_key(command)] = shlex.split(command)[-1]
 
     for command in previous_commands:
-        previous_commands_by_key[" ".join(shlex.split(command)[:-1])] = shlex.split(
-            command
-        )[-1]
+        previous_commands_by_key[get_command_key(command)] = shlex.split(command)[-1]
 
     difference = ConfigDifference()
 
@@ -96,3 +101,49 @@ def diff_configurations(
         )
 
     return difference
+
+
+def get_commands_to_run(
+    current_config_path: str, previous_config_path: str
+) -> List[List[str]]:
+    """
+    Given two sets of configurations, returns the ordered command sets to execute
+    """
+    deploy_config = file_paths.load_yaml_from_file("deploy.yaml")
+
+    current_config = root_parser.RootNode.create_from_configs(current_config_path)
+    previous_config = root_parser.RootNode.create_from_configs(previous_config_path)
+
+    current_ordered_commands, current_command_list = current_config.get_commands()
+    previous_ordered_commands, previous_command_list = previous_config.get_commands()
+
+    difference = diff_configurations(current_command_list, previous_command_list)
+
+    run_commands = [[]]
+
+    # Run deletes in a single batch first, since that _shouldn't_ cause any issues
+    for key, value in difference.removed.items():
+        run_commands[0].append(" ".join(["delete", key, shlex.quote(value)]))
+
+    apply_diff_only = deploy_config["apply-difference-only"]
+    for command_set in current_ordered_commands:
+        run_commands.append([])
+
+        for command in command_set:
+            command_prefix = (
+                command if not apply_diff_only else get_command_key(command)
+            )
+
+            # Include commands only if applying the entire config, or
+            # the command's value changed
+            if (
+                not apply_diff_only
+                or command_prefix in difference.changed
+                or command_prefix in difference.added
+            ):
+                run_commands[-1].append("set " + command)
+
+        if not run_commands[-1]:
+            del run_commands[-1]
+
+    return run_commands
