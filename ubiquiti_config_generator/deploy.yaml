@@ -1,4 +1,9 @@
 # Contains deployment configurations
+#
+# If customizing this file for actual use, while still committing changes, use:
+# git update-index --skip-worktree deploy.yaml to remove any future changes, with
+# --no-skip-worktree to add things back
+
 router:
   address:
   user:
@@ -10,13 +15,16 @@ router:
 apply-difference-only: False
 # Immediately revert failed changes
 auto-rollback-on-failure: True
-# Schedule reboot after N seconds, to ensure you don't accidentally lose access to the router
+# Schedule reboot after N minutes, to ensure you don't accidentally lose access to the router
 # Can be canceled with `shutdown -c`
-shutdown-after: 300
+reboot-after-minutes: 5
 # Save config after commit
 # NOT RECOMMENDED - manually validate the config after deploying to ensure there are no flaws
 # This could lock you out of the router!!!
 save-after-commit: False
+# The path to vyatta-cfg-cmd-wrapper
+# Typically in /opt/vyatta/[s]bin
+script-cfg-path: /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper
 
 git:
   # Repository for the router config
@@ -29,5 +37,5 @@ git:
   # where to clone the repo - need both to ensure a consistent configuration is applied
   # A node may be deleted from the previous config, which simply applying the updated one
   # will not always catch
-  config-folder: ./router_config
-  diff-config-folder: ./previous_router_config
+  config-folder: /tmp/router_config
+  diff-config-folder: /tmp/previous_router_config

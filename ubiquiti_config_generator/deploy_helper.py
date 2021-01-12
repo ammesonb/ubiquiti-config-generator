@@ -104,7 +104,7 @@ def diff_configurations(
 
 
 def get_commands_to_run(
-    current_config_path: str, previous_config_path: str
+    current_config_path: str, previous_config_path: str, only_return_diff: bool = False
 ) -> List[List[str]]:
     """
     Given two sets of configurations, returns the ordered command sets to execute
@@ -125,7 +125,7 @@ def get_commands_to_run(
     for key, value in difference.removed.items():
         run_commands[0].append(" ".join(["delete", key, shlex.quote(value)]))
 
-    apply_diff_only = deploy_config["apply-difference-only"]
+    apply_diff_only = only_return_diff or deploy_config["apply-difference-only"]
     for command_set in current_ordered_commands:
         run_commands.append([])
 
