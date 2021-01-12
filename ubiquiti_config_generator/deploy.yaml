@@ -32,6 +32,7 @@ git:
   # Branch to deploy changes from
   # (Validations will always be against feature branches)
   primary-branch: main
+  webhook-secret:
   user:
   keyfile:
   # where to clone the repo - need both to ensure a consistent configuration is applied
