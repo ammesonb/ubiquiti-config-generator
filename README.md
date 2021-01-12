@@ -89,15 +89,15 @@ These files MUST be stored in a separate repository, which can be cloned indepen
 The file structure is as follows:
 1. Put any (if applicable) external addresses in `external_addresses.yaml`
 2. Fill out any configurations you wish to set in the rest of the top-level files
-    a. Port groups, global settings, NAT
+    1. Port groups, global settings, NAT
 3. For each network:
     1. Add a new folder under `networks` with the desired network name
     2. Create a `config.yaml` file
-        a. The contents will be key-value pairs that should map to Ubiquiti key names
-        b. There is validation of those key names, but it may not be complete
+        1. The contents will be key-value pairs that should map to Ubiquiti key names
+        2. There is validation of those key names, but it may not be complete
     3. Optionally, add a `firewalls` folder for each of the `in`/`out`/`local`, as desired
-        a. For each, add a folder with the firewall's name, and a `config.yaml` file under it
-        b. If any omitted, placeholders will be created with a generic default of `accept`, since required for hosts to (potentially) add firewall rules to it
+        1. For each, add a folder with the firewall's name, and a `config.yaml` file under it
+        2. If any omitted, placeholders will be created with a generic default of `accept`, since required for hosts to (potentially) add firewall rules to it
     4. Create a `hosts` folder (if there will be hosts statically mapped to this network)
 
 ### Setting up GitHub integrations
@@ -105,29 +105,32 @@ The file structure is as follows:
 1. Go to the [new app page](https://github.com/settings/apps/new).
 2. Add a title and/or description that makes sense to you
 3. Ensure a webhook URL is present, and active is ticked
-    a. Provide a secret (recommended)
-    b. TODO: which files need to be present at the webhook URL, at what addresses?
+    1. Provide a secret (recommended)
+    2. TODO: which files need to be present at the webhook URL, at what addresses?
 4. Set **repository** permissions to the following (TODO: is this exhaustive?)
-    a. Checks: read/write
-        i. To ensure that configuration is valid, automatically, for PRs
-    b. Contents: read
-        i. In order to pull configurations from GitHub, and deploy them
-    c. Deployments: read/write
-        i. To report status of deploying configurations
-    d. Pull requests: read/write
-        i. To add details to PRs about commands that would run, configuration state, etc.
-    e. Commit statuses: read/write
-        i. To report state of a given commit on the primary branch
+    1. Checks: read/write
+        1. To ensure that configuration is valid, automatically, for PRs
+    2. Contents: read
+        1. In order to pull configurations from GitHub, and deploy them
+    3. Deployments: read/write
+        1. To report status of deploying configurations
+    4. Pull requests: read/write
+        1. To add details to PRs about commands that would run, configuration state, etc.
+    5. Commit statuses: read/write
+        1. To report state of a given commit on the primary branch
 5. Set event subscriptions to the following (TODO: is this exhaustive?)
-    a. Check run
-        i. To perform checks on the configuration
-    b. Check suite
-        i. To schedule checks on the configuration (TODO: this should schedule the check runs?)
-    c. Deployment (TODO: and/or status?)
-        i. To interact with the deployment status
-    d. Pull request (TODO: is this needed?)
-        i. MAYBE for checks or something? Push may be the better thing here
-    e. Push
-        i. To know when to schedule check runs or deployments
+    1. Check run
+        1. To perform checks on the configuration
+    2. Check suite
+        1. To schedule checks on the configuration (TODO: this should schedule the check runs?)
+    3. Deployment (TODO: and/or status?)
+        1. To interact with the deployment status
+    4. Pull request (TODO: is this needed?)
+        1. MAYBE for checks or something? Push may be the better thing here
+    5. Push
+        1. To know when to schedule check runs or deployments
 6. Ensure "only this account" is ticked for where the app can be installed
 7. Create app
+8. Optionally, follow [this guide](https://docs.github.com/en/free-pro-team@latest/github/administering-a-repository/enabling-required-status-checks) to require status checks.
+    1. This _may_ require Pro version of GitHub (or a public config repo), either of which may be undesirable
+    2. This is not required, but obviously would offer stronger protections against accidentally merging a broken configuration
