@@ -56,7 +56,7 @@ class Rule(Validatable):
 
         for part in ["log", "protocol"]:
             if hasattr(self, part):
-                commands.append(command_base + part + " " + getattr(self, part))
+                commands.append(command_base + part + " " + str(getattr(self, part)))
 
         if hasattr(self, "state"):
             # pylint: disable=no-member

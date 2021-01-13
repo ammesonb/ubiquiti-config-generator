@@ -60,7 +60,7 @@ class NATRule(Validatable):
             "outbound-interface",
         ]:
             if hasattr(self, part):
-                commands.append(command_base + part + " " + getattr(self, part))
+                commands.append(command_base + part + " " + str(getattr(self, part)))
 
         connections = ["source", "destination", "inside-address"]
         for connection in connections:
