@@ -103,6 +103,8 @@ def diff_configurations(
     return difference
 
 
+# Most excess locals are convenience, and improve readability
+# pylint: disable=too-many-locals
 def get_commands_to_run(
     current_config_path: str, previous_config_path: str, only_return_diff: bool = False
 ) -> List[List[str]]:

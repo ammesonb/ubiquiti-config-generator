@@ -2,16 +2,11 @@
 """
 Contains the interactions for GitHub webhooks
 """
-import hashlib
-import hmac
-import time
 
 from fastapi import FastAPI, Request, Response, HTTPException
-import jwt
-import requests
 import uvicorn
 
-from ubiquiti_config_generator import file_paths
+from ubiquiti_config_generator import file_paths, github_api
 
 app = FastAPI(
     title="Ubiquiti Configuration Webhook Listener",
@@ -19,41 +14,6 @@ app = FastAPI(
     "trigger actions on Ubiquiti configurations",
     version="1.0",
 )
-
-
-def get_jwt(deploy_config: dict) -> str:
-    """
-    Get the JSON web token, needed for basic API access
-    """
-    return jwt.encode(
-        {
-            # Request starting now
-            "iat": int(time.time()),
-            # Token expires in ten minutes
-            "exp": int(time.time()) + 600,
-            "iss": deploy_config["git"]["app-id"],
-        },
-        open(deploy_config["git"]["private-key-path"], "rb").read(),
-        "RS256",
-    )
-
-
-def get_access_token(jwt_token: str) -> str:
-    """
-    Gets an access token, used for fully-authenticated app actions
-    """
-    headers = {
-        "accept": "application/vnd.github.v3+json",
-        "Authorization": "Bearer " + jwt_token,
-    }
-    installations = requests.get(
-        "https://api.github.com/app/installations", headers=headers
-    )
-
-    response = requests.post(
-        installations.json()[0]["access_tokens_url"], headers=headers
-    )
-    return response.json()["token"]
 
 
 @app.post("/")
@@ -64,15 +24,14 @@ async def on_webhook_action(request: Request) -> Response:
     deploy_config = file_paths.load_yaml_from_file("deploy.yaml")
     body = await request.body()
     headers = request.headers
-    signature = hmac.new(
-        deploy_config["git"]["webhook-secret"].encode(), body, hashlib.sha256
-    ).hexdigest()
 
-    if headers["x-hub-signature-256"] != "sha256=" + signature:
+    if not github_api.validate_message(
+        deploy_config, body, headers["x-hub-signature-256"]
+    ):
         print("Unauthorized request!")
         raise HTTPException(status_code=404, detail="Invalid body hash")
 
-    access_token = get_access_token(get_jwt(deploy_config))
+    access_token = github_api.get_access_token(github_api.get_jwt(deploy_config))
 
     form = await request.json()
     print(
@@ -82,34 +41,11 @@ async def on_webhook_action(request: Request) -> Response:
     )
 
     if headers["x-github-event"] == "check_suite":
-        if form["action"] in ["requested", "rerequested"]:
-            head_sha = form.get("check_suite", form.get("check_run")).get("head_sha")
-            print(head_sha)
-            print("Requesting a check")
-            response = requests.post(
-                form["repository"]["url"] + "/check-runs",
-                json={
-                    "accept": "application/vnd.github.v3+json",
-                    "name": "configuration-validatog",
-                    "head_sha": head_sha,
-                },
-                headers={
-                    "accept": "application/vnd.github.v3+json",
-                    "Authorization": "token " + access_token,
-                },
-            )
-
-            if response.status_code != 201:
-                print("Failed to schedule check!")
-                print(response.json())
-            else:
-                print("Check requested successfully")
+        github_api.handle_check_suite(form, access_token)
     elif headers["x-github-event"] == "check_run":
-        pass
+        github_api.process_check_run(deploy_config, form, access_token)
     else:
         print("Skipping event - no handler registered!")
-
-    # print(form)
 
 
 def run_listener():

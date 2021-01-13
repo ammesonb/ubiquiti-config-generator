@@ -21,6 +21,7 @@ def get_global_configuration(config_path: str) -> GlobalSettings:
             file_paths.load_yaml_from_file(
                 file_paths.get_path([config_path, file_paths.GLOBAL_CONFIG])
             )
+            or {}
         )
     )
 
@@ -35,7 +36,7 @@ def get_port_groups(config_path: str) -> List[PortGroup]:
     ):
         group_name = path.basename(port_group).replace(".yaml", "")
         port_groups.append(
-            PortGroup(group_name, **file_paths.load_yaml_from_file(port_group))
+            PortGroup(group_name, **file_paths.load_yaml_from_file(port_group) or {})
         )
 
     return port_groups
@@ -48,6 +49,6 @@ def get_external_addresses(config_path: str) -> ExternalAddresses:
     return ExternalAddresses(
         file_paths.load_yaml_from_file(
             file_paths.get_path([config_path, file_paths.EXTERNAL_ADDRESSES_CONFIG])
-            or []
         )
+        or []
     )
