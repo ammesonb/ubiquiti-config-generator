@@ -27,23 +27,14 @@ save-after-commit: False
 script-cfg-path: /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper
 
 git:
-  # Repository for the router config
-  repo:
-  # Branch to deploy changes from
-  # (Validations will always be against feature branches)
-  primary-branch: main
   # The ID of the application
   app-id:
-  # An authorization token for the repository, from the app
-  auth-token:
 
   private-key-path: ./ubiquiti-config.pem
   # The port to listen on for GitHub webhook stuff
   webhook-port: 54321
   # The secret to use with GitHub webhooks
   webhook-secret:
-  user:
-  keyfile:
   # where to clone the repo - need both to ensure a consistent configuration is applied
   # A node may be deleted from the previous config, which simply applying the updated one
   # will not always catch

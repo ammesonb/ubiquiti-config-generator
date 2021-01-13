@@ -130,7 +130,7 @@ The file structure is as follows:
     5. Push
         1. To know when to schedule check runs or deployments
 6. Ensure "only this account" is ticked for where the app can be installed
-7. Create app
+7. Create the application
 8. Optionally, follow [this guide](https://docs.github.com/en/free-pro-team@latest/github/administering-a-repository/enabling-required-status-checks) to require status checks.
     1. This _may_ require Pro version of GitHub (or a public config repo), either of which may be undesirable
     2. This is not required, but obviously would offer stronger protections against accidentally merging a broken configuration
@@ -138,8 +138,8 @@ The file structure is as follows:
 10. Install the GitHub app to that repository
 
 #### Configuring the app
-Get ready for a whole lot of BS, this is convoluted and DUMB AF
-Security, or something I guess
-
-1. Pull up the app settings page, and generate a new client secret. This must be entered in the deploy.yaml file
-2. Also create a private key on the same page, and enter the path to it in deploy.yaml
+1. Note the app ID, and add it in the deploy.yaml file
+2. Go to the app's settings page, and generate a new private key.
+  - This should be placed somewhere code in this repo can read it, and stored in the private-key-path property in deploy.yaml
+3. Set the folders to clone configs into as desired - THEY MUST BE DIFFERENT LOCATIONS
+4. Note the webhook port defaults to 54321 - this should be configured as desired, with a reverse proxy forwarded to that port
