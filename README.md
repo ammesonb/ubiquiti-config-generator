@@ -122,7 +122,7 @@ The file structure is as follows:
     1. Check run
         1. To perform checks on the configuration
     2. Check suite
-        1. To schedule checks on the configuration (TODO: this should schedule the check runs?)
+        1. To schedule checks on the configuration
     3. Deployment (TODO: and/or status?)
         1. To interact with the deployment status
     4. Pull request (TODO: is this needed?)
@@ -134,3 +134,12 @@ The file structure is as follows:
 8. Optionally, follow [this guide](https://docs.github.com/en/free-pro-team@latest/github/administering-a-repository/enabling-required-status-checks) to require status checks.
     1. This _may_ require Pro version of GitHub (or a public config repo), either of which may be undesirable
     2. This is not required, but obviously would offer stronger protections against accidentally merging a broken configuration
+9. Create a private configuration repo, if you have do not have one for your configuration already
+10. Install the GitHub app to that repository
+
+#### Configuring the app
+Get ready for a whole lot of BS, this is convoluted and DUMB AF
+Security, or something I guess
+
+1. Pull up the app settings page, and generate a new client secret. This must be entered in the deploy.yaml file
+2. Also create a private key on the same page, and enter the path to it in deploy.yaml

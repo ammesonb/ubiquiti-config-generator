@@ -1,6 +1,12 @@
 black==20.8b1
+cryptography
+fastapi==0.63.0
 pre-commit==2.9.3
+pyjwt
 pylint==2.6.0
-pytest==6.2.1
 pytest-cov==2.10.1
+pytest==6.2.1
+python-multipart
 pyyaml==5.3.1
+requests
+uvicorn

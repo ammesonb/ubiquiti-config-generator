@@ -32,6 +32,15 @@ git:
   # Branch to deploy changes from
   # (Validations will always be against feature branches)
   primary-branch: main
+  # The ID of the application
+  app-id:
+  # An authorization token for the repository, from the app
+  auth-token:
+
+  private-key-path: ./ubiquiti-config.pem
+  # The port to listen on for GitHub webhook stuff
+  webhook-port: 54321
+  # The secret to use with GitHub webhooks
   webhook-secret:
   user:
   keyfile:
