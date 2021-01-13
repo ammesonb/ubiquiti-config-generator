@@ -73,9 +73,14 @@ async def on_webhook_action(request: Request) -> Response:
         raise HTTPException(status_code=404, detail="Invalid body hash")
 
     access_token = get_access_token(get_jwt(deploy_config))
-    print(access_token)
 
     form = await request.json()
+    print(
+        "Got event: {0} with action: {1}".format(
+            headers["x-github-event"], form.get("action", "")
+        )
+    )
+
     if headers["x-github-event"] == "check_suite":
         if form["action"] in ["requested", "rerequested"]:
             head_sha = form.get("check_suite", form.get("check_run")).get("head_sha")
@@ -93,10 +98,16 @@ async def on_webhook_action(request: Request) -> Response:
                     "Authorization": "token " + access_token,
                 },
             )
-            print(response)
-            print(response.json())
+
+            if response.status_code != 201:
+                print("Failed to schedule check!")
+                print(response.json())
+            else:
+                print("Check requested successfully")
     elif headers["x-github-event"] == "check_run":
         pass
+    else:
+        print("Skipping event - no handler registered!")
 
     # print(form)
 
