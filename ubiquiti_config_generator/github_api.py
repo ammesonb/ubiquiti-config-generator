@@ -195,9 +195,11 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> Non
             if not commands:
                 continue
 
-            comment += f"## Commands {category}:\n\n" + "- ".join(
+            comment += f"## Commands {category}:\n\n- " + "\n- ".join(
                 [command + " " + commands[command] for command in commands]
             )
+
+            comment += "\n"
 
         for pull in form["check_run"]["pull_requests"]:
             add_comment(access_token, pull["url"], comment)
