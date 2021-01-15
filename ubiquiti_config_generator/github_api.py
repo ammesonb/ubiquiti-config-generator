@@ -2,7 +2,7 @@
 """
 Contains the interactions for GitHub webhooks
 """
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import hmac
 import os
@@ -109,7 +109,7 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> Non
         form["check_run"]["url"],
         "in_progress",
         # Can't mock utcnow(), so use time.time instead
-        {"started_at": datetime.fromtimestamp(time.time()).isoformat() + "Z"},
+        {"started_at": datetime.fromtimestamp(time.time(), timezone.utc).isoformat()},
     ):
         return
 
@@ -156,8 +156,7 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> Non
 
     output = {
         # Can't mock utcnow(), so use time.time instead
-        "completed_at": datetime.fromtimestamp(time.time()).isoformat()
-        + "Z",
+        "completed_at": datetime.fromtimestamp(time.time(), timezone.utc).isoformat()
     }
     if not valid:
         output.update(
@@ -217,7 +216,7 @@ def update_check_with_exception(
     print("Caught exception " + str(exception) + " during check!")
     output = {
         # Can't mock utcnow(), so use time.time instead
-        "completed_at": datetime.fromtimestamp(time.time()).isoformat() + "Z",
+        "completed_at": datetime.fromtimestamp(time.time(), timezone.utc).isoformat(),
         "conclusion": "failure",
         "output": {
             "title": "Configuration Validator",

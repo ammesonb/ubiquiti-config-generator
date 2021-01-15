@@ -146,7 +146,7 @@ def test_update_check_with_exception(monkeypatch, capsys):
     @counter_wrapper
     def update_check(access_token, check_url, status, extra_data):
         assert extra_data == {
-            "completed_at": "2021-01-15T17:30:59Z",
+            "completed_at": "2021-01-15T22:30:59+00:00",
             "conclusion": "failure",
             "output": {
                 "summary": github_api.RED_CROSS + " an exception",
