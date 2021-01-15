@@ -108,7 +108,8 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> Non
         access_token,
         form["check_run"]["url"],
         "in_progress",
-        {"started_at": datetime.utcnow().isoformat() + "Z"},
+        # Can't mock utcnow(), so use time.time instead
+        {"started_at": datetime.fromtimestamp(time.time()).isoformat() + "Z"},
     ):
         return
 
@@ -154,7 +155,9 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> Non
         return
 
     output = {
-        "completed_at": datetime.utcnow().isoformat() + "Z",
+        # Can't mock utcnow(), so use time.time instead
+        "completed_at": datetime.fromtimestamp(time.time()).isoformat()
+        + "Z",
     }
     if not valid:
         output.update(
@@ -213,7 +216,8 @@ def update_check_with_exception(
     """
     print("Caught exception " + str(exception) + " during check!")
     output = {
-        "completed_at": datetime.utcnow().isoformat() + "Z",
+        # Can't mock utcnow(), so use time.time instead
+        "completed_at": datetime.fromtimestamp(time.time()).isoformat() + "Z",
         "conclusion": "failure",
         "output": {
             "title": "Configuration Validator",
