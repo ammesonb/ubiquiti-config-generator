@@ -12,8 +12,8 @@ from typing import Union
 
 import jwt
 import requests
-from ubiquiti_config_generator import github_api
-from ubiquiti_config_generator.github_api import GREEN_CHECK, WARNING
+from ubiquiti_config_generator.github import api
+from ubiquiti_config_generator.github.api import GREEN_CHECK, WARNING
 from ubiquiti_config_generator.testing_utils import counter_wrapper
 
 
@@ -55,7 +55,7 @@ def test_get_jwt(monkeypatch):
 
     monkeypatch.setattr(time, "time", lambda: 1000.12345)
     assert (
-        github_api.get_jwt(
+        api.get_jwt(
             {
                 "git": {
                     "app-id": 1,
@@ -85,9 +85,7 @@ def test_get_access_token(monkeypatch):
     monkeypatch.setattr(requests, "get", installations)
     monkeypatch.setattr(requests, "post", token)
 
-    assert (
-        github_api.get_access_token("a-jwt") == "v1.a-token"
-    ), "Access token retrieved"
+    assert api.get_access_token("a-jwt") == "v1.a-token", "Access token retrieved"
     assert installations.counter == 1, "Installations retrieved"
     assert token.counter == 1, "Token retrieved"
 
@@ -97,60 +95,9 @@ def test_validate_message(monkeypatch):
     .
     """
     monkeypatch.setattr(hmac.HMAC, "hexdigest", lambda self: "abc123")
-    assert github_api.validate_message(
+    assert api.validate_message(
         {"git": {"webhook-secret": "secret"}}, "content".encode(), "sha256=abc123"
     ), "Message validates"
-
-
-def test_handle_check_suite(monkeypatch, capsys):
-    """
-    .
-    """
-    github_api.handle_check_suite({"action": "completed"}, "abc")
-    printed = capsys.readouterr()
-    assert (
-        printed.out == "Ignoring check_suite action completed\n"
-    ), "Completed is skipped"
-
-    # pylint: disable=unused-argument
-    monkeypatch.setattr(
-        requests, "post", lambda *args, **kwargs: Response({"message": "failed"}, 403)
-    )
-
-    github_api.handle_check_suite(
-        {
-            "action": "requested",
-            "check_suite": {"head_sha": "123abc"},
-            "repository": {"url": "/"},
-        },
-        "abc",
-    )
-    printed = capsys.readouterr()
-    assert printed.out == (
-        "Requesting a check\n"
-        "Failed to schedule check: got status 403!\n"
-        "{'message': 'failed'}\n"
-    ), "Failed to schedule check printed"
-
-    # pylint: disable=unused-argument
-    monkeypatch.setattr(
-        requests,
-        "post",
-        lambda *args, **kwargs: Response({"message": "scheduled"}, 201),
-    )
-
-    github_api.handle_check_suite(
-        {
-            "action": "requested",
-            "check_suite": {"head_sha": "123abc"},
-            "repository": {"url": "/"},
-        },
-        "abc",
-    )
-    printed = capsys.readouterr()
-    assert printed.out == (
-        "Requesting a check\n" "Check requested successfully\n"
-    ), "Success output printed"
 
 
 def test_update_check_with_exception(monkeypatch, capsys):
@@ -165,18 +112,16 @@ def test_update_check_with_exception(monkeypatch, capsys):
             "completed_at": "2021-01-15T22:30:59+00:00",
             "conclusion": "failure",
             "output": {
-                "summary": github_api.RED_CROSS + " an exception",
+                "summary": api.RED_CROSS + " an exception",
                 "text": "foo\n\nexception traceback",
                 "title": "Configuration Validator",
             },
         }, "Expected extra data provided"
 
     monkeypatch.setattr(time, "time", lambda: 1610749859)
-    monkeypatch.setattr(github_api, "update_check", update_check)
+    monkeypatch.setattr(api, "update_check", update_check)
     monkeypatch.setattr(traceback, "format_exc", lambda: "exception traceback")
-    github_api.update_check_with_exception(
-        "an exception", "abc123", "/url", ValueError("foo")
-    )
+    api.update_check_with_exception("an exception", "abc123", "/url", ValueError("foo"))
     printed = capsys.readouterr()
     assert printed.out == "Caught exception foo during check!\n", "Error printed"
     assert update_check.counter == 1, "Update check called"
@@ -190,7 +135,7 @@ def test_update_check(monkeypatch, capsys):
     monkeypatch.setattr(
         requests, "patch", lambda *args, **kwargs: Response({"message": "failed"}, 403)
     )
-    assert not github_api.update_check(
+    assert not api.update_check(
         "abc123", "checks/312", "requested", {"data": "value"}
     ), "Update check fails"
     printed = capsys.readouterr()
@@ -204,7 +149,7 @@ def test_update_check(monkeypatch, capsys):
     monkeypatch.setattr(
         requests, "patch", lambda *args, **kwargs: Response({"message": "updated"}, 200)
     )
-    assert github_api.update_check(
+    assert api.update_check(
         "abc123", "checks/312", "requested", {"data": "value"}
     ), "Update check succeeds"
     printed = capsys.readouterr()
@@ -221,7 +166,7 @@ def test_add_comment(monkeypatch, capsys):
     monkeypatch.setattr(
         requests, "get", lambda *args, **kwargs: Response({"message": "bad"}, 403)
     )
-    github_api.add_comment("abc123", "/pull", "a comment")
+    api.add_comment("abc123", "/pull", "a comment")
     printed = capsys.readouterr()
     assert printed.out == (
         "Failed to get pull request /pull\n" "{'message': 'bad'}\n"
@@ -237,7 +182,7 @@ def test_add_comment(monkeypatch, capsys):
     monkeypatch.setattr(
         requests, "post", lambda *args, **kwargs: Response({"message": "failure"}, 403)
     )
-    github_api.add_comment("abc123", "/pull", "a comment")
+    api.add_comment("abc123", "/pull", "a comment")
     printed = capsys.readouterr()
     assert printed.out == (
         "Posting comment\n"
@@ -249,7 +194,7 @@ def test_add_comment(monkeypatch, capsys):
     monkeypatch.setattr(
         requests, "post", lambda *args, **kwargs: Response({"message": "posted"}, 201)
     )
-    github_api.add_comment("abc123", "/pull", "a comment")
+    api.add_comment("abc123", "/pull", "a comment")
     printed = capsys.readouterr()
     assert printed.out == ("Posting comment\n"), "Posting comment only text printed"
 
@@ -273,22 +218,16 @@ def test_clone_repo(monkeypatch, capsys):
     monkeypatch.setattr(shutil, "rmtree", remove_tree)
     monkeypatch.setattr(subprocess, "run", run)
 
-    github_api.clone_repository(
-        "abc123", "github.com/user/repository.git", "a_folder", False
-    )
+    api.clone_repository("abc123", "github.com/user/repository.git", "a_folder", False)
     assert remove_tree.counter == 0, "No folder to delete"
     printed = capsys.readouterr()
     assert printed.out == "Cloning repository.git into a_folder\n", "Output printed"
 
-    github_api.clone_repository(
-        "abc123", "github.com/user/repository.git", "a_folder", True
-    )
+    api.clone_repository("abc123", "github.com/user/repository.git", "a_folder", True)
     assert remove_tree.counter == 1, "Path deleted"
 
     monkeypatch.setattr(path, "exists", lambda path: False)
-    github_api.clone_repository(
-        "abc123", "github.com/user/repository.git", "a_folder", True
-    )
+    api.clone_repository("abc123", "github.com/user/repository.git", "a_folder", True)
     assert remove_tree.counter == 1, "Path not deleted if doesn't exist"
 
     assert run.counter == 3, "Run called three times"
@@ -321,7 +260,7 @@ def test_checkout(monkeypatch, capsys):
     monkeypatch.setattr(os, "chdir", chdir)
     monkeypatch.setattr(subprocess, "run", run)
 
-    github_api.checkout("a-repo", "abc123")
+    api.checkout("a-repo", "abc123")
     assert chdir.counter == 2, "Directory changed, and changed back"
     assert run.counter == 1, "Checkout called"
 
@@ -333,7 +272,7 @@ def test_summarize_deploy_config():
     """
     .
     """
-    summary = github_api.summarize_deploy_config_choices(
+    summary = api.summarize_deploy_config_choices(
         {
             "apply-difference-only": True,
             "auto-rollback-on-failure": True,
@@ -351,7 +290,7 @@ def test_summarize_deploy_config():
         ]
     ), "Safe summary correct"
 
-    summary = github_api.summarize_deploy_config_choices(
+    summary = api.summarize_deploy_config_choices(
         {
             "apply-difference-only": False,
             "auto-rollback-on-failure": False,

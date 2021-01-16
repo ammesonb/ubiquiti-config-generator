@@ -6,7 +6,8 @@ Contains the interactions for GitHub webhooks
 from fastapi import FastAPI, Request, Response, HTTPException
 import uvicorn
 
-from ubiquiti_config_generator import file_paths, github_api
+from ubiquiti_config_generator import file_paths
+from ubiquiti_config_generator.github import api, checks
 
 app = FastAPI(
     title="Ubiquiti Configuration Webhook Listener",
@@ -25,13 +26,11 @@ async def on_webhook_action(request: Request) -> Response:
     body = await request.body()
     headers = request.headers
 
-    if not github_api.validate_message(
-        deploy_config, body, headers["x-hub-signature-256"]
-    ):
+    if not api.validate_message(deploy_config, body, headers["x-hub-signature-256"]):
         print("Unauthorized request!")
         raise HTTPException(status_code=404, detail="Invalid body hash")
 
-    access_token = github_api.get_access_token(github_api.get_jwt(deploy_config))
+    access_token = api.get_access_token(api.get_jwt(deploy_config))
 
     form = await request.json()
     print(
@@ -41,9 +40,9 @@ async def on_webhook_action(request: Request) -> Response:
     )
 
     if headers["x-github-event"] == "check_suite":
-        github_api.handle_check_suite(form, access_token)
+        checks.handle_check_suite(form, access_token)
     elif headers["x-github-event"] == "check_run":
-        github_api.process_check_run(deploy_config, form, access_token)
+        checks.process_check_run(deploy_config, form, access_token)
     else:
         print("Skipping event - no handler registered!")
 

@@ -2,7 +2,8 @@
 Deploy helper functionality testing
 """
 
-from ubiquiti_config_generator import deploy_helper, file_paths, root_parser
+from ubiquiti_config_generator import root_parser, file_paths
+from ubiquiti_config_generator.github import deploy_helper
 from ubiquiti_config_generator.nodes import GlobalSettings, ExternalAddresses, NAT
 from ubiquiti_config_generator.testing_utils import counter_wrapper
 

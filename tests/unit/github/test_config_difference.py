@@ -2,7 +2,7 @@
 Check config difference works as expected
 """
 
-from ubiquiti_config_generator import deploy_helper
+from ubiquiti_config_generator.github import deploy_helper
 
 
 def test_atomic_operations():

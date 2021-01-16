@@ -117,6 +117,8 @@ def get_commands_to_run(
     previous_config = root_parser.RootNode.create_from_configs(previous_config_path)
 
     current_ordered_commands, current_command_list = current_config.get_commands()
+    # The previous ordered commands are unused, but need the list
+    # pylint: disable=unused-variable
     previous_ordered_commands, previous_command_list = previous_config.get_commands()
 
     difference = diff_configurations(current_command_list, previous_command_list)
