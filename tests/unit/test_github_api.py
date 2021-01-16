@@ -193,3 +193,40 @@ def test_update_check(monkeypatch, capsys):
     assert printed.out == (
         "Updating check 312 to requested\n"
     ), "Success has no extra prints"
+
+
+def test_add_comment(monkeypatch, capsys):
+    """
+    .
+    """
+    monkeypatch.setattr(
+        requests, "get", lambda *args, **kwargs: Response({"message": "bad"}, 403)
+    )
+    github_api.add_comment("abc123", "/pull", "a comment")
+    printed = capsys.readouterr()
+    assert printed.out == (
+        "Failed to get pull request /pull\n" "{'message': 'bad'}\n"
+    ), "Failure to get pull request prints"
+
+    monkeypatch.setattr(
+        requests,
+        "get",
+        lambda *args, **kwargs: Response({"comments_url": "comments"}, 200),
+    )
+    monkeypatch.setattr(
+        requests, "post", lambda *args, **kwargs: Response({"message": "failure"}, 403)
+    )
+    github_api.add_comment("abc123", "/pull", "a comment")
+    printed = capsys.readouterr()
+    assert printed.out == (
+        "Posting comment\n"
+        "Failed to post comment to review /pull\n"
+        "{'message': 'failure'}\n"
+    ), "Failure to post comment to pull request prints"
+
+    monkeypatch.setattr(
+        requests, "post", lambda *args, **kwargs: Response({"message": "posted"}, 201)
+    )
+    github_api.add_comment("abc123", "/pull", "a comment")
+    printed = capsys.readouterr()
+    assert printed.out == ("Posting comment\n"), "Posting comment only text printed"

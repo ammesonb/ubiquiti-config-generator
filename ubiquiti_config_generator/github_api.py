@@ -254,6 +254,7 @@ def add_comment(access_token: str, pull_url: str, comment: str):
     pull = requests.get(pull_url, headers=GH_TOKEN_HEADER(access_token))
     if pull.status_code != 200:
         print(f"Failed to get pull request {pull_url}")
+        print(pull.json())
         return
 
     print("Posting comment")
