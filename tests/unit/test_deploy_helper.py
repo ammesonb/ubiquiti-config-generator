@@ -74,6 +74,7 @@ def test_get_commands_to_run(monkeypatch):
         ),
     )
 
+    # pylint: disable=unused-argument
     @counter_wrapper
     def get_commands(self):
         """

@@ -278,7 +278,7 @@ def clone_repository(
         print(f"Deleting files in {clone_path}")
         shutil.rmtree(clone_path)
 
-    print("Cloning {0} into {1}".format("/".split(repo)[-1], clone_path))
+    print("Cloning {0} into {1}".format(repo.split("/")[-1], clone_path))
     subprocess.run(
         [
             "git",
