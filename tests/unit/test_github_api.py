@@ -13,6 +13,7 @@ from typing import Union
 import jwt
 import requests
 from ubiquiti_config_generator import github_api
+from ubiquiti_config_generator.github_api import GREEN_CHECK, WARNING
 from ubiquiti_config_generator.testing_utils import counter_wrapper
 
 
@@ -326,3 +327,44 @@ def test_checkout(monkeypatch, capsys):
 
     printed = capsys.readouterr()
     assert printed.out == "Checking out abc123 in a-repo\n", "Output printed"
+
+
+def test_summarize_deploy_config():
+    """
+    .
+    """
+    summary = github_api.summarize_deploy_config_choices(
+        {
+            "apply-difference-only": True,
+            "auto-rollback-on-failure": True,
+            "reboot-after-minutes": 5,
+            "save-after-commit": False,
+        }
+    )
+    assert summary == "\n".join(
+        [
+            "## Deployment overview",
+            f"- {GREEN_CHECK} Applying *DIFFERENCE* only",
+            f"- {GREEN_CHECK} Will rollback on configuration error",
+            f"- {GREEN_CHECK} Will restart after 5 minutes without confirm",
+            f"- {GREEN_CHECK} Will **NOT** save automatically",
+        ]
+    ), "Safe summary correct"
+
+    summary = github_api.summarize_deploy_config_choices(
+        {
+            "apply-difference-only": False,
+            "auto-rollback-on-failure": False,
+            "reboot-after-minutes": 0,
+            "save-after-commit": True,
+        }
+    )
+    assert summary == "\n".join(
+        [
+            "## Deployment overview",
+            f"- {GREEN_CHECK} Applying *ENTIRE* configuration",
+            f"- {WARNING} Will **NOT** rollback on configuration error",
+            f"- {WARNING} Will **NOT** automatically restart",
+            f"- {WARNING} **WILL** save configuration immediately after commit",
+        ]
+    ), "Less-safe summary correct"
