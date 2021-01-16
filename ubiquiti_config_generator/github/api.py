@@ -84,7 +84,7 @@ def setup_config_repo(
         )
 
     if previous_sha:
-        checkout(repos[1], prevoius_sha)
+        checkout(repos[1], previous_sha)
 
 
 def update_check_with_exception(

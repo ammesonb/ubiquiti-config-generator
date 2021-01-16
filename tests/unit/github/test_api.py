@@ -12,6 +12,7 @@ from typing import Union
 
 import jwt
 import requests
+
 from ubiquiti_config_generator.github import api
 from ubiquiti_config_generator.github.api import GREEN_CHECK, WARNING
 from ubiquiti_config_generator.testing_utils import counter_wrapper
@@ -307,3 +308,73 @@ def test_summarize_deploy_config():
             f"- {WARNING} **WILL** save configuration immediately after commit",
         ]
     ), "Less-safe summary correct"
+
+
+def test_setup_config_repo(monkeypatch):
+    """
+    .
+    """
+    # pylint: disable=unused-argument
+    @counter_wrapper
+    def clone_repo(*args, **kwargs):
+        """
+        .
+        """
+
+    # pylint: disable=unused-argument
+    @counter_wrapper
+    def checkout(*args, **kwargs):
+        """
+        .
+        """
+
+    monkeypatch.setattr(api, "clone_repository", clone_repo)
+    monkeypatch.setattr(api, "checkout", checkout)
+
+    api.setup_config_repo(
+        "abc123",
+        "/repo",
+        {"git": {"config-folder": "config", "diff-config-folder": "diff"}},
+    )
+
+    assert clone_repo.counter == 1, "Only main config cloned"
+    assert checkout.counter == 0, "Checkout not called"
+
+    api.setup_config_repo(
+        "abc123",
+        "/repo",
+        {"git": {"config-folder": "config", "diff-config-folder": "diff"}},
+        "sha",
+    )
+
+    assert clone_repo.counter == 3, "Both configs cloned"
+    assert checkout.counter == 1, "Checkout called"
+
+
+def test_send_github_request(monkeypatch):
+    """
+    .
+    """
+    # pylint: disable=unused-argument
+    @counter_wrapper
+    def get(*args, **kwargs):
+        """
+        .
+        """
+
+    @counter_wrapper
+    def post(*args, **kwargs):
+        """
+        .
+        """
+
+    monkeypatch.setattr(requests, "get", get)
+    monkeypatch.setattr(requests, "post", post)
+
+    api.send_github_request("/url", "get", "abc123")
+    assert get.counter == 1, "Get called"
+    assert post.counter == 0, "Post not called"
+
+    api.send_github_request("/url", "post", "abc123", {"data": "stuff"})
+    assert get.counter == 1, "Get called"
+    assert post.counter == 1, "Post called"
