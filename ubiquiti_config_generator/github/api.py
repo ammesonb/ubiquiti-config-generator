@@ -127,7 +127,7 @@ def update_check(
     return response.status_code == 200
 
 
-def add_comment(access_token: str, pull_url: str, comment: str):
+def add_comment(access_token: str, pull_url: str, comment: str) -> bool:
     """
     Add a comment to a PR
     """
@@ -135,7 +135,7 @@ def add_comment(access_token: str, pull_url: str, comment: str):
     if pull.status_code != 200:
         print(f"Failed to get pull request {pull_url}")
         print(pull.json())
-        return
+        return False
 
     print("Posting comment")
     posted = requests.post(
@@ -146,6 +146,9 @@ def add_comment(access_token: str, pull_url: str, comment: str):
     if posted.status_code != 201:
         print(f"Failed to post comment to review {pull_url}")
         print(posted.json())
+        return False
+
+    return True
 
 
 def clone_repository(

@@ -167,7 +167,9 @@ def test_add_comment(monkeypatch, capsys):
     monkeypatch.setattr(
         requests, "get", lambda *args, **kwargs: Response({"message": "bad"}, 403)
     )
-    api.add_comment("abc123", "/pull", "a comment")
+    assert not api.add_comment(
+        "abc123", "/pull", "a comment"
+    ), "Adding comment fails if PR not pulled"
     printed = capsys.readouterr()
     assert printed.out == (
         "Failed to get pull request /pull\n" "{'message': 'bad'}\n"
@@ -183,7 +185,7 @@ def test_add_comment(monkeypatch, capsys):
     monkeypatch.setattr(
         requests, "post", lambda *args, **kwargs: Response({"message": "failure"}, 403)
     )
-    api.add_comment("abc123", "/pull", "a comment")
+    assert not api.add_comment("abc123", "/pull", "a comment"), "Posting comment fails"
     printed = capsys.readouterr()
     assert printed.out == (
         "Posting comment\n"
@@ -195,7 +197,7 @@ def test_add_comment(monkeypatch, capsys):
     monkeypatch.setattr(
         requests, "post", lambda *args, **kwargs: Response({"message": "posted"}, 201)
     )
-    api.add_comment("abc123", "/pull", "a comment")
+    assert api.add_comment("abc123", "/pull", "a comment"), "Posting comment works"
     printed = capsys.readouterr()
     assert printed.out == ("Posting comment\n"), "Posting comment only text printed"
 

@@ -36,13 +36,13 @@ def handle_check_suite(form: dict, access_token: str) -> None:
         print("Check requested successfully")
 
 
-def process_check_run(deploy_config: dict, form: dict, access_token: str) -> None:
+def process_check_run(deploy_config: dict, form: dict, access_token: str) -> bool:
     """
     Processes and completes a check run
     """
     if form["action"] not in ["created", "rerequested", "requested_action"]:
         print("Ignoring check_run action " + form["action"])
-        return
+        return True
 
     if not api.update_check(
         access_token,
@@ -51,7 +51,7 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> Non
         # Can't mock utcnow(), so use time.time instead
         {"started_at": datetime.fromtimestamp(time.time(), timezone.utc).isoformat()},
     ):
-        return
+        return False
 
     api.setup_config_repo(
         access_token,
@@ -76,7 +76,7 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> Non
             form["check_run"]["url"],
             exception,
         )
-        return
+        return False
 
     try:
         branch_config_node.validate()
@@ -89,21 +89,25 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> Non
             form["check_run"]["url"],
             exception,
         )
-        return
+        return False
 
     output = get_output_of_validations(branch_config_node.validation_failures())
 
     if not api.update_check(
         access_token, form["check_run"]["url"], "completed", output
     ):
-        return
+        return False
 
+    success = True
     if form["check_run"]["pull_requests"]:
         comment = get_pr_comment(
             deploy_config, branch_config_node, production_config_node
         )
         for pull in form["check_run"]["pull_requests"]:
-            api.add_comment(access_token, pull["url"], comment)
+            if not api.add_comment(access_token, pull["url"], comment):
+                success = False
+
+    return success
 
 
 def get_output_of_validations(validations: list) -> dict:
@@ -159,7 +163,7 @@ def get_pr_comment(
             continue
 
         comment += f"## Commands {category}:\n\n- " + "\n- ".join(
-            [command + " " + commands[command] for command in commands]
+            [command + " " + str(commands[command]) for command in commands]
         )
 
         comment += "\n"
