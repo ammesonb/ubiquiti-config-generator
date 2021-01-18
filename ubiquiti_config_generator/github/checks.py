@@ -99,24 +99,9 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> Non
         return
 
     if form["check_run"]["pull_requests"]:
-        comment = api.summarize_deploy_config_choices(deploy_config)
-        comment += "\n"
-
-        differences = deploy_helper.diff_configurations(
-            branch_config_node.get_commands()[1],
-            production_config_node.get_commands()[1],
+        comment = get_pr_comment(
+            deploy_config, branch_config_node, production_config_node
         )
-        for category in ["added", "removed", "changed"]:
-            commands = getattr(differences, category)
-            if not commands:
-                continue
-
-            comment += f"## Commands {category}:\n\n- " + "\n- ".join(
-                [command + " " + commands[command] for command in commands]
-            )
-
-            comment += "\n"
-
         for pull in form["check_run"]["pull_requests"]:
             api.add_comment(access_token, pull["url"], comment)
 
@@ -152,3 +137,31 @@ def get_output_of_validations(validations: list) -> dict:
         )
 
     return output
+
+
+def get_pr_comment(
+    deploy_config: dict,
+    branch_config_node: root_parser.RootNode,
+    production_config_node: root_parser.RootNode,
+) -> str:
+    """
+    Gets the comment to add to the PR for the current configurations
+    """
+    comment = api.summarize_deploy_config_choices(deploy_config)
+    comment += "\n"
+
+    differences = deploy_helper.diff_configurations(
+        branch_config_node.get_commands()[1], production_config_node.get_commands()[1],
+    )
+    for category in ["added", "removed", "changed"]:
+        commands = getattr(differences, category)
+        if not commands:
+            continue
+
+        comment += f"## Commands {category}:\n\n- " + "\n- ".join(
+            [command + " " + commands[command] for command in commands]
+        )
+
+        comment += "\n"
+
+    return comment.strip()
