@@ -22,9 +22,16 @@ async def on_webhook_action(request: Request) -> Response:
     """
     Runs for each webhook action
     """
-    deploy_config = file_paths.load_yaml_from_file("deploy.yaml")
     body = await request.body()
-    headers = request.headers
+    form = await request.json()
+    process_request(request.headers, body, form)
+
+
+def process_request(headers: dict, body: str, form: dict) -> Response:
+    """
+    Perform the actual processing of a request
+    """
+    deploy_config = file_paths.load_yaml_from_file("deploy.yaml")
 
     if not api.validate_message(deploy_config, body, headers["x-hub-signature-256"]):
         print("Unauthorized request!")
@@ -32,9 +39,8 @@ async def on_webhook_action(request: Request) -> Response:
 
     access_token = api.get_access_token(api.get_jwt(deploy_config))
 
-    form = await request.json()
     print(
-        "Got event: {0} with action: {1}".format(
+        "Got event {0} with action {1}".format(
             headers["x-github-event"], form.get("action", "")
         )
     )
