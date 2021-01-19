@@ -167,7 +167,7 @@ def test_process_check_run(monkeypatch, capsys):
     form = {
         "action": "completed",
         "check_run": {"url": "/checks", "head_sha": "123abc", "pull_requests": []},
-        "repository": {"full_name": "repository"},
+        "repository": {"full_name": "repository", "statuses_url": "/statuses{/sha}"},
     }
 
     assert checks.process_check_run(deploy_config, form, "abc123"), "No action succeeds"
@@ -237,7 +237,7 @@ def test_process_check_run(monkeypatch, capsys):
         """
         .
         """
-        return {}
+        return {"conclusion": "whatever"}
 
     @counter_wrapper
     def update_check(*args, **kwargs):
@@ -250,10 +250,15 @@ def test_process_check_run(monkeypatch, capsys):
     monkeypatch.setattr(root_parser.RootNode, "validation_failures", lambda self: [])
     monkeypatch.setattr(checks, "get_output_of_validations", get_validation_output)
     monkeypatch.setattr(api, "update_check", update_check)
-
+    monkeypatch.setattr(api, "set_commit_status", lambda *args, **kwargs: False)
     assert not checks.process_check_run(
         deploy_config, form, "abc123"
-    ), "Fail to update check causes failure"
+    ), "Fail to set commit status causes failure"
+
+    monkeypatch.setattr(api, "set_commit_status", lambda *args, **kwargs: True)
+    assert not checks.process_check_run(
+        deploy_config, form, "abc123"
+    ), "Fail to set final check status causes failure"
     assert get_validation_output.counter == 1, "Got validation output"
 
     @counter_wrapper
