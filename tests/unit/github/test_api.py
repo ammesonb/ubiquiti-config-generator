@@ -380,3 +380,33 @@ def test_send_github_request(monkeypatch):
     api.send_github_request("/url", "post", "abc123", {"data": "stuff"})
     assert get.counter == 1, "Get called"
     assert post.counter == 1, "Post called"
+
+
+def test_set_commit_status(monkeypatch, capsys):
+    """
+    .
+    """
+    monkeypatch.setattr(
+        api,
+        "send_github_request",
+        lambda *args, **kwargs: Response({"message": "failed"}, 403),
+    )
+    assert not api.set_commit_status(
+        "/statuses", "abc123", "abc123", "pending"
+    ), "Fail to set commit status"
+    printed = capsys.readouterr()
+    assert (
+        printed.out
+        == "Failed to set commit status pending for abc123\n{'message': 'failed'}\n"
+    ), "Message printed"
+
+    monkeypatch.setattr(
+        api,
+        "send_github_request",
+        lambda *args, **kwargs: Response({"message": "added"}, 201),
+    )
+    assert api.set_commit_status(
+        "/statuses", "abc123", "abc123", "pending"
+    ), "Commit status set successfully"
+    printed = capsys.readouterr()
+    assert printed.out == "", "No message printed"

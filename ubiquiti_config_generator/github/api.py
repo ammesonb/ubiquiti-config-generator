@@ -134,21 +134,21 @@ def set_commit_status(url: str, sha: str, access_token: str, status: str) -> boo
     return those statuses as directly attached to the commit....
     There is no documentation I can find indicating this one way or the other
     """
-    result = send_github_request(
+    response = send_github_request(
         url,
         "post",
         access_token,
         {
             "state": status,
-            "description": "Pending configuration validation",
+            "description": "Configuration validation",
             "context": "configuration-validator",
         },
     )
-    if result.status_code != 201:
+    if response.status_code != 201:
         print(f"Failed to set commit status {status} for {sha}")
         print(response.json())
 
-    return result.status_code == 201
+    return response.status_code == 201
 
 
 def add_comment(access_token: str, pull_url: str, comment: str) -> bool:
