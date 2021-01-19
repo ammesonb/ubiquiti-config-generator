@@ -93,6 +93,19 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> boo
 
     output = get_output_of_validations(branch_config_node.validation_failures())
 
+    # In theory, this should happen automatically when the check status is updated
+    # BUT, the status API returns nothing and we do want to block deployments for
+    # pending and failed pushes, so may as welll, just to be safe
+    if not api.set_commit_status(
+        form["repository"]["statuses_url"].replace(
+            "{/sha}", "/" + form["check_run"]["head_sha"]
+        ),
+        form["check_run"]["head_sha"],
+        access_token,
+        output["conclusion"],
+    ):
+        return False
+
     if not api.update_check(
         access_token, form["check_run"]["url"], "completed", output
     ):

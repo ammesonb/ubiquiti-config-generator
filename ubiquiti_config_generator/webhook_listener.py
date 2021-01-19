@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request, Response, HTTPException
 import uvicorn
 
 from ubiquiti_config_generator import file_paths
-from ubiquiti_config_generator.github import api, checks
+from ubiquiti_config_generator.github import api, checks, push
 
 app = FastAPI(
     title="Ubiquiti Configuration Webhook Listener",
@@ -49,6 +49,9 @@ def process_request(headers: dict, body: str, form: dict) -> Response:
         checks.handle_check_suite(form, access_token)
     elif headers["x-github-event"] == "check_run":
         checks.process_check_run(deploy_config, form, access_token)
+    elif headers["x-github-event"] == "push":
+        print(form)
+        pass
     else:
         print("Skipping event - no handler registered!")
 
