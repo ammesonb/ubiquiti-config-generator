@@ -36,6 +36,9 @@ def handle_check_suite(form: dict, access_token: str) -> None:
         print("Check requested successfully")
 
 
+# This probably should be refactored, but error handling here seems appropriate
+# which causes a need to break this frequently - consider redesign at some point
+# pylint: disable=too-many-return-statements
 def process_check_run(deploy_config: dict, form: dict, access_token: str) -> bool:
     """
     Processes and completes a check run
@@ -53,11 +56,28 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> boo
     ):
         return False
 
+    try:
+        deployed_sha = api.get_active_deployment_sha(
+            form["repository"]["deployments_url"], access_token
+        )
+    except ValueError:
+        finalize_check_state(["Failed to get deployed commit"], form, access_token)
+        return False
+
     api.setup_config_repo(
         access_token,
-        "github.com/" + form["repository"]["full_name"],
-        deploy_config,
-        form["check_run"]["head_sha"],
+        [
+            api.Repository(
+                deploy_config["git"]["config-folder"],
+                form["repository"]["clone_url"],
+                deployed_sha,
+            ),
+            api.Repository(
+                deploy_config["git"]["diff-config-folder"],
+                form["repository"]["clone_url"],
+                form["check_run"]["head_sha"],
+            ),
+        ],
     )
 
     try:
@@ -76,6 +96,12 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> boo
             form["check_run"]["url"],
             exception,
         )
+        finalize_commit_status(
+            form["repository"]["statuses_url"],
+            form["check_run"]["head_sha"],
+            access_token,
+            "failure",
+        )
         return False
 
     try:
@@ -89,25 +115,16 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> boo
             form["check_run"]["url"],
             exception,
         )
+        finalize_commit_status(
+            form["repository"]["statuses_url"],
+            form["check_run"]["head_sha"],
+            access_token,
+            "failure",
+        )
         return False
 
-    output = get_output_of_validations(branch_config_node.validation_failures())
-
-    # In theory, this should happen automatically when the check status is updated
-    # BUT, the status API returns nothing and we do want to block deployments for
-    # pending and failed pushes, so may as welll, just to be safe
-    if not api.set_commit_status(
-        form["repository"]["statuses_url"].replace(
-            "{/sha}", "/" + form["check_run"]["head_sha"]
-        ),
-        form["check_run"]["head_sha"],
-        access_token,
-        output["conclusion"],
-    ):
-        return False
-
-    if not api.update_check(
-        access_token, form["check_run"]["url"], "completed", output
+    if not finalize_check_state(
+        branch_config_node.validation_failures(), form, access_token
     ):
         return False
 
@@ -154,6 +171,38 @@ def get_output_of_validations(validations: list) -> dict:
         )
 
     return output
+
+
+def finalize_check_state(validations: list, form: dict, access_token: str) -> bool:
+    """
+    Set the results of the check
+    """
+    output = get_output_of_validations(validations)
+    commit_status_set = finalize_commit_status(
+        form["repository"]["statuses_url"],
+        form["check_run"]["head_sha"],
+        access_token,
+        output["conclusion"],
+    )
+
+    check_updated = api.update_check(
+        access_token, form["check_run"]["url"], "completed", output
+    )
+    return commit_status_set and check_updated
+
+
+def finalize_commit_status(
+    statuses_url: str, sha: str, access_token: str, conclusion: str
+) -> bool:
+    """
+    In theory, this should happen automatically when the check status is updated
+    BUT, the status API returns nothing and we do want to block deployments for
+    pending and failed pushes, so may as well update the status manually,
+    just to be safe
+    """
+    return api.set_commit_status(
+        statuses_url.replace("{/sha}", "/" + sha), sha, access_token, conclusion,
+    )
 
 
 def get_pr_comment(

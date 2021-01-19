@@ -2,6 +2,7 @@
 """
 Contains the interactions for GitHub webhooks
 """
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
 import hmac
@@ -11,6 +12,7 @@ import shutil
 import subprocess
 import time
 import traceback
+from typing import List, Optional
 
 import jwt
 import requests
@@ -25,6 +27,17 @@ GH_TOKEN_HEADER = lambda token: {**GH_HEADER, "Authorization": "token " + token}
 GREEN_CHECK = "&#9989;"
 RED_CROSS = "&#10060;"
 WARNING = "&#x26a0;"
+
+
+@dataclass
+class Repository:
+    """
+    Represents the critical details of a Git repo
+    """
+
+    folder_path: str
+    repo_url: str
+    revision: Optional[str]
 
 
 def get_jwt(deploy_config: dict) -> str:
@@ -68,23 +81,15 @@ def validate_message(deploy_config: dict, body: str, sha: str) -> bool:
     return sha == "sha256=" + signature
 
 
-def setup_config_repo(
-    access_token: str, repository_url: str, deploy_config: dict, previous_sha: str = ""
-):
+def setup_config_repo(access_token: str, repos: List[Repository]):
     """
     Set up the configuration directory
     """
-    repos = [deploy_config["git"]["config-folder"]]
-    if previous_sha:
-        repos.append(deploy_config["git"]["diff-config-folder"])
+    for repo in repos:
+        clone_repository(access_token, repo.repo_url, repo.folder_path)
 
-    for folder in repos:
-        clone_repository(
-            access_token, repository_url, folder,
-        )
-
-    if previous_sha:
-        checkout(repos[1], previous_sha)
+        if repo.revision:
+            checkout(repo.folder_path, repo.revision)
 
 
 def update_check_with_exception(
@@ -251,6 +256,30 @@ def summarize_deploy_config_choices(deploy_config: dict) -> str:
             "- " + auto_save,
         ]
     )
+
+
+def get_active_deployment_sha(deployments_url: str, access_token: str) -> str:
+    """
+    Finds the SHA for the most recent deployment that is successful
+    """
+    deployments = send_github_request(deployments_url, "get", access_token)
+    if deployments.status_code != 200:
+        print(f"Failed to get deployments for {deployments_url}")
+        print(deployments.json())
+        raise ValueError("Failed to get deployed SHA")
+
+    for deployment in deployments.json():
+        statuses = send_github_request(deployment["statuses_url"], "get", access_token)
+        if statuses.status_code != 200:
+            print(f'Failed to get statuses for deployment {deployment["id"]}')
+            print(statuses.json())
+            raise ValueError("Failed to get deployed SHA")
+
+        if statuses.json() and statuses.json()[0]["state"] == "success":
+            return deployment["sha"]
+
+    # Might be no active deployments, at first
+    return None
 
 
 def send_github_request(

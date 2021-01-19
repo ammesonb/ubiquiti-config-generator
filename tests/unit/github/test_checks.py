@@ -314,3 +314,72 @@ def test_process_check_run(monkeypatch, capsys):
         deploy_config, form, "abc123"
     ), "Succeeds if all PR comments succeed"
     assert get_pr_comment.counter == 2, "PR comment retrieved once"
+
+
+def test_finalize_check_state(monkeypatch):
+    """
+    .
+    """
+    form = {
+        "repository": {"statuses_url": "/statuses"},
+        "check_run": {"head_sha": "abc123", "url": "/check/1"},
+    }
+    monkeypatch.setattr(
+        checks,
+        "get_output_of_validations",
+        lambda *args, **kwargs: {"conclusion": "whatever"},
+    )
+
+    # pylint: disable=unused-argument
+    @counter_wrapper
+    def update_check(*args, **kwargs):
+        """
+        .
+        """
+        return True
+
+    @counter_wrapper
+    def finalize_commit(*args, **kwargs):
+        """
+        .
+        """
+        return True
+
+    monkeypatch.setattr(api, "update_check", update_check)
+    monkeypatch.setattr(checks, "finalize_commit_status", finalize_commit)
+    assert checks.finalize_check_state([], form, "abc123"), "Check state works"
+    assert update_check.counter == 1, "Update check called"
+    assert finalize_commit.counter == 1, "Finalize commit called"
+
+    monkeypatch.setattr(api, "update_check", lambda *args, **kwargs: True)
+    monkeypatch.setattr(checks, "finalize_commit_status", lambda *args, **kwargs: False)
+    assert not checks.finalize_check_state(
+        [], form, "abc123"
+    ), "Check state fails if commit status fails"
+
+    monkeypatch.setattr(api, "update_check", lambda *args, **kwargs: False)
+    monkeypatch.setattr(checks, "finalize_commit_status", lambda *args, **kwargs: True)
+    assert not checks.finalize_check_state(
+        [], form, "abc123"
+    ), "Check state fails if check update fails"
+
+
+def test_finalize_commit_status(monkeypatch):
+    """
+    .
+    """
+
+    # pylint: disable=unused-argument
+    @counter_wrapper
+    def make_request(url, *args, **kwargs):
+        """
+        .
+        """
+        assert url == "github.com/commits/ba21dc32"
+        return True
+
+    monkeypatch.setattr(api, "set_commit_status", make_request)
+    assert checks.finalize_commit_status(
+        "github.com/commits{/sha}", "ba21dc32", "abc123", "success"
+    ), "Request value returned"
+    assert make_request.counter == 1, "Request sent"

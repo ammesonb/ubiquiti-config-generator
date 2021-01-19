@@ -11,6 +11,7 @@ import traceback
 from typing import Union
 
 import jwt
+import pytest
 import requests
 
 from ubiquiti_config_generator.github import api
@@ -334,9 +335,7 @@ def test_setup_config_repo(monkeypatch):
     monkeypatch.setattr(api, "checkout", checkout)
 
     api.setup_config_repo(
-        "abc123",
-        "/repo",
-        {"git": {"config-folder": "config", "diff-config-folder": "diff"}},
+        "abc123", [api.Repository("config", "/repo", None,)],
     )
 
     assert clone_repo.counter == 1, "Only main config cloned"
@@ -344,9 +343,10 @@ def test_setup_config_repo(monkeypatch):
 
     api.setup_config_repo(
         "abc123",
-        "/repo",
-        {"git": {"config-folder": "config", "diff-config-folder": "diff"}},
-        "sha",
+        [
+            api.Repository("config", "/repo", None,),
+            api.Repository("diff", "/diff", "sha"),
+        ],
     )
 
     assert clone_repo.counter == 3, "Both configs cloned"
@@ -410,3 +410,72 @@ def test_set_commit_status(monkeypatch, capsys):
     ), "Commit status set successfully"
     printed = capsys.readouterr()
     assert printed.out == "", "No message printed"
+
+
+def test_get_active_deployment_sha(monkeypatch, capsys):
+    """
+    .
+    """
+    monkeypatch.setattr(
+        api,
+        "send_github_request",
+        lambda *args, **kwargs: Response({"message": "nonexistent"}, 403),
+    )
+    with pytest.raises(ValueError):
+        api.get_active_deployment_sha("/deployments", "abc123")
+
+    printed = capsys.readouterr()
+    assert printed.out == (
+        "Failed to get deployments for /deployments\n" "{'message': 'nonexistent'}\n"
+    ), "Message printed"
+
+    # pylint: disable=unused-argument
+    @counter_wrapper
+    def send_github_request(*args, **kwargs):
+        """
+        .
+        """
+        return (
+            Response([{"id": 1, "statuses_url": "url1"}], 200)
+            if send_github_request.counter == 1
+            else Response({"message": "none"}, 403)
+        )
+
+    monkeypatch.setattr(api, "send_github_request", send_github_request)
+    with pytest.raises(ValueError):
+        api.get_active_deployment_sha("/deployments", "abc123")
+
+    printed = capsys.readouterr()
+    assert printed.out == (
+        "Failed to get statuses for deployment 1\n" "{'message': 'none'}\n"
+    ), "Message printed"
+
+    # pylint: disable=unused-argument
+    @counter_wrapper
+    def send_github_request_statuses_result(*args, **kwargs):
+        """
+        .
+        """
+        result = None
+        if send_github_request_statuses_result.counter == 1:
+            result = Response(
+                [
+                    {"id": 1, "statuses_url": "url1", "sha": "abc"},
+                    {"id": 2, "statuses_url": "url2", "sha": "bcd"},
+                    {"id": 3, "statuses_url": "url3", "sha": "cde"},
+                ],
+                200,
+            )
+        elif send_github_request_statuses_result.counter == 2:
+            result = Response([{"state": "failed"}, {"state": "pending"}], 200)
+        elif send_github_request_statuses_result.counter == 3:
+            result = Response([], 200)
+        elif send_github_request_statuses_result.counter == 4:
+            result = Response([{"state": "success"}, {"state": "pending"}], 200)
+
+        return result
+
+    monkeypatch.setattr(api, "send_github_request", send_github_request_statuses_result)
+    assert (
+        api.get_active_deployment_sha("/deployments", "abc123") == "cde"
+    ), "SHA returned"

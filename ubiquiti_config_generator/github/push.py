@@ -6,13 +6,6 @@ from typing import Optional
 from ubiquiti_config_generator.github import api
 
 
-def is_against_primary_branch(deploy_config: dict, ref: str) -> bool:
-    """
-    Checks if the push is against the primary branch
-    """
-    return ref.endswith("/" + deploy_config["git"]["primary-branch"])
-
-
 def check_push_for_deployment(
     deploy_config: dict, form: dict, access_token: str
 ) -> Optional[bool]:
@@ -32,16 +25,34 @@ def check_push_for_deployment(
     if not is_against_primary_branch(deploy_config, form["ref"]):
         return None
 
-    # Currently naively assuming previous deploy worked
-    # Should get currently-active deployment by:
-    # - List all deployments and their statuses (separate call), start with most recent
-    # - If deploy fails, mark as failed on GitHub, that way it won't
-    #   screw up the next deployment attempt, and we preserve the difference
-    #   in configuration commands if only applying a difference between live and
-    #   modified configuration
-    api.send_github_request(
+    response = api.send_github_request(
         form["repository"]["deployments_url"],
         "post",
         access_token,
-        {"ref": form["after"], "payload": {"previous_commit": form["before"]}},
+        {
+            "ref": form["after"],
+            "payload": {
+                # Get the previously-deployed SHA, so we ensure that the deployment
+                # can create the appropriate commands, diffing the active deployment
+                # against the requested one
+                "previous_commit": api.get_active_deployment_sha(
+                    form["repository"]["deployments_url"], access_token
+                )
+            },
+        },
     )
+
+    # TODO: is 201 correct here?
+    if response.status_code != 201:
+        print("Failed to create deployment!")
+        print(response.json())
+        return False
+
+    return response.status_code == 201
+
+
+def is_against_primary_branch(deploy_config: dict, ref: str) -> bool:
+    """
+    Checks if the push is against the primary branch
+    """
+    return ref.endswith("/" + deploy_config["git"]["primary-branch"])
