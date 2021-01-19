@@ -170,6 +170,8 @@ def test_process_check_run(monkeypatch, capsys):
         "repository": {
             "full_name": "repository",
             "statuses_url": "github.com/user/repo/statuses{/sha}",
+            "deployments_url": "deployments",
+            "clone_url": "clone",
         },
     }
 
@@ -187,12 +189,6 @@ def test_process_check_run(monkeypatch, capsys):
     ), "Update check fails causes process to fail"
 
     # pylint: disable=unused-argument
-    @counter_wrapper
-    def setup_repos(*args, **kwargs):
-        """
-        .
-        """
-
     def fail_create(*args, **kwargs):
         """
         .
@@ -200,21 +196,57 @@ def test_process_check_run(monkeypatch, capsys):
         raise ValueError("Missing argument")
 
     @counter_wrapper
+    def get_deployment(*args, **kwargs):
+        """
+        .
+        """
+        raise ValueError("Bad deployment")
+
+    @counter_wrapper
+    def finalize_check(*args, **kwargs):
+        """
+        .
+        """
+        return False
+
+    monkeypatch.setattr(api, "update_check", lambda *args, **kwargs: True)
+    monkeypatch.setattr(api, "get_active_deployment_sha", get_deployment)
+    monkeypatch.setattr(checks, "finalize_check_state", finalize_check)
+    assert not checks.process_check_run(
+        deploy_config, form, "abc123"
+    ), "Fail to load deployment causes failure"
+    assert finalize_check.counter == 1, "Finalized checks"
+
+    @counter_wrapper
+    def setup_repos(*args, **kwargs):
+        """
+        .
+        """
+
+    @counter_wrapper
     def update_exception(*args, **kwargs):
         """
         .
         """
 
-    monkeypatch.setattr(api, "update_check", lambda *args, **kwargs: True)
+    @counter_wrapper
+    def finalize_commit_status(*args, **kwargs):
+        """
+        .
+        """
+
+    monkeypatch.setattr(api, "get_active_deployment_sha", lambda *args, **kwargs: True)
     monkeypatch.setattr(api, "setup_config_repo", setup_repos)
     monkeypatch.setattr(root_parser.RootNode, "create_from_configs", fail_create)
     monkeypatch.setattr(api, "update_check_with_exception", update_exception)
+    monkeypatch.setattr(checks, "finalize_commit_status", finalize_commit_status)
 
     assert not checks.process_check_run(
         deploy_config, form, "abc123"
     ), "Fail to load configurations causes failure"
     assert setup_repos.counter == 1, "Set up repos called"
     assert update_exception.counter == 1, "Tried to update check with the exception"
+    assert finalize_commit_status.counter == 1, "Commit status finalized"
 
     monkeypatch.setattr(
         root_parser.RootNode,
@@ -234,6 +266,7 @@ def test_process_check_run(monkeypatch, capsys):
         deploy_config, form, "abc123"
     ), "Fail to validate fails"
     assert update_exception.counter == 2, "Tried to update check with exception"
+    assert finalize_commit_status.counter == 2, "Commit status finalized"
 
     @counter_wrapper
     def get_validation_output(validation):
@@ -256,25 +289,13 @@ def test_process_check_run(monkeypatch, capsys):
     assert not checks.process_check_run(
         deploy_config, form, "abc123"
     ), "Fail to set commit status causes failure"
-    assert get_validation_output.counter == 1, "Got validation output"
+    assert finalize_check.counter == 2, "Check state finalized"
 
-    def check_commit_status_url(*args, **kwargs):
-        """
-        .
-        """
-        assert (
-            kwargs["url"] == "github.com/user/repo/statuses/abc123"
-        ), "Commit status URL correct"
-        return True
-
-    monkeypatch.setattr(
-        api, "set_commit_status", lambda *args, **kwargs: check_commit_status_url
-    )
+    monkeypatch.setattr(checks, "finalize_check_state", lambda *args, **kwargs: False)
     monkeypatch.setattr(api, "update_check", update_check)
     assert not checks.process_check_run(
         deploy_config, form, "abc123"
-    ), "Fail to set final check status causes failure"
-    assert get_validation_output.counter == 2, "Got validation output"
+    ), "Set check state causes failure"
 
     @counter_wrapper
     def get_pr_comment(*args, **kwargs):
@@ -290,13 +311,13 @@ def test_process_check_run(monkeypatch, capsys):
         """
         return add_comment.counter % 2 == 1
 
+    monkeypatch.setattr(checks, "finalize_check_state", lambda *args, **kwargs: True)
     monkeypatch.setattr(api, "update_check", lambda *args, **kwargs: True)
     monkeypatch.setattr(checks, "get_pr_comment", get_pr_comment)
     monkeypatch.setattr(api, "add_comment", add_comment)
     assert checks.process_check_run(
         deploy_config, form, "abc123"
     ), "Updates successfully if no PRs"
-    assert get_validation_output.counter == 3, "Got validation output"
     assert get_pr_comment.counter == 0, "PR comment not retrieved"
     assert add_comment.counter == 0, "No comments added"
 

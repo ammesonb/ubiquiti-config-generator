@@ -479,3 +479,21 @@ def test_get_active_deployment_sha(monkeypatch, capsys):
     assert (
         api.get_active_deployment_sha("/deployments", "abc123") == "cde"
     ), "SHA returned"
+
+    @counter_wrapper
+    def send_github_request_statuses_result(*args, **kwargs):
+        """
+        .
+        """
+        result = None
+        if send_github_request_statuses_result.counter == 1:
+            result = Response([{"id": 1, "statuses_url": "url1", "sha": "abc"},], 200,)
+        elif send_github_request_statuses_result.counter == 2:
+            result = Response([{"state": "failed"}, {"state": "pending"}], 200)
+
+        return result
+
+    monkeypatch.setattr(api, "send_github_request", send_github_request_statuses_result)
+    assert (
+        api.get_active_deployment_sha("/deployments", "abc123") is None
+    ), "No SHA returned if no successful deployment"
