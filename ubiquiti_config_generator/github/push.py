@@ -38,15 +38,14 @@ def check_push_for_deployment(
                 "previous_commit": api.get_active_deployment_sha(
                     form["repository"]["deployments_url"], access_token
                 )
-                or push["before"]
+                or form["before"]
             },
         },
     )
 
     if response.status_code != 201:
-        print("Failed to create deployment!")
+        print("Failed to create deployment")
         print(response.json())
-        return False
 
     return response.status_code == 201
 
