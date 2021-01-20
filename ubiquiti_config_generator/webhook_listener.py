@@ -50,7 +50,7 @@ def process_request(headers: dict, body: str, form: dict) -> Response:
     elif headers["x-github-event"] == "check_run":
         checks.process_check_run(deploy_config, form, access_token)
     elif headers["x-github-event"] == "push":
-        print(form)
+        push.check_push_for_deployment(deploy_config, form, access_token)
     else:
         print("Skipping event - no handler registered!")
 

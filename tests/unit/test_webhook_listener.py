@@ -6,7 +6,7 @@ import pytest
 import uvicorn
 
 from ubiquiti_config_generator import webhook_listener, file_paths
-from ubiquiti_config_generator.github import api, checks
+from ubiquiti_config_generator.github import api, checks, push
 from ubiquiti_config_generator.testing_utils import counter_wrapper
 
 
@@ -83,9 +83,16 @@ def test_process_request(monkeypatch, capsys):
         .
         """
 
+    @counter_wrapper
+    def handle_push(*args, **kwargs):
+        """
+        .
+        """
+
     monkeypatch.setattr(api, "validate_message", lambda *args, **kwargs: True)
     monkeypatch.setattr(checks, "handle_check_suite", handle_check_suite)
     monkeypatch.setattr(checks, "process_check_run", handle_check_run)
+    monkeypatch.setattr(push, "check_push_for_deployment", handle_push)
     webhook_listener.process_request(
         {"x-hub-signature-256": "abc123", "x-github-event": "check_suite"},
         "body",
@@ -111,6 +118,15 @@ def test_process_request(monkeypatch, capsys):
     assert handle_check_run.counter == 1, "Check run process called"
 
     webhook_listener.process_request(
+        {"x-hub-signature-256": "abc123", "x-github-event": "push"},
+        "body",
+        {"action": ""},
+    )
+    printed = capsys.readouterr()
+    assert printed.out == "Got event push with action \n", "Push text printed"
+    assert handle_push.counter == 1, "Push process called"
+
+    webhook_listener.process_request(
         {"x-hub-signature-256": "abc123", "x-github-event": "unknown"},
         "body",
         {"action": "reverted"},
@@ -120,4 +136,3 @@ def test_process_request(monkeypatch, capsys):
         "Got event unknown with action reverted\n"
         "Skipping event - no handler registered!\n"
     ), "Unknown event text printed"
-    assert get_access_token.counter == 3, "Access token retrieved"
