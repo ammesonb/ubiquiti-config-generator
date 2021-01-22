@@ -142,3 +142,100 @@ def test_get_commands_to_run(monkeypatch):
         ["set description test"],
         ["set interface wan"],
     ], "Command to run (full config) correct"
+
+
+def test_generate_bash_commands():
+    """
+    .
+    """
+    commands = [
+        "set value 1",
+        'set firewall description "a description"',
+        "delete network foo",
+    ]
+    deploy_config = {
+        "script-cfg-path": "/bin/cmd-wrapper",
+        "auto-rollback-on-failure": True,
+        "reboot-after-minutes": 10,
+        "save-after-commit": False,
+    }
+    bash_commands = deploy_helper.generate_bash_commands(commands, deploy_config)
+    assert bash_commands == "\n".join(
+        [
+            'trap "exit 1" TERM',
+            "export TOP_PID=$$",
+            "",
+            "function check_command() {",
+            "  status=$1",
+            '  output="${2}"',
+            "",
+            "  if [ $status -ne 0 ]; then",
+            '    echo "Failed to execute command:"',
+            '    echo "${output}"',
+            "    /bin/cmd-wrapper discard",
+            "    kill -s TERM $TOP_PID",
+            "  fi",
+            "}",
+            "",
+            "/bin/cmd-wrapper begin",
+            "",
+            "output=$(/bin/cmd-wrapper set value 1)",
+            'check_output $? "${output}"',
+            'output=$(/bin/cmd-wrapper set firewall description "a description")',
+            'check_output $? "${output}"',
+            "output=$(/bin/cmd-wrapper delete network foo)",
+            'check_output $? "${output}"',
+            "",
+            'sudo sg vyattacfg -c "/opt/vyatta/sbin/vyatta-config-mgmt.pl --action=commit-confirm --minutes=10"',
+            "if [ $? -ne 0 ]; then",
+            '  echo "Failed to schedule reboot!"',
+            "  kill -s TERM $TOP_PID",
+            "fi",
+            "",
+            "/bin/cmd-wrapper commit",
+            "if [ $? -ne 0 ]; then",
+            '  echo "Failed to commit!"',
+            "  kill -s TERM $TOP_PID",
+            "fi",
+            "",
+            "exit 0",
+            "",
+        ]
+    ), "Commands generated as expected"
+
+    deploy_config.update(
+        {
+            "reboot-after-minutes": None,
+            "save-after-commit": True,
+            "auto-rollback-on-failure": False,
+        }
+    )
+
+    bash_commands = deploy_helper.generate_bash_commands(commands, deploy_config)
+    assert bash_commands == "\n".join(
+        [
+            'trap "exit 1" TERM',
+            "export TOP_PID=$$",
+            "",
+            "/bin/cmd-wrapper begin",
+            "",
+            "/bin/cmd-wrapper set value 1",
+            '/bin/cmd-wrapper set firewall description "a description"',
+            "/bin/cmd-wrapper delete network foo",
+            "",
+            "/bin/cmd-wrapper commit",
+            "if [ $? -ne 0 ]; then",
+            '  echo "Failed to commit!"',
+            "  kill -s TERM $TOP_PID",
+            "fi",
+            "",
+            "/bin/cmd-wrapper save",
+            "if [ $? -ne 0 ]; then",
+            '  echo "Failed to save!"',
+            "  kill -s TERM $TOP_PID",
+            "fi",
+            "",
+            "exit 0",
+            "",
+        ]
+    ), "Commands generated as expected"

@@ -158,9 +158,6 @@ def generate_bash_commands(commands: List[str], deploy_config: dict) -> str:
     Creates the commands to execute for vbash to update the configuration
     """
     header = (
-        'trap "exit 1" TERM\n'
-        "export TOP_PID=$$\n"
-        "\n"
         "function check_command() {\n"
         "  status=$1\n"
         '  output="${2}"\n'
@@ -174,16 +171,18 @@ def generate_bash_commands(commands: List[str], deploy_config: dict) -> str:
         "}\n\n"
     )
 
-    output = (
+    output = 'trap "exit 1" TERM\n' "export TOP_PID=$$\n" "\n"
+
+    output += (
         header if deploy_config["auto-rollback-on-failure"] else ""
     ) + f"{deploy_config['script-cfg-path']} begin\n\n"
 
     command_template = (
-        "{deploy_config['script-cfg-path']} {{0}}\n"
+        f"{deploy_config['script-cfg-path']} {{0}}\n"
         if not deploy_config["auto-rollback-on-failure"]
         else (
             f'output=$({deploy_config["script-cfg-path"]} {{0}})\n'
-            'check_output $? "${output}"\n'
+            'check_output $? "${{output}}"\n'
         )
     )
 
@@ -193,32 +192,35 @@ def generate_bash_commands(commands: List[str], deploy_config: dict) -> str:
     if deploy_config["reboot-after-minutes"]:
         output += (
             # commit-confirm isn't included in the script wrapper, for reasons??
-            'sudo sg vyattacfg -c "'
+            '\nsudo sg vyattacfg -c "'
             "/opt/vyatta/sbin/vyatta-config-mgmt.pl "
             "--action=commit-confirm "
             f"--minutes={deploy_config['reboot-after-minutes']}\"\n"
             "if [ $? -ne 0 ]; then\n"
             '  echo "Failed to schedule reboot!"\n'
             "  kill -s TERM $TOP_PID\n"
-            "fi\n\n"
+            "fi\n"
         )
 
+    output += "\n"
+
     output += (
-        "commit\n"
+        f'{deploy_config["script-cfg-path"]} commit\n'
         "if [ $? -ne 0 ]; then\n"
         '  echo "Failed to commit!"\n'
-        "  kill -s T ERM $TOP_PID\n"
+        "  kill -s TERM $TOP_PID\n"
         "fi\n\n"
-        "exit 0\n"
     )
 
     if deploy_config["save-after-commit"]:
         output += (
-            "save\n"
+            f'{deploy_config["script-cfg-path"]} save\n'
             "if [ $? -ne 0 ]; then\n"
             '  echo "Failed to save!"\n'
             "  kill -s TERM $TOP_PID\n"
-            "fi\n"
+            "fi\n\n"
         )
+
+    output += "exit 0\n"
 
     return output
