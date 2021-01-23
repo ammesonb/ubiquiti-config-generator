@@ -132,7 +132,9 @@ def update_check(
     return response.status_code == 200
 
 
-def set_commit_status(url: str, sha: str, access_token: str, status: str) -> bool:
+def set_commit_status(
+    url: str, sha: str, access_token: str, status: str, description: str = ""
+) -> bool:
     """
     Sets the status of a commit
     It appears that checks also set commit statuses implicitly, but the API does not
@@ -145,7 +147,7 @@ def set_commit_status(url: str, sha: str, access_token: str, status: str) -> boo
         access_token,
         {
             "state": status,
-            "description": "Configuration validation",
+            "description": description or "Configuration validation",
             "context": "configuration-validator",
         },
     )

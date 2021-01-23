@@ -30,6 +30,13 @@ def handle_check_suite(form: dict, access_token: str) -> None:
     )
 
     if response.status_code != 201:
+        api.set_commit_status(
+            form["repository"]["statuses_url"],
+            head_sha,
+            access_token,
+            "failure",
+            "Could not schedule check run",
+        )
         print(f"Failed to schedule check: got status {response.status_code}!")
         print(response.json())
     else:

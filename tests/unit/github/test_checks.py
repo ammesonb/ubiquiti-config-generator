@@ -44,11 +44,21 @@ def test_handle_check_suite(monkeypatch, capsys):
         lambda *args, **kwargs: Response({"message": "failed"}, 403),
     )
 
+    @counter_wrapper
+    def update_commit_status(
+        url: str, sha: str, access_token: str, status: str, description: str
+    ):
+        """
+        .
+        """
+        assert status == "failure", "Commit should have failed"
+
+    monkeypatch.setattr(api, "set_commit_status", update_commit_status)
     checks.handle_check_suite(
         {
             "action": "requested",
             "check_suite": {"head_sha": "123abc"},
-            "repository": {"url": "/"},
+            "repository": {"url": "/", "statuses_url": "/statuses"},
         },
         "abc",
     )
@@ -58,6 +68,7 @@ def test_handle_check_suite(monkeypatch, capsys):
         "Failed to schedule check: got status 403!\n"
         "{'message': 'failed'}\n"
     ), "Failed to schedule check printed"
+    assert update_commit_status.counter == 1, "Commit status updated"
 
     # pylint: disable=unused-argument
     monkeypatch.setattr(
