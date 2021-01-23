@@ -4,6 +4,7 @@ Functionality needed for deploying and checking configurations
 import shlex
 from typing import List, Optional
 
+import paramiko
 from ubiquiti_config_generator import root_parser, file_paths
 
 
@@ -171,7 +172,7 @@ def generate_bash_commands(commands: List[str], deploy_config: dict) -> str:
         "}\n\n"
     )
 
-    output = 'trap "exit 1" TERM\n' "export TOP_PID=$$\n" "\n"
+    output = "\n".join(['trap "exit 1" TERM', "export TOP_PID=$1", ""]) + "\n"
 
     output += (
         header if deploy_config["auto-rollback-on-failure"] else ""
@@ -224,3 +225,90 @@ def generate_bash_commands(commands: List[str], deploy_config: dict) -> str:
     output += "exit 0\n"
 
     return output
+
+
+def get_router_connection(deploy_config: dict) -> paramiko.SSHClient:
+    """
+    Opens a connection to the configured router
+
+    Can throw:
+        - ValueError
+        - BadHostKeyException
+        - AuthenticationException
+        - SSHException
+        - socket.error
+    """
+    router_config = deploy_config["router"]
+
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    auth = {}
+    if router_config["keyfile"]:
+        if router_config["password"]:
+            auth["pkey"] = paramiko.RSAKey.from_private_key_file(
+                router_config["keyfile"], router_config["password"]
+            )
+        else:
+            auth["key_filename"] = router_config["keyfile"]
+    elif router_config["password"]:
+        auth["password"] = router_config["password"]
+    else:
+        # Can't connect if no keyfile or password specified
+        raise ValueError("No password or keyfile provided")
+
+    client.connect(
+        router_config["address"],
+        router_config.get("port", 22),
+        router_config["user"],
+        look_for_keys=False,
+        **auth,
+    )
+
+    return client
+
+
+def write_data_to_router_file(
+    client: paramiko.SSHClient, file_path: str, file_data: str
+) -> bool:
+    """
+    Writes data to a file on the router
+
+    Throws ValueError
+    """
+    ftp = client.open_sftp()  # type: paramiko.sftp_client.SFTPClient
+    remote_file = ftp.file(file_path, "w", -1)  # type: paramiko.sftp_file.SFTPFile
+    if not remote_file:
+        raise ValueError("Failed to open remote file")
+    if not remote_file.writable():
+        raise ValueError("Remote file not writable")
+
+    remote_file.write(file_data)
+    remote_file.flush()
+
+    written = ftp.open(file_path).read().decode()
+    ftp.close()
+
+    return written == file_data
+
+
+def run_router_command(client: paramiko.SSHClient, command: str):
+    """
+    Runs a given command on the router
+
+    Raises ValueError if fails
+    """
+    command_session = client.get_transport().open_session()  # type: paramiko.Channel
+    command_session.exec_command(command)
+    if command_session.recv_exit_status() != 0:
+        if command_session.recv_stderr_ready():
+            err = ""
+            length = 1
+            while length != 0:
+                err_recv = command_session.recv_stderr(100)
+                length = len(err_recv)
+                err += err_recv.decode()
+
+        raise ValueError(
+            "Failed to execute command: exit status "
+            f"{command_session.recv_exit_status()} with error '{err}'"
+        )

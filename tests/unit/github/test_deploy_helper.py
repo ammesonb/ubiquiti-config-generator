@@ -163,7 +163,7 @@ def test_generate_bash_commands():
     assert bash_commands == "\n".join(
         [
             'trap "exit 1" TERM',
-            "export TOP_PID=$$",
+            "export TOP_PID=$1",
             "",
             "function check_command() {",
             "  status=$1",
@@ -215,7 +215,7 @@ def test_generate_bash_commands():
     assert bash_commands == "\n".join(
         [
             'trap "exit 1" TERM',
-            "export TOP_PID=$$",
+            "export TOP_PID=$1",
             "",
             "/bin/cmd-wrapper begin",
             "",

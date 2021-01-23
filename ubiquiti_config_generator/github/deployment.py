@@ -1,11 +1,12 @@
 """
 The deployment of configurations
 """
+import traceback
 
 from ubiquiti_config_generator.github import api, deploy_helper
 
 
-def handle_new_deployment(form: dict, deploy_config: dict, access_token: str):
+def handle_new_deployment(form: dict, deploy_config: dict, access_token: str) -> bool:
     """
     Handles actual deploying of configuration
     """
@@ -34,11 +35,32 @@ def handle_new_deployment(form: dict, deploy_config: dict, access_token: str):
         deploy_config["apply-difference-only"],
     )
 
-    shell_file_base = f"{before}..{after}-[###].sh"
+    try:
+        router_connection = deploy_helper.get_router_connection(deploy_config)
+    # Do want to catch everything here, to ensure the deployment status is updated
+    # pylint: disable=broad-except
+    except Exception as exception:
+        # TODO: update deployment status here
+        return False
+
+    shell_file_base = (
+        f"{deploy_config['router']['command-file-path']}/{before}..{after}-[###].sh"
+    )
+
+    file_names = []
+
     group_index = 0
     for commands in command_groups:
         # For now, while figuring out what to do
         # pylint: disable=unused-variable
         file_name = shell_file_base.replace("[###]", str(group_index).rjust(3, "0"))
+        file_names.append(file_name)
         bash_contents = deploy_helper.generate_bash_commands(commands, deploy_config)
-        # TODO: how to get this to the router?
+        if not deploy_helper.write_data_to_router_file(
+            router_connection, file_name, bash_contents
+        ):
+            raise ValueError(f"Written data did not match expected for {file_name}!")
+
+    # TODO: make one giant bash file to execute all the pieces
+
+    return True
