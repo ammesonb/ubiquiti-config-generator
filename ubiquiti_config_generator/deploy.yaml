@@ -6,10 +6,15 @@
 
 router:
   address:
+  port:
   user:
   # Either password or keyfile may be specified - keyfile is preferred
+  # If both are provided, the password will be used as the passphrase to the keyfile
   password:
   keyfile:
+  # The path to store the command files in, will be something like:
+  # rev1..rev2-000.sh, rev1..rev2-001.sh, etc for ordered execution
+  command-file-path: /tmp
 
 # Apply only the difference in configuration, rather than the entire config file
 apply-difference-only: False
@@ -29,6 +34,8 @@ script-cfg-path: /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper
 git:
   # The ID of the application
   app-id:
+  # The main GitHub branch
+  primary-branch: main
 
   private-key-path: ./ubiquiti-config.pem
   # The port to listen on for GitHub webhook stuff
