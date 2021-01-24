@@ -11,6 +11,7 @@ import uvicorn
 
 from ubiquiti_config_generator import file_paths
 from ubiquiti_config_generator.github import api, checks, push
+from ubiquiti_config_generator.messages import db
 from ubiquiti_config_generator.web import page
 
 app = FastAPI(
@@ -68,13 +69,28 @@ async def css():
 
 
 # pylint: disable=unused-argument
-@app.get("/check/{rev}", response_class=HTMLResponse)
-async def check_status(rev: str, username: str = Depends(authenticate)):
+@app.get("/check/{revision}", response_class=HTMLResponse)
+async def check_status(revision: str, username: str = Depends(authenticate)):
     """
     Returns the check status logs
     """
+    return render_check(revision)
+
+
+def render_check(revision: str) -> str:
+    """
+    Renders the check status page
+    """
+    check_details = db.get_check(revision)
     return page.generate_page(
-        {"type": "check", "status": "pending", "started": 1611501101, "revision1": rev}
+        {
+            "type": "check",
+            "status": check_details.status,
+            "started": check_details.started_at,
+            "ended": check_details.ended_at,
+            "revision1": revision,
+            "logs": check_details.logs,
+        }
     )
 
 

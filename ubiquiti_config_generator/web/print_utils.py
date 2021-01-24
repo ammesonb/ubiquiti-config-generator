@@ -1,7 +1,7 @@
 """
 Contains various printing utilities for web stuff
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 
@@ -27,7 +27,7 @@ def format_timestamp(timestamp) -> str:
     """
     .
     """
-    timestamp_object = datetime.fromtimestamp(timestamp)
+    timestamp_object = datetime.fromtimestamp(timestamp).astimezone(timezone.utc)
     return timestamp_object.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + "Z"
 
 

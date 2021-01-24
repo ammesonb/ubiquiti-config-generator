@@ -8,7 +8,7 @@ from typing import Optional, List
 from ubiquiti_config_generator.messages.check import Check
 from ubiquiti_config_generator.messages.log import Log
 
-DB_PATH = "ubiquiti_config_generator/messages"
+DB_PATH = "messages"
 DB_FILE = DB_PATH + "/messages.db"
 
 
@@ -82,7 +82,9 @@ def get_check(revision: str, cursor: Optional[sqlite3.Cursor] = None) -> Check:
     Get details about a revision check
     """
     cursor = cursor or get_cursor()
-    result = cursor.execute("SELECT * FROM commit_check WHERE revision = ?", revision)
+    result = cursor.execute(
+        "SELECT * FROM commit_check WHERE revision = ?", (revision,)
+    )
     check = result.fetchone()
     if not check:
         return Check(revision, "nonexistent", 0, 0, [])
@@ -95,9 +97,14 @@ def get_check_logs(revision: str, cursor: Optional[sqlite3.Cursor] = None) -> Li
     Get the logs for a given check revision
     """
     cursor = cursor or get_cursor()
-    result = cursor.execute("SELECT * FROM check_log WHERE revision = ?", revision)
+    result = cursor.execute("SELECT * FROM check_log WHERE revision = ?", (revision,))
     log_results = result.fetchall()
     return [
-        Log(log["revision"], log["message"], log["status"], log["timestamp"],)
+        Log(
+            revision1=log["revision"],
+            message=log["message"],
+            status=log["status"],
+            utc_unix_timestamp=log["timestamp"],
+        )
         for log in log_results
     ]

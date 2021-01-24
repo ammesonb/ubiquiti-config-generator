@@ -69,8 +69,28 @@ def generate_page(context: dict) -> str:
                         + print_utils.format_timestamp(context["started"])
                     ),
                 ),
-                hr(style="clear: both"),
-                ul([log.html() for log in context.get("logs", [])]),
+                hr(style="clear: both; margin-bottom: 2%"),
+                table(style=("font-family: Courier New, monospace; width: 100%"))(
+                    Safe(
+                        "<colgroup>\n"
+                        '  <col style="width: 20%">\n'
+                        '  <col style="width: 10%">\n'
+                        '  <col style="width: 70%">\n'
+                        "</colgroup>\n"
+                    ),
+                    tr(style="font-weight: bold; text-align: left;")(
+                        th("Timestamp"), th("Level"), th("Message")
+                    ),
+                    [
+                        tr(
+                            [
+                                td(style="padding: 0.5%")(Safe(piece))
+                                for piece in log.html()
+                            ]
+                        )
+                        for log in context.get("logs", [])
+                    ],
+                ),
             ),
         ),
     )
