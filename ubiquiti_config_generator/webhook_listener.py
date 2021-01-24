@@ -10,7 +10,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 import uvicorn
 
 from ubiquiti_config_generator import file_paths
-from ubiquiti_config_generator.github import api, checks, push
+from ubiquiti_config_generator.github import api, checks, push, deployment
 from ubiquiti_config_generator.messages import db
 from ubiquiti_config_generator.web import page
 
@@ -147,6 +147,8 @@ def process_request(headers: dict, body: str, form: dict) -> Response:
         checks.process_check_run(deploy_config, form, access_token)
     elif headers["x-github-event"] == "push":
         push.check_push_for_deployment(deploy_config, form, access_token)
+    elif headers["x-github-event"] == "deployment":
+        deployment.handle_deployment(form, deploy_config, access_token)
     else:
         print("Skipping event - no handler registered!")
 

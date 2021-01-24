@@ -284,6 +284,7 @@ def write_data_to_router_file(
 
     remote_file.write(file_data)
     remote_file.flush()
+    remote_file.close()
 
     written = ftp.open(file_path).read().decode()
     ftp.close()

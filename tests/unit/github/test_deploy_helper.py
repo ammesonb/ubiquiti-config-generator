@@ -1,6 +1,8 @@
 """
 Deploy helper functionality testing
 """
+import paramiko
+import pytest
 
 from ubiquiti_config_generator import root_parser, file_paths
 from ubiquiti_config_generator.github import deploy_helper
@@ -239,3 +241,256 @@ def test_generate_bash_commands():
             "",
         ]
     ), "Commands generated as expected"
+
+
+def test_router_connection(monkeypatch):
+    """
+    .
+    """
+
+    class Client:
+        """
+        Mock SSH client
+        """
+
+        expected_connection = {}
+
+        @counter_wrapper
+        def load_system_host_keys(self):
+            """
+            .
+            """
+
+        def with_connection_auth(self, details: dict):
+            """
+            Inject expected connection auth, using shared dictionary
+            to bypass issues with accessing instance
+            """
+            self.expected_connection.clear()
+            self.expected_connection.update(details)
+
+        def connect(self, host, post, username, **kwargs):
+            """
+            .
+            """
+            assert not kwargs["look_for_keys"], "Don't check system for keys"
+            for key, value in self.expected_connection.items():
+                assert kwargs[key] == value, "Auth details set"
+
+    # pylint: disable=unused-argument
+    @counter_wrapper
+    def from_keyfile(file_path, passphrase):
+        """
+        .
+        """
+        return "bytes"
+
+    monkeypatch.setattr(paramiko, "SSHClient", Client)
+    monkeypatch.setattr(paramiko.RSAKey, "from_private_key_file", from_keyfile)
+
+    config = {
+        "router": {
+            "address": "1.1.1.",
+            "port": 22,
+            "user": "admin",
+            "keyfile": None,
+            "password": None,
+        }
+    }
+
+    with pytest.raises(ValueError):
+        deploy_helper.get_router_connection(config)
+
+    assert Client.load_system_host_keys.counter == 1, "Known hosts loaded"
+
+    config["router"]["password"] = "passwd"
+    Client().with_connection_auth({"password": "passwd"})
+    deploy_helper.get_router_connection(config)
+
+    config["router"]["keyfile"] = "filepath"
+    Client().with_connection_auth({"pkey": "bytes"})
+    deploy_helper.get_router_connection(config)
+
+    config["router"]["password"] = None
+    Client().with_connection_auth({"key_filename": "filepath"})
+    deploy_helper.get_router_connection(config)
+
+
+def test_write_data(monkeypatch):
+    """
+    .
+    """
+
+    # pylint: disable=too-few-public-methods,unused-argument
+    class FakeFile:
+        """
+        Fake SFTP file
+        """
+
+        called = []
+
+        def writable(self):
+            """
+            .
+            """
+            self.called.append("writable")
+
+        def write(self, data):
+            """
+            .
+            """
+            self.called.append("write")
+
+        def flush(self):
+            """
+            .
+            """
+            self.called.append("flush")
+
+        def close(self):
+            """
+            .
+            """
+            self.called.append("close")
+
+        def read(self):
+            """
+            .
+            """
+            self.called.append("read")
+            return "foo".encode()
+
+    class FailSFTP:
+        """
+        Will fail to return file
+        """
+
+        def file(self, path, mode, buffer):
+            """
+            Opens file
+            """
+            return None
+
+    class FakeSFTP:
+        """
+        Fake SFTP client
+        """
+
+        def file(self, path, mode, buffer):
+            """
+            Opens file
+            """
+            return FakeFile()
+
+        def open(self, path):
+            """
+            .
+            """
+            return FakeFile()
+
+        @counter_wrapper
+        def close(self):
+            """
+            .
+            """
+
+    class FakeClient:
+        """
+        Fake client
+        """
+
+        def __init__(self, client):
+            self.client = client
+
+        def open_sftp(self):
+            """
+            .
+            """
+            return self.client
+
+    with pytest.raises(ValueError):
+        deploy_helper.write_data_to_router_file(FakeClient(FailSFTP()), "file", "data")
+
+    with pytest.raises(ValueError):
+        deploy_helper.write_data_to_router_file(FakeClient(FakeSFTP()), "file", "data")
+
+    assert FakeFile.called == ["writable"], "Writable called, but failed"
+
+    FakeFile.writable = lambda self: self.called.append("writable") or True
+    assert not deploy_helper.write_data_to_router_file(
+        FakeClient(FakeSFTP()), "file", "data"
+    ), "Fails due to data mismatch"
+    assert FakeFile.called == [
+        "writable",
+        "writable",
+        "write",
+        "flush",
+        "close",
+        "read",
+    ], "Functions called in right order"
+    assert FakeSFTP.close.counter == 1, "Close called"
+
+    assert deploy_helper.write_data_to_router_file(
+        FakeClient(FakeSFTP()), "file", "foo"
+    ), "Successful emulated write"
+    assert FakeFile.called == [
+        "writable",
+        "writable",
+        "write",
+        "flush",
+        "close",
+        "read",
+        "writable",
+        "write",
+        "flush",
+        "close",
+        "read",
+    ], "Functions called in right order"
+    assert FakeSFTP.close.counter == 2, "Close called"
+
+
+def test_run_command(monkeypatch):
+    """
+    .
+    """
+
+    class FakeSession:
+        """
+        Fake session
+        """
+
+        def exec_command(self, command):
+            """
+            .
+            """
+            self.command = command
+
+    # pylint: disable=too-few-public-methods,unused-argument
+    class FakeTransport:
+        """
+        Fake transport
+        """
+
+        @counter_wrapper
+        def open_session(self):
+            """
+            .
+            """
+            return FakeSession()
+
+    class FakeClient:
+        """
+        Fake client
+        """
+
+        @counter_wrapper
+        def get_transport(self):
+            """
+            .
+            """
+            return FakeTransport()
+
+    assert (
+        deploy_helper.run_router_command(FakeClient(), "something").command
+        == "something"
+    ), "Command returned"
