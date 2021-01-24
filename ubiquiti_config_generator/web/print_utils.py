@@ -4,43 +4,63 @@ Contains various printing utilities for web stuff
 from datetime import datetime, timezone
 from typing import Optional
 
+NORMAL = "silver"
+IN_PROGRESS = "#209cee"
+FAILED = "#ff3860"
+SUCCESS = "23d160"
+WARNING = "#ffff00"
+
 
 def get_color_for_status(status: Optional[str]) -> str:
     """
     Returns HTML color code for a given status
     if None, consider it new, as in queued or created
     """
-    color = "silver"
+    color = NORMAL
     if status == "pending":
-        color = "#209cee"
+        color = IN_PROGRESS
     elif status in ["failure", "nonexistent"]:
-        color = "#ff3860"
+        color = FAILED
     elif status == "success":
-        color = "#23d160"
+        color = SUCCESS
     elif status in ["created", "requested", "queued"]:
-        color = "#ffff00"
+        color = WARNING
 
     return color
 
 
-def format_timestamp(timestamp) -> str:
+def to_utc(timestamp: datetime):
+    """
+    Converts a datetime object to UTC
+    """
+    return timestamp.astimezone(timezone.utc)
+
+
+def current_unix_timestamp() -> float:
+    """
+    Gets the current epoch time, with microsecond precision in a float
+    """
+    return float(datetime.utcnow().strftime("%s.%f"))
+
+
+def format_timestamp(timestamp: float) -> str:
     """
     .
     """
-    timestamp_object = datetime.fromtimestamp(timestamp).astimezone(timezone.utc)
+    timestamp_object = to_utc(datetime.fromtimestamp(timestamp))
     return timestamp_object.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + "Z"
 
 
-def elapsed_duration(start_timestamp: int, end_timestamp: int = None) -> str:
+def elapsed_duration(start_timestamp: float, end_timestamp: float = None) -> str:
     """
     Given a start timestamp and end (defaults to now)
     get a human-readable amount of time between them
     """
-    end_timestamp = end_timestamp or int(datetime.utcnow().strftime("%s"))
+    end_timestamp = end_timestamp or current_unix_timestamp()
     return readable_duration(end_timestamp - start_timestamp)
 
 
-def format_revision(revision1: str, revision2: Optional[str]):
+def format_revision(revision1: str, revision2: Optional[str] = None):
     """
     Formats one or more revisions
     """
