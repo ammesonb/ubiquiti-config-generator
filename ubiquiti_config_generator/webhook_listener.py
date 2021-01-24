@@ -69,12 +69,23 @@ async def css():
 
 
 # pylint: disable=unused-argument
-@app.get("/check/{revision}", response_class=HTMLResponse)
+@app.get("/checks/{revision}", response_class=HTMLResponse)
 async def check_status(revision: str, username: str = Depends(authenticate)):
     """
     Returns the check status logs
     """
     return render_check(revision)
+
+
+# pylint: disable=unused-argument
+@app.get("/deployments/{revision1}/{revision2}", response_class=HTMLResponse)
+async def check_status(
+    revision1: str, revision2: str, username: str = Depends(authenticate)
+):
+    """
+    Returns the check status logs
+    """
+    return render_deployment(revision1, revision2)
 
 
 def render_check(revision: str) -> str:
@@ -90,6 +101,24 @@ def render_check(revision: str) -> str:
             "ended": check_details.ended_at,
             "revision1": revision,
             "logs": check_details.logs,
+        }
+    )
+
+
+def render_deployment(revision1: str, revision2: str) -> str:
+    """
+    Renders the deployment status page
+    """
+    deployment_details = db.get_deployment(revision1, revision2)
+    return page.generate_page(
+        {
+            "type": "deployment",
+            "status": deployment_details.status,
+            "started": deployment_details.started_at,
+            "ended": deployment_details.ended_at,
+            "revision1": revision1,
+            "revision2": revision2,
+            "logs": deployment_details.logs,
         }
     )
 
