@@ -6,12 +6,14 @@ import traceback
 from ubiquiti_config_generator.github import api, deploy_helper
 
 
-def handle_new_deployment(form: dict, deploy_config: dict, access_token: str) -> bool:
+def handle_deployment(form: dict, deploy_config: dict, access_token: str) -> bool:
     """
     Handles actual deploying of configuration
     """
     before = form["payload"]["previous_commit"]
     after = form["ref"]
+
+    # TODO: mark deploy as in process
 
     api.setup_config_repo(
         access_token,
@@ -59,8 +61,19 @@ def handle_new_deployment(form: dict, deploy_config: dict, access_token: str) ->
         if not deploy_helper.write_data_to_router_file(
             router_connection, file_name, bash_contents
         ):
-            raise ValueError(f"Written data did not match expected for {file_name}!")
+            raise ValueError(f"Failed to write {file_name} to router!")
 
     # TODO: make one giant bash file to execute all the pieces
+    mega_file = ""
+
+    for file_name in file_names:
+        mega_file += f"$(which vbash) {file_name} $$\n"
+
+    mega_file += "\nexit 0\n"
+
+    if not deploy_helper.write_data_to_router_file(
+        router_connection, shell_file_base.replace("-[###]", ""), mega_file
+    ):
+        raise ValueError(f"Failed to create aggregated command file on router!")
 
     return True

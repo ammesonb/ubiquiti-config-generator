@@ -3,6 +3,7 @@ cryptography==3.3.1
 fastapi==0.63.0
 paramiko
 pre-commit==2.9.3
+pyhtml
 pyjwt==2.0.1
 pylint==2.6.0
 pytest-cov==2.11.1

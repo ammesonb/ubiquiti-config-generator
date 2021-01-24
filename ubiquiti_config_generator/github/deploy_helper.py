@@ -291,24 +291,11 @@ def write_data_to_router_file(
     return written == file_data
 
 
-def run_router_command(client: paramiko.SSHClient, command: str):
+def run_router_command(client: paramiko.SSHClient, command: str) -> paramiko.Channel:
     """
     Runs a given command on the router
-
-    Raises ValueError if fails
+    Returns the CLOSED channel with exit code, stdout/err, etc
     """
     command_session = client.get_transport().open_session()  # type: paramiko.Channel
     command_session.exec_command(command)
-    if command_session.recv_exit_status() != 0:
-        if command_session.recv_stderr_ready():
-            err = ""
-            length = 1
-            while length != 0:
-                err_recv = command_session.recv_stderr(100)
-                length = len(err_recv)
-                err += err_recv.decode()
-
-        raise ValueError(
-            "Failed to execute command: exit status "
-            f"{command_session.recv_exit_status()} with error '{err}'"
-        )
+    return command_session
