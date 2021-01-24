@@ -74,6 +74,6 @@ def handle_deployment(form: dict, deploy_config: dict, access_token: str) -> boo
     if not deploy_helper.write_data_to_router_file(
         router_connection, shell_file_base.replace("-[###]", ""), mega_file
     ):
-        raise ValueError(f"Failed to create aggregated command file on router!")
+        raise ValueError("Failed to create aggregated command file on router!")
 
     return True
