@@ -14,15 +14,6 @@ from ubiquiti_config_generator.nodes import (
     Network,
 )
 
-# Allow TODO comments while WIP
-# pylint: disable=fixme
-# TODO: For commenting on issue with commands to run
-# https://github.com/ActionsDesk/add-comment-action
-# TODO: to get cache of previous configuration, make file changes like so:
-# Can run bash directly - https://github.com/jpadfield/simple-site/blob/master/.github/workflows/build.yml
-# Then use this to commit and push back:
-# https://github.com/stefanzweifel/git-auto-commit-action
-
 
 class RootNode:
     """

@@ -7,14 +7,47 @@ import uvicorn
 
 from ubiquiti_config_generator import webhook_listener, file_paths
 from ubiquiti_config_generator.github import api, checks, push
+from ubiquiti_config_generator.messages import db
+from ubiquiti_config_generator.messages.check import Check
+from ubiquiti_config_generator.messages.deployment import Deployment
+from ubiquiti_config_generator.web import page
 from ubiquiti_config_generator.testing_utils import counter_wrapper
+
+
+def test_authenticate(monkeypatch):
+    """
+    .
+    """
+    monkeypatch.setattr(
+        file_paths,
+        "load_yaml_from_file",
+        lambda path: {"logging": {"user": "username", "pass": "password"}},
+    )
+
+    # pylint: disable=too-few-public-methods
+    class Credentials:
+        """
+        Mocks credentials
+        """
+
+        username = "username"
+        password = "passwd"
+
+    credentials = Credentials()
+
+    with pytest.raises(HTTPException):
+        webhook_listener.authenticate(credentials)
+
+    credentials.password = "password"
+    assert (
+        webhook_listener.authenticate(credentials) == "username"
+    ), "User authenticates"
 
 
 def test_run_listener(monkeypatch):
     """
     .
     """
-
     # pylint: disable=unused-argument
     @counter_wrapper
     def load_yaml(file_path: str):
@@ -136,3 +169,64 @@ def test_process_request(monkeypatch, capsys):
         "Got event unknown with action reverted\n"
         "Skipping event - no handler registered!\n"
     ), "Unknown event text printed"
+
+
+def test_render_check(monkeypatch):
+    """
+    .
+    """
+
+    def get_check(revision: str):
+        return Check(revision, "success", 123, 234, ["log"])
+
+    def fake_render(context: dict):
+        """
+        .
+        """
+        assert context == {
+            "type": "check",
+            "revision1": "abc",
+            "status": "success",
+            "started": 123,
+            "ended": 234,
+            "logs": ["log"],
+        }, "Correct context passed"
+
+        return "check page"
+
+    monkeypatch.setattr(db, "get_check", get_check)
+    monkeypatch.setattr(page, "generate_page", fake_render)
+
+    assert webhook_listener.render_check("abc") == "check page", "Correct return value"
+
+
+def test_render_deployment(monkeypatch):
+    """
+    .
+    """
+
+    def get_deployment(revision1: str, revision2: str):
+        return Deployment(revision1, revision2, "failure", 321, 432, ["log"])
+
+    def fake_render(context: dict):
+        """
+        .
+        """
+        assert context == {
+            "type": "deployment",
+            "revision1": "abc",
+            "revision2": "cba",
+            "status": "failure",
+            "started": 321,
+            "ended": 432,
+            "logs": ["log"],
+        }, "Correct context passed"
+
+        return "deployment page"
+
+    monkeypatch.setattr(db, "get_deployment", get_deployment)
+    monkeypatch.setattr(page, "generate_page", fake_render)
+
+    assert (
+        webhook_listener.render_deployment("abc", "cba") == "deployment page"
+    ), "Correct return value"

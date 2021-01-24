@@ -63,7 +63,6 @@ def handle_deployment(form: dict, deploy_config: dict, access_token: str) -> boo
         ):
             raise ValueError(f"Failed to write {file_name} to router!")
 
-    # TODO: make one giant bash file to execute all the pieces
     mega_file = ""
 
     for file_name in file_names:

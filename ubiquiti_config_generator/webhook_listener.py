@@ -79,7 +79,7 @@ async def check_status(revision: str, username: str = Depends(authenticate)):
 
 # pylint: disable=unused-argument
 @app.get("/deployments/{revision1}/{revision2}", response_class=HTMLResponse)
-async def check_status(
+async def deployment_status(
     revision1: str, revision2: str, username: str = Depends(authenticate)
 ):
     """
