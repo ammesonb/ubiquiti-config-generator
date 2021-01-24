@@ -130,3 +130,6 @@ dmypy.json
 
 # Ignore pem files
 */*.pem
+
+# Don't include the messages db
+ubiquiti_config_generator/messages/messages.db
