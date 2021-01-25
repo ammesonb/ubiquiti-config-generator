@@ -1,4 +1,4 @@
-aiofiles
+aiofiles==0.6.0
 black==20.8b1
 cryptography==3.3.1
 fastapi==0.63.0
