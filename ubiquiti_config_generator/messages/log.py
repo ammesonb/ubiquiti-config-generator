@@ -43,3 +43,16 @@ class Log:
             ),
             self.message,
         ]
+
+    def __eq__(self, other) -> bool:
+        """
+        Check this is equivalent to something else
+        """
+        return (
+            isinstance(self, type(other))
+            and self.revision1 == other.revision1
+            and self.revision2 == other.revision2
+            and self.status == other.status
+            and self.utc_unix_timestamp == other.utc_unix_timestamp
+            and self.message == other.message
+        )
