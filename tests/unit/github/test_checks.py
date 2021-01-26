@@ -7,6 +7,7 @@ from typing import Union
 from ubiquiti_config_generator import root_parser
 from ubiquiti_config_generator.github import checks, api, deploy_helper
 from ubiquiti_config_generator.github.api import GREEN_CHECK, RED_CROSS
+from ubiquiti_config_generator.messages import db
 from ubiquiti_config_generator.testing_utils import counter_wrapper
 
 
@@ -45,6 +46,29 @@ def test_handle_check_suite(monkeypatch, capsys):
     )
 
     @counter_wrapper
+    def create_check(check, cursor=None):
+        """
+        .
+        """
+        assert check.status == "pending", "Check status correct"
+
+    @counter_wrapper
+    def update_check(log, cursor=None):
+        """
+        .
+        """
+        assert log.status == "failure", "Log should fail"
+        assert log.message == "Failed to create a check run", "Log has expected message"
+
+    @counter_wrapper
+    def add_check_log(log, cursor=None):
+        """
+        .
+        """
+        assert log.status == "log", "Is a log"
+        assert log.message == "Check run scheduled", "Log has expected message"
+
+    @counter_wrapper
     def update_commit_status(
         url: str, sha: str, access_token: str, status: str, description: str
     ):
@@ -53,11 +77,14 @@ def test_handle_check_suite(monkeypatch, capsys):
         """
         assert status == "failure", "Commit should have failed"
 
+    monkeypatch.setattr(db, "create_check", create_check)
+    monkeypatch.setattr(db, "update_check_status", update_check)
+    monkeypatch.setattr(db, "add_check_log", add_check_log)
     monkeypatch.setattr(api, "set_commit_status", update_commit_status)
     checks.handle_check_suite(
         {
             "action": "requested",
-            "check_suite": {"head_sha": "123abc"},
+            "check_suite": {"head_sha": "123abc", "app": {"external_url": "/app"}},
             "repository": {"url": "/", "statuses_url": "/statuses"},
         },
         "abc",
@@ -69,6 +96,8 @@ def test_handle_check_suite(monkeypatch, capsys):
         "{'message': 'failed'}\n"
     ), "Failed to schedule check printed"
     assert update_commit_status.counter == 1, "Commit status updated"
+    assert create_check.counter == 1, "Check created"
+    assert update_check.counter == 1, "Check status updated"
 
     # pylint: disable=unused-argument
     monkeypatch.setattr(
@@ -80,7 +109,7 @@ def test_handle_check_suite(monkeypatch, capsys):
     checks.handle_check_suite(
         {
             "action": "requested",
-            "check_suite": {"head_sha": "123abc"},
+            "check_suite": {"head_sha": "123abc", "app": {"external_url": "/app"}},
             "repository": {"url": "/"},
         },
         "abc",
@@ -89,6 +118,8 @@ def test_handle_check_suite(monkeypatch, capsys):
     assert printed.out == (
         "Requesting a check\n" "Check requested successfully\n"
     ), "Success output printed"
+    assert create_check.counter == 2, "Check created"
+    assert add_check_log.counter == 1, "Added check log"
 
 
 def test_get_output_validations(monkeypatch):
@@ -186,18 +217,45 @@ def test_process_check_run(monkeypatch, capsys):
         },
     }
 
+    # pylint: disable=unused-argument
+    @counter_wrapper
+    def check_update_success(log, cursor=None):
+        """
+        .
+        """
+        assert log.status == "success", "Check should succeed"
+
+    @counter_wrapper
+    def check_update_fails(log, cursor=None):
+        """
+        .
+        """
+        assert log.status == "failure", "Check status fails"
+
+    @counter_wrapper
+    def add_check_log(log, cursor=None):
+        """
+        .
+        """
+
+    monkeypatch.setattr(db, "update_check_status", check_update_success)
+    monkeypatch.setattr(db, "add_check_log", add_check_log)
+
     assert checks.process_check_run(deploy_config, form, "abc123"), "No action succeeds"
+    assert check_update_success.counter == 1, "Check status updated"
     printed = capsys.readouterr()
     assert (
         printed.out == "Ignoring check_run action completed\n"
     ), "Ignoring completed output"
 
     form["action"] = "created"
+    monkeypatch.setattr(db, "update_check_status", check_update_fails)
     # pylint: disable=unused-argument
     monkeypatch.setattr(api, "update_check", lambda *args, **kwargs: False)
     assert not checks.process_check_run(
         deploy_config, form, "abc123"
     ), "Update check fails causes process to fail"
+    assert check_update_fails.counter == 1, "Check updated to fail"
 
     # pylint: disable=unused-argument
     def fail_create(*args, **kwargs):
@@ -227,6 +285,8 @@ def test_process_check_run(monkeypatch, capsys):
         deploy_config, form, "abc123"
     ), "Fail to load deployment causes failure"
     assert finalize_check.counter == 1, "Finalized checks"
+    assert check_update_fails.counter == 2, "Check updated to fail"
+    assert add_check_log.counter == 1, "One log added"
 
     @counter_wrapper
     def setup_repos(*args, **kwargs):
@@ -258,6 +318,8 @@ def test_process_check_run(monkeypatch, capsys):
     assert setup_repos.counter == 1, "Set up repos called"
     assert update_exception.counter == 1, "Tried to update check with the exception"
     assert finalize_commit_status.counter == 1, "Commit status finalized"
+    assert check_update_fails.counter == 3, "Check updated to fail"
+    assert add_check_log.counter == 4, "Three more logs added"
 
     monkeypatch.setattr(
         root_parser.RootNode,
@@ -278,6 +340,8 @@ def test_process_check_run(monkeypatch, capsys):
     ), "Fail to validate fails"
     assert update_exception.counter == 2, "Tried to update check with exception"
     assert finalize_commit_status.counter == 2, "Commit status finalized"
+    assert check_update_fails.counter == 4, "Check updated to fail"
+    assert add_check_log.counter == 8, "Four more logs added"
 
     @counter_wrapper
     def get_validation_output(validation):
@@ -301,12 +365,16 @@ def test_process_check_run(monkeypatch, capsys):
         deploy_config, form, "abc123"
     ), "Fail to set commit status causes failure"
     assert finalize_check.counter == 2, "Check state finalized"
+    assert check_update_fails.counter == 5, "Check updated to fail"
+    assert add_check_log.counter == 13, "Five more logs added"
 
     monkeypatch.setattr(checks, "finalize_check_state", lambda *args, **kwargs: False)
     monkeypatch.setattr(api, "update_check", update_check)
     assert not checks.process_check_run(
         deploy_config, form, "abc123"
     ), "Set check state causes failure"
+    assert check_update_fails.counter == 6, "Check updated to fail"
+    assert add_check_log.counter == 18, "Five more logs added, again"
 
     @counter_wrapper
     def get_pr_comment(*args, **kwargs):
@@ -326,11 +394,14 @@ def test_process_check_run(monkeypatch, capsys):
     monkeypatch.setattr(api, "update_check", lambda *args, **kwargs: True)
     monkeypatch.setattr(checks, "get_pr_comment", get_pr_comment)
     monkeypatch.setattr(api, "add_comment", add_comment)
+    monkeypatch.setattr(db, "update_check_status", check_update_success)
     assert checks.process_check_run(
         deploy_config, form, "abc123"
     ), "Updates successfully if no PRs"
     assert get_pr_comment.counter == 0, "PR comment not retrieved"
     assert add_comment.counter == 0, "No comments added"
+    assert check_update_success.counter == 2, "Check update succeed called"
+    assert add_check_log.counter == 24, "Six more logs added"
 
     form["check_run"]["pull_requests"] = [{"url": "/"}, {"url": "/2"}]
     assert not checks.process_check_run(
@@ -340,12 +411,27 @@ def test_process_check_run(monkeypatch, capsys):
     assert (
         add_comment.counter == 2
     ), "Two comments added, even though the first one failed"
+    assert (
+        check_update_success.counter == 3
+    ), "Check update succeed called, even if PR update fails"
+    assert add_check_log.counter == 30, "Six more logs added, again"
+
+    monkeypatch.setattr(
+        root_parser.RootNode, "validation_failures", lambda self: ["failure", "error"]
+    )
+    monkeypatch.setattr(db, "update_check_status", check_update_fails)
 
     monkeypatch.setattr(api, "add_comment", lambda *args, **kwargs: True)
     assert checks.process_check_run(
         deploy_config, form, "abc123"
     ), "Succeeds if all PR comments succeed"
     assert get_pr_comment.counter == 2, "PR comment retrieved once"
+    assert (
+        check_update_fails.counter == 7
+    ), "Check update is failure if validations fail"
+    assert (
+        add_check_log.counter == 38
+    ), "Add 6 standard logs, plus one for each of the two validation issues"
 
 
 def test_finalize_check_state(monkeypatch):

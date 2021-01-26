@@ -8,6 +8,9 @@ import time
 from ubiquiti_config_generator import root_parser
 from ubiquiti_config_generator.github import deploy_helper, api
 from ubiquiti_config_generator.github.api import GREEN_CHECK, RED_CROSS
+from ubiquiti_config_generator.messages import db
+from ubiquiti_config_generator.messages.check import Check
+from ubiquiti_config_generator.messages.log import Log
 
 
 def handle_check_suite(form: dict, access_token: str) -> None:
@@ -19,6 +22,7 @@ def handle_check_suite(form: dict, access_token: str) -> None:
         return
 
     head_sha = form.get("check_suite", form.get("check_run")).get("head_sha")
+    db.create_check(Check(head_sha, "pending", time.time()))
 
     print("Requesting a check")
 
@@ -26,7 +30,12 @@ def handle_check_suite(form: dict, access_token: str) -> None:
         form["repository"]["url"] + "/check-runs",
         "post",
         access_token,
-        {"name": "configuration-validator", "head_sha": head_sha,},
+        {
+            "name": "configuration-validator",
+            "head_sha": head_sha,
+            "details_url": form["check_suite"]["app"]["external_url"]
+            + f"/checks/{head_sha}",
+        },
     )
 
     if response.status_code != 201:
@@ -38,9 +47,14 @@ def handle_check_suite(form: dict, access_token: str) -> None:
             "Could not schedule check run",
         )
         print(f"Failed to schedule check: got status {response.status_code}!")
+
+        db.update_check_status(
+            Log(head_sha, "Failed to create a check run", status="failure")
+        )
         print(response.json())
     else:
         print("Check requested successfully")
+        db.add_check_log(Log(head_sha, "Check run scheduled"))
 
 
 # This probably should be refactored, but error handling here seems appropriate
@@ -52,6 +66,13 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> boo
     """
     if form["action"] not in ["created", "rerequested", "requested_action"]:
         print("Ignoring check_run action " + form["action"])
+        db.update_check_status(
+            Log(
+                form["check_run"]["head_sha"],
+                f"Action {form['action']} does not require processing",
+                status="success",
+            )
+        )
         return True
 
     if not api.update_check(
@@ -61,7 +82,21 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> boo
         # Can't mock utcnow(), so use time.time instead
         {"started_at": datetime.fromtimestamp(time.time(), timezone.utc).isoformat()},
     ):
+        db.update_check_status(
+            Log(
+                form["check_run"]["head_sha"],
+                "Failed to update check to in progress",
+                status="failure",
+            )
+        )
         return False
+
+    db.add_check_log(
+        Log(
+            form["check_run"]["head_sha"],
+            "Fetching latest successful revision from Git history",
+        )
+    )
 
     try:
         deployed_sha = api.get_active_deployment_sha(
@@ -69,7 +104,16 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> boo
         )
     except ValueError:
         finalize_check_state(["Failed to get deployed commit"], form, access_token)
+        db.update_check_status(
+            Log(
+                form["check_run"]["head_sha"],
+                "Failed to get deployed commit",
+                status="failure",
+            )
+        )
         return False
+
+    db.add_check_log(Log(form["check_run"]["head_sha"], "Cloning repositories",))
 
     api.setup_config_repo(
         access_token,
@@ -85,6 +129,12 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> boo
                 form["check_run"]["head_sha"],
             ),
         ],
+    )
+
+    db.add_check_log(
+        Log(
+            form["check_run"]["head_sha"], "Loading current and feature configurations",
+        )
     )
 
     try:
@@ -109,7 +159,18 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> boo
             access_token,
             "failure",
         )
+        db.update_check_status(
+            Log(
+                form["check_run"]["head_sha"],
+                "Failed to load configuration",
+                status="failure",
+            )
+        )
         return False
+
+    db.add_check_log(
+        Log(form["check_run"]["head_sha"], "Validating feature configuration",)
+    )
 
     try:
         branch_config_node.validate()
@@ -128,12 +189,33 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> boo
             access_token,
             "failure",
         )
+        db.update_check_status(
+            Log(
+                form["check_run"]["head_sha"],
+                "Exception occurred during validation",
+                status="failure",
+            )
+        )
         return False
 
-    if not finalize_check_state(
-        branch_config_node.validation_failures(), form, access_token
-    ):
+    db.add_check_log(
+        Log(form["check_run"]["head_sha"], "Reporting final configuration state",)
+    )
+
+    validation_failures = branch_config_node.validation_failures()
+    if not finalize_check_state(validation_failures, form, access_token):
+        db.update_check_status(
+            Log(
+                form["check_run"]["head_sha"],
+                "Failed to update check state on GitHub",
+                status="failure",
+            )
+        )
         return False
+
+    db.add_check_log(
+        Log(form["check_run"]["head_sha"], "Updating PR/s with deployment details",)
+    )
 
     success = True
     if form["check_run"]["pull_requests"]:
@@ -143,6 +225,18 @@ def process_check_run(deploy_config: dict, form: dict, access_token: str) -> boo
         for pull in form["check_run"]["pull_requests"]:
             if not api.add_comment(access_token, pull["url"], comment):
                 success = False
+
+    if validation_failures:
+        db.update_check_status(
+            Log(form["check_run"]["head_sha"], "Check failed!", status="failure")
+        )
+
+        for failure in validation_failures:
+            db.add_check_log(Log(form["check_run"]["head_sha"], failure))
+    else:
+        db.update_check_status(
+            Log(form["check_run"]["head_sha"], "Check complete", status="success")
+        )
 
     return success
 

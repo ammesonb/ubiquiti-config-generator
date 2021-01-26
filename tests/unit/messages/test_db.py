@@ -308,5 +308,97 @@ def test_missing_entries(monkeypatch):
         assert isinstance(missing_deployment_logs, list) and not len(
             missing_deployment_logs
         ), "Missing deployment logs is empty list"
+
+        assert not db.update_check_status(
+            Log("missing", "a message", status="success"), cursor
+        ), "Can't update a check that does not exist"
+        assert not db.get_check_logs(
+            "missing", cursor
+        ), "No logs added for nonexistent check"
+
+        assert not db.update_deployment_status(
+            Log("missing", "a message", revision2="also missing", status="success"),
+            cursor,
+        ), "Can't update a deployment that does not exist"
+        assert not db.get_deployment_logs(
+            "missing", "also missing", cursor
+        ), "No logs added for nonexistent deployment"
+    finally:
+        remove_db_file(db_file)
+
+
+def test_update_check(monkeypatch):
+    """
+    .
+    """
+    log = Log(
+        revision1="abc123",
+        message="bar",
+        status="success",
+        utc_unix_timestamp=1611608752.0,
+    )
+    check = Check("abc123", "pending", 1611608732.0, logs=[log])
+
+    db_file = get_test_db_file()
+    try:
+        cursor = db.initialize_db(db_file)
+
+        # pylint: disable=unused-argument
+        @counter_wrapper
+        def get_cursor(db_file: str = ""):
+            """
+            .
+            """
+            return cursor
+
+        monkeypatch.setattr(db, "get_cursor", get_cursor)
+
+        assert db.create_check(check), "First check added successfully"
+        assert db.update_check_status(log), "Check updated"
+        assert get_cursor.counter == 2, "Cursor retrieved if not passed in"
+
+        check.status = "success"
+        check.ended_at = 1611608752.0
+        assert db.get_check_logs("abc123", cursor) == [log], "Log added"
+        assert db.get_check("abc123") == check, "Check updated"
+    finally:
+        remove_db_file(db_file)
+
+
+def test_update_deployment(monkeypatch):
+    """
+    .
+    """
+    log = Log(
+        revision1="abc123",
+        revision2="cba123",
+        message="foo",
+        status="success",
+        utc_unix_timestamp=1611608777.0,
+    )
+    deployment = Deployment("abc123", "cba123", "pending", 1611608700.0, logs=[log])
+
+    db_file = get_test_db_file()
+    try:
+        cursor = db.initialize_db(db_file)
+
+        # pylint: disable=unused-argument
+        @counter_wrapper
+        def get_cursor(db_file: str = ""):
+            """
+            .
+            """
+            return cursor
+
+        monkeypatch.setattr(db, "get_cursor", get_cursor)
+
+        assert db.create_deployment(deployment), "First deployment added successfully"
+        assert db.update_deployment_status(log), "Deployment updated"
+        assert get_cursor.counter == 2, "Cursor retrieved if not passed in"
+
+        deployment.status = "success"
+        deployment.ended_at = 1611608777.0
+        assert db.get_deployment_logs("abc123", "cba123", cursor) == [log], "Log added"
+        assert db.get_deployment("abc123", "cba123") == deployment, "Deployment updated"
     finally:
         remove_db_file(db_file)

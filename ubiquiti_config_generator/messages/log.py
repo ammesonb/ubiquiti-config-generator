@@ -18,7 +18,7 @@ class Log:
         self,
         revision1: str,
         message: str,
-        utc_unix_timestamp: Optional[float],
+        utc_unix_timestamp: Optional[float] = None,
         revision2: Optional[str] = None,
         status: Optional[str] = "log",
     ):

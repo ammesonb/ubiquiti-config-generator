@@ -3,6 +3,7 @@ Test push Git code
 """
 
 from ubiquiti_config_generator.github import push, api
+from ubiquiti_config_generator.messages import db
 from ubiquiti_config_generator.testing_utils import counter_wrapper
 from tests.unit.github.test_api import Response
 
@@ -33,10 +34,34 @@ def test_check_for_deployment(monkeypatch, capsys):
         """
         assert status == "pending", "Commit status is pending"
 
+    @counter_wrapper
+    def create_deployment(*args, **kwargs):
+        """
+        .
+        """
+
+    @counter_wrapper
+    def update_deploy_status(log):
+        """
+        .
+        """
+        assert log.status == "failure", "Should update to failed"
+
+    @counter_wrapper
+    def add_deploy_log(log):
+        """
+        .
+        """
+        assert log.status == "success", "Deployment created log is success"
+        assert log.message == "Deployment created", "Message is correct"
+
     monkeypatch.setattr(api, "set_commit_status", set_commit_status)
     monkeypatch.setattr(
         push, "is_against_primary_branch", lambda *args, **kwargs: False
     )
+    monkeypatch.setattr(db, "create_deployment", create_deployment)
+    monkeypatch.setattr(db, "update_deployment_status", update_deploy_status)
+    monkeypatch.setattr(db, "add_deployment_log", add_deploy_log)
 
     form = {
         "repository": {"statuses_url": "/statuses", "deployments_url": "/deployments"},
@@ -78,6 +103,8 @@ def test_check_for_deployment(monkeypatch, capsys):
     assert printed.out == (
         "Failed to create deployment\n" "{'message': 'failed'}\n"
     ), "Fail deploy printed"
+    assert create_deployment.counter == 1, "Deployment created in db"
+    assert update_deploy_status.counter == 1, "Attempted to update deployment status"
 
     monkeypatch.setattr(api, "get_active_deployment_sha", lambda *args, **kwargs: None)
     assert push.check_push_for_deployment(
@@ -87,3 +114,4 @@ def test_check_for_deployment(monkeypatch, capsys):
     assert set_commit_status.counter == 3, "Commit status set"
     assert send_github_request.counter == 2, "Deployment created"
     assert printed.out == "", "Nothing printed"
+    assert add_deploy_log.counter == 1, "Added log for deployment"

@@ -196,6 +196,25 @@ def create_check(check: Check, cursor: Optional[sqlite3.Cursor] = None) -> bool:
     return bool(result.lastrowid)
 
 
+def update_check_status(log: Log, cursor: Optional[sqlite3.Cursor] = None) -> bool:
+    """
+    Updates the status of a check, adding a log with a reason
+    """
+    cursor = cursor or get_cursor()
+    ended_at = log.utc_unix_timestamp if log.status in ["success", "failure"] else None
+    result = cursor.execute(
+        """
+        UPDATE commit_check
+        SET    status = ?,
+               ended_at = ?
+        WHERE  revision = ?
+        """,
+        (log.status, ended_at, log.revision1),
+    )
+
+    return result.rowcount and add_check_log(log, cursor)
+
+
 def add_check_log(log: Log, cursor: Optional[sqlite3.Cursor] = None) -> bool:
     """
     Adds a log for a check message
@@ -248,6 +267,26 @@ def create_deployment(
     )
 
     return bool(result.lastrowid)
+
+
+def update_deployment_status(log: Log, cursor: Optional[sqlite3.Cursor] = None) -> bool:
+    """
+    Updates the status of a deployment, adding a log with a reason
+    """
+    cursor = cursor or get_cursor()
+    ended_at = log.utc_unix_timestamp if log.status in ["success", "failure"] else None
+    result = cursor.execute(
+        """
+        UPDATE deployment
+        SET    status = ?,
+               ended_at = ?
+        WHERE  from_revision = ?
+        AND    to_revision = ?
+        """,
+        (log.status, ended_at, log.revision1, log.revision2,),
+    )
+
+    return result.rowcount and add_deployment_log(log, cursor)
 
 
 def add_deployment_log(log: Log, cursor: Optional[sqlite3.Cursor] = None) -> bool:
