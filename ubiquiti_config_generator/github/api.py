@@ -20,9 +20,13 @@ import requests
 GH_HEADER = {
     "accept": "application/vnd.github.v3+json",
 }
+PREVIEW_HEADER = {
+    "accept": "application/vnd.github.flash-preview+json",
+}
 
 GH_JWT_HEADER = lambda jwt: {**GH_HEADER, "Authorization": "Bearer " + jwt}
 GH_TOKEN_HEADER = lambda token: {**GH_HEADER, "Authorization": "token " + token}
+CUSTOM_DEPLOY_HEADER = lambda token: {**GH_TOKEN_HEADER(token), **PREVIEW_HEADER}
 
 GREEN_CHECK = "&#9989;"
 RED_CROSS = "&#10060;"
@@ -282,6 +286,63 @@ def get_active_deployment_sha(deployments_url: str, access_token: str) -> str:
 
     # Might be no active deployments, at first
     return None
+
+
+def update_deployment_state(
+    deployment_status_url: str,
+    external_url_base: str,
+    from_revision: str,
+    to_revision: str,
+    access_token: str,
+    state: str,
+    description: str = None,
+) -> bool:
+    """
+    .
+    """
+    # In progress uses a special header type
+    deploy_header = (
+        GH_TOKEN_HEADER(access_token)
+        if state != "in_progress"
+        else CUSTOM_DEPLOY_HEADER(access_token)
+    )
+
+    print(f"Updating deployment from {from_revision} to {to_revision} to state {state}")
+    response = requests.post(
+        deployment_status_url,
+        json={
+            "status": status,
+            "log_url": f"{external_url_base}/deployments/{from_revision}/{to_revision}",
+            "description": description or get_default_deploy_description(state),
+        },
+    )
+
+    if response.status_code != 201:
+        print("Failed to update deployment state!")
+        print(response.json())
+
+    return response.status_code == 201
+
+
+def get_default_deploy_description(state: str) -> str:
+    """
+    Gets a default description for a deployment state
+    """
+    description = "Unrecognized state"
+    if state == "success":
+        description = "Deployment succeeded"
+    elif state == "failure":
+        description = "Deployment failed"
+    elif state == "in_progress":
+        description = "Deployment is in progress"
+    elif state == "created":
+        description = "Deployment has been created"
+    elif state == "pending":
+        description = "Deployment waiting to be processed"
+    elif state == "error":
+        description = "Deployment encountered an error"
+
+    return description
 
 
 def send_github_request(

@@ -6,7 +6,7 @@ import pytest
 import uvicorn
 
 from ubiquiti_config_generator import webhook_listener, file_paths
-from ubiquiti_config_generator.github import api, checks, push
+from ubiquiti_config_generator.github import api, checks, push, deployment
 from ubiquiti_config_generator.messages import db
 from ubiquiti_config_generator.messages.check import Check
 from ubiquiti_config_generator.messages.deployment import Deployment
@@ -122,10 +122,17 @@ def test_process_request(monkeypatch, capsys):
         .
         """
 
+    @counter_wrapper
+    def handle_deployment(*args, **kwargs):
+        """
+        .
+        """
+
     monkeypatch.setattr(api, "validate_message", lambda *args, **kwargs: True)
     monkeypatch.setattr(checks, "handle_check_suite", handle_check_suite)
     monkeypatch.setattr(checks, "process_check_run", handle_check_run)
     monkeypatch.setattr(push, "check_push_for_deployment", handle_push)
+    monkeypatch.setattr(deployment, "handle_deployment", handle_deployment)
     webhook_listener.process_request(
         {"x-hub-signature-256": "abc123", "x-github-event": "check_suite"},
         "body",
@@ -158,6 +165,17 @@ def test_process_request(monkeypatch, capsys):
     printed = capsys.readouterr()
     assert printed.out == "Got event push with action \n", "Push text printed"
     assert handle_push.counter == 1, "Push process called"
+
+    webhook_listener.process_request(
+        {"x-hub-signature-256": "abc123", "x-github-event": "deployment"},
+        "body",
+        {"action": "created"},
+    )
+    printed = capsys.readouterr()
+    assert (
+        printed.out == "Got event deployment with action created\n"
+    ), "Deployment text printed"
+    assert handle_deployment.counter == 1, "Deployment process called"
 
     webhook_listener.process_request(
         {"x-hub-signature-256": "abc123", "x-github-event": "unknown"},
