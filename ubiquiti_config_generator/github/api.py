@@ -311,10 +311,11 @@ def update_deployment_state(
     response = requests.post(
         deployment_status_url,
         json={
-            "status": status,
+            "state": state,
             "log_url": f"{external_url_base}/deployments/{from_revision}/{to_revision}",
             "description": description or get_default_deploy_description(state),
         },
+        headers=deploy_header,
     )
 
     if response.status_code != 201:

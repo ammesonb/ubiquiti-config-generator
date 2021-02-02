@@ -497,3 +497,82 @@ def test_get_active_deployment_sha(monkeypatch, capsys):
     assert (
         api.get_active_deployment_sha("/deployments", "abc123") is None
     ), "No SHA returned if no successful deployment"
+
+
+def test_update_deployment_state(monkeypatch, capsys):
+    """
+    .
+    """
+
+    @counter_wrapper
+    def patch_post(url: str, json: dict, headers: dict):
+        """
+        Patch the requests post
+        """
+        assert headers["accept"] == (
+            "application/vnd.github.flash-preview+json"
+            if json["state"] == "in_progress"
+            else "application/vnd.github.v3+json"
+        ), "Correct headers used"
+        assert (
+            json["log_url"] == "https://foo/deployments/abc/def"
+        ), "External deploy url correct"
+
+        return (
+            Response({"message": "failed"}, 401)
+            if patch_post.counter == 1
+            else Response({"message": "created"}, 201)
+        )
+
+    monkeypatch.setattr(requests, "post", patch_post)
+
+    assert not api.update_deployment_state(
+        "/deploy",
+        "https://foo",
+        "abc",
+        "def",
+        "abc123",
+        "in_progress",
+        "deployment in progress",
+    ), "Deployment state update fails"
+    printed = capsys.readouterr()
+    assert printed.out == (
+        "Updating deployment from abc to def to state in_progress\n"
+        "Failed to update deployment state!\n"
+        "{'message': 'failed'}\n"
+    ), "Expected output printed"
+
+    assert api.update_deployment_state(
+        "/deploy",
+        "https://foo",
+        "abc",
+        "def",
+        "abc123",
+        "created",
+        "deployment created",
+    ), "Deployment state update succeeds"
+    printed = capsys.readouterr()
+    assert printed.out == (
+        "Updating deployment from abc to def to state created\n"
+    ), "No errors printed"
+
+
+def test_get_default_deploy_description():
+    """
+    .
+    """
+    strings = {
+        "success": "Deployment succeeded",
+        "failure": "Deployment failed",
+        "in_progress": "Deployment is in progress",
+        "created": "Deployment has been created",
+        "pending": "Deployment waiting to be processed",
+        "error": "Deployment encountered an error",
+    }
+    for string in strings:
+        assert (
+            api.get_default_deploy_description(string) == strings[string]
+        ), "Expected response returned"
+        assert (
+            len(api.get_default_deploy_description(string)) <= 140
+        ), "Deploy string is acceptable length"
