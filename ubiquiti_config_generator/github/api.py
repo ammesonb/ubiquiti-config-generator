@@ -288,6 +288,7 @@ def get_active_deployment_sha(deployments_url: str, access_token: str) -> str:
     return None
 
 
+# pylint: disable=too-many-arguments
 def update_deployment_state(
     deployment_status_url: str,
     external_url_base: str,
