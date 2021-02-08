@@ -129,7 +129,7 @@ def send_config_files_to_router(
     after: str,
     router_connection: paramiko.Channel,
     deploy_config: dict,
-    command_groups: List[str],
+    command_groups: List[List[str]],
 ) -> str:
     """
     Creates the remote bash scripts to run on the router
@@ -158,7 +158,9 @@ def send_config_files_to_router(
             file_name,
         )
 
-    aggregate_file_name = (shell_file_base.replace("-[###]", ""),)
+        group_index += 1
+
+    aggregate_file_name = shell_file_base.replace("-[###]", "")
     send_aggregate_file_to_router(
         before, after, router_connection, file_names, aggregate_file_name
     )
@@ -186,7 +188,7 @@ def send_file_to_router(
         router_connection, file_name, bash_contents
     ):
         print(f"Failed to write {file_name} to router")
-        raise ValueError(f"Failed to write file to router")
+        raise ValueError("Failed to write file to router")
 
 
 def send_aggregate_file_to_router(

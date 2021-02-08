@@ -181,3 +181,63 @@ def test_send_aggregate_file_to_router(monkeypatch, capsys):
     assert write_router_data.counter == 2, "Attempted to write data to router"
     printed = capsys.readouterr()
     assert printed.out == "", "No errors printed"
+
+
+def test_send_config_files_to_router(monkeypatch):
+    """
+    .
+    """
+
+    # pylint: disable=unused-argument,too-many-arguments
+    @counter_wrapper
+    def send_file(
+        before,
+        after,
+        router_connection,
+        group_index,
+        commands,
+        deploy_config,
+        file_name,
+    ):
+        """
+        .
+        """
+        command_number = send_file.counter - 1
+        assert commands == [f"command{command_number}"], "Command group correct"
+        assert file_name == (
+            "/tmp/bef123..afe321-0"
+            + ("0" if command_number < 10 else "")
+            + f"{command_number}.sh"
+        ), "File name correct"
+
+    @counter_wrapper
+    def send_aggregate_file(
+        before, after, router_connection, file_names, aggregate_file_name
+    ):
+        """
+        .
+        """
+        assert aggregate_file_name == "/tmp/bef123..afe321.sh", "Aggregate file correct"
+
+    monkeypatch.setattr(deployment, "send_file_to_router", send_file)
+    monkeypatch.setattr(
+        deployment, "send_aggregate_file_to_router", send_aggregate_file
+    )
+
+    assert (
+        deployment.send_config_files_to_router(
+            "bef123",
+            "afe321",
+            None,
+            {"router": {"command-file-path": "/tmp"}},
+            [
+                ["command" + str(x)]
+                # Send eleven, to ensure the padding is correct for multiple-digit numbers
+                for x in range(11)
+            ],
+        )
+        == "/tmp/bef123..afe321.sh"
+    )
+
+    assert send_file.counter == 11, "Eleven command files sent"
+    assert send_aggregate_file.counter == 1, "Aggregate file sent"
