@@ -1,9 +1,11 @@
 """
 Tests github deployment code
 """
+import paramiko
 import pytest
 
 from ubiquiti_config_generator.github import api, deployment, deploy_helper
+from ubiquiti_config_generator.github.deployment_metadata import DeployMetadata
 from ubiquiti_config_generator.messages import db
 from ubiquiti_config_generator.messages.log import Log
 from ubiquiti_config_generator.testing_utils import counter_wrapper
@@ -226,10 +228,14 @@ def test_send_config_files_to_router(monkeypatch):
 
     assert (
         deployment.send_config_files_to_router(
-            "bef123",
-            "afe321",
             None,
-            {"router": {"command-file-path": "/tmp"}},
+            DeployMetadata(
+                "bef123",
+                "afe321",
+                "",
+                "/status",
+                {"router": {"command-file-path": "/tmp"}},
+            ),
             [
                 ["command" + str(x)]
                 # Send eleven, to ensure the padding is correct for multiple-digit numbers
@@ -241,3 +247,149 @@ def test_send_config_files_to_router(monkeypatch):
 
     assert send_file.counter == 11, "Eleven command files sent"
     assert send_aggregate_file.counter == 1, "Aggregate file sent"
+
+
+def test_load_execute_config(monkeypatch):
+    """
+    .
+    """
+    # pylint: disable=unused-argument
+    @counter_wrapper
+    def add_log(*args, **kwargs):
+        """
+        .
+        """
+
+    @counter_wrapper
+    def fail_router_connection(*args, **kwargs):
+        """
+        .
+        """
+        raise ValueError("Error connecting")
+
+    @counter_wrapper
+    def generic_fail(*args, **kwargs):
+        """
+        .
+        """
+        return AttributeError("Deploy config missing parameter or something")
+
+    class FailRouter:
+        """
+        Fake router
+        """
+
+        def exec_command(self, *args, **kwargs):
+            """
+            .
+            """
+            raise paramiko.SSHException("Failed to execute")
+
+    class SuccessRouter:
+        """
+        Fake router
+        """
+
+        def exec_command(self, *args, **kwargs):
+            """
+            .
+            """
+
+    def get_fail_router(*args, **kwargs):
+        """
+        .
+        """
+        return FailRouter()
+
+    def get_success_router(*args, **kwargs):
+        """
+        .
+        """
+        return SuccessRouter()
+
+    @counter_wrapper
+    def fail_send_config_files(*args, **kwargs):
+        """
+        .
+        """
+        raise ValueError("Error sending file")
+
+    @counter_wrapper
+    def fail_deployment(*args, **kwargs):
+        """
+        .
+        """
+
+    @counter_wrapper
+    def log_output(*args, **kwargs):
+        """
+        .
+        """
+
+    monkeypatch.setattr(db, "add_deployment_log", generic_fail)
+    monkeypatch.setattr(deployment, "fail_deployment", fail_deployment)
+
+    assert not deployment.load_and_execute_config_changes(
+        [], DeployMetadata("abc", "def", "/app", "/status", {}), "abc123"
+    ), "Generic error  causes failure"
+
+    assert generic_fail.counter == 1, "Tried to add deploy log but failed"
+    assert fail_deployment.counter == 1, "Deployment failed"
+
+    monkeypatch.setattr(db, "add_deployment_log", add_log)
+
+    monkeypatch.setattr(deploy_helper, "get_router_connection", fail_router_connection)
+    monkeypatch.setattr(
+        deployment, "send_config_files_to_router", fail_send_config_files
+    )
+    monkeypatch.setattr(deployment, "fail_deployment", fail_deployment)
+    monkeypatch.setattr(deployment, "log_command_output", log_output)
+
+    assert not deployment.load_and_execute_config_changes(
+        [], DeployMetadata("abc", "def", "/app", "/status", {}), "abc123"
+    ), "Router conection fails"
+
+    assert add_log.counter == 1, "Single log added"
+    assert fail_send_config_files.counter == 0, "Did not try to send config files"
+    assert fail_deployment.counter == 2, "Deployment failed"
+    assert log_output.counter == 0, "No output to log"
+
+    monkeypatch.setattr(deploy_helper, "get_router_connection", get_fail_router)
+
+    assert not deployment.load_and_execute_config_changes(
+        [], DeployMetadata("abc", "def", "/app", "/status", {}), "abc123"
+    ), "Send config files fails"
+
+    assert add_log.counter == 2, "Single log added"
+    assert fail_send_config_files.counter == 1, "Attempted to send files"
+    assert fail_deployment.counter == 3, "Deployment failed"
+    assert log_output.counter == 0, "No output to log"
+
+    @counter_wrapper
+    def sent_config_files(*args, **kwargs):
+        """
+        .
+        """
+        return "/commands.sh"
+
+    monkeypatch.setattr(deployment, "send_config_files_to_router", sent_config_files)
+
+    assert not deployment.load_and_execute_config_changes(
+        [], DeployMetadata("abc", "def", "/app", "/status", {}), "abc123"
+    ), "Exec command fails"
+
+    assert add_log.counter == 4, "Two logs added"
+    assert sent_config_files.counter == 1, "Attempted to send files"
+    assert fail_deployment.counter == 4, "Deployment failed"
+    assert log_output.counter == 0, "No output to log"
+
+    monkeypatch.setattr(deploy_helper, "get_router_connection", get_success_router)
+
+    assert deployment.load_and_execute_config_changes(
+        [], DeployMetadata("abc", "def", "/app", "/status", {}), "abc123"
+    ), "Exec command succeeds"
+
+    assert add_log.counter == 6, "Two logs added"
+    assert sent_config_files.counter == 2, "Config file sent"
+    assert fail_deployment.counter == 4, "Deployment did not fail"
+    assert log_output.counter == 1, "Output logged"
