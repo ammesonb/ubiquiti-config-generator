@@ -5,7 +5,6 @@ from typing import List
 
 import paramiko
 
-from ubiquiti_config_generator import file_paths
 from ubiquiti_config_generator.github import api, deploy_helper
 from ubiquiti_config_generator.github.deployment_metadata import DeployMetadata
 from ubiquiti_config_generator.messages import db
@@ -26,7 +25,7 @@ def handle_deployment(form: dict, deploy_config: dict, access_token: str) -> boo
     metadata = DeployMetadata(
         before,
         after,
-        file_paths.load_yaml_from_file("deploy.yaml")["git"]["webhook-url"],
+        deploy_config["git"]["webhook-url"],
         form["deployment"]["statuses_url"],
         deploy_config,
     )
@@ -67,7 +66,16 @@ def handle_deployment(form: dict, deploy_config: dict, access_token: str) -> boo
         deploy_config["apply-difference-only"],
     )
 
-    load_and_execute_config_changes(command_groups, metadata, access_token)
+    result = (
+        "success"
+        if load_and_execute_config_changes(command_groups, metadata, access_token)
+        else "failure"
+    )
+
+    if not db.update_deployment_status(
+        Log(before, "Deploy completed", revision2=after, status=result)
+    ):
+        print(f"Failed to update local copy of deploy to {result}")
 
     api.update_deployment_state(
         metadata.status_url,
@@ -75,10 +83,10 @@ def handle_deployment(form: dict, deploy_config: dict, access_token: str) -> boo
         before,
         after,
         access_token,
-        "success",
+        result,
     )
 
-    return True
+    return result == "success"
 
 
 def load_and_execute_config_changes(

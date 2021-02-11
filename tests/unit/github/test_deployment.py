@@ -393,3 +393,106 @@ def test_load_execute_config(monkeypatch):
     assert sent_config_files.counter == 2, "Config file sent"
     assert fail_deployment.counter == 4, "Deployment did not fail"
     assert log_output.counter == 1, "Output logged"
+
+
+def test_handle_deployment(monkeypatch, capsys):
+    """
+    .
+    """
+    deploy_config = {
+        "git": {
+            "diff-config-folder": "/diff",
+            "config-folder": "/config",
+            "webhook-url": "/webhook",
+        },
+        "apply-difference-only": True,
+    }
+
+    form = {
+        "ref": "fed",
+        "payload": {"previous_commit": "abc"},
+        "action": "pending",
+        "deployment": {"statuses_url": "/statuses"},
+        "repository": {"clone_url": "/clone"},
+    }
+
+    assert deployment.handle_deployment(
+        form, deploy_config, "abc123"
+    ), "Non created action successful"
+    printed = capsys.readouterr()
+    assert (
+        printed.out == "Ignoring deployment action pending\n"
+    ), "Ignore message prints"
+
+    # pylint: disable=unused-argument
+    @counter_wrapper
+    def update_deploy_state(
+        status_url: str,
+        external_app_url: str,
+        before: str,
+        after: str,
+        access_token: str,
+        result: str,
+    ):
+        """
+        .
+        """
+        state = (
+            "in_progress"
+            if update_deploy_state.counter % 2
+            else ("success" if update_deploy_state.counter > 2 else "failure")
+        )
+        assert result == state, "Deploy state is set as expected"
+
+    @counter_wrapper
+    def setup_repos(*args, **kwargs):
+        """
+        .
+        """
+
+    @counter_wrapper
+    def get_commands(*args, **kwargs):
+        """
+        .
+        """
+        return []
+
+    @counter_wrapper
+    def load_execute(*args, **kwargs):
+        """
+        .
+        """
+        return load_execute.counter == 2
+
+    form["action"] = "created"
+
+    monkeypatch.setattr(db, "update_deployment_status", lambda *args, **kwargs: False)
+    monkeypatch.setattr(api, "update_deployment_state", update_deploy_state)
+    monkeypatch.setattr(api, "setup_config_repo", setup_repos)
+    monkeypatch.setattr(deploy_helper, "get_commands_to_run", get_commands)
+    monkeypatch.setattr(deployment, "load_and_execute_config_changes", load_execute)
+    assert not deployment.handle_deployment(
+        form, deploy_config, "abc123"
+    ), "Fail to update deployment"
+    printed = capsys.readouterr()
+    assert printed.out == (
+        "Failed to update local copy of deploy to in progress\n"
+        "Failed to update local copy of deploy to failure\n"
+    ), "Failure message printed"
+
+    assert update_deploy_state.counter == 2, "Deploy set to in progress and finalized"
+    assert setup_repos.counter == 1, "Repos set up"
+    assert get_commands.counter == 1, "Commands retrieved"
+    assert load_execute.counter == 1, "Attempted to run commands"
+
+    monkeypatch.setattr(db, "update_deployment_status", lambda *args, **kwargs: True)
+    assert deployment.handle_deployment(
+        form, deploy_config, "abc123"
+    ), "Deployment succeeds"
+    printed = capsys.readouterr()
+    assert printed.out == "", "No messages printed"
+
+    assert update_deploy_state.counter == 4, "Deploy set to in progress and finalized"
+    assert setup_repos.counter == 2, "Repos set up"
+    assert get_commands.counter == 2, "Commands retrieved"
+    assert load_execute.counter == 2, "Attempted to run commands"
