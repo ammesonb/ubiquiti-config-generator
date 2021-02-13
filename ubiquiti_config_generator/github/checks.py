@@ -325,10 +325,12 @@ def get_pr_comment(
         if not commands:
             continue
 
-        comment += f"## Commands {category}:\n\n- " + "\n- ".join(
-            [command + " " + str(commands[command]) for command in commands]
-        )
-
-        comment += "\n"
+        comment += f"## Commands {category}:\n\n"
+        for command_key, command_value in commands.items():
+            if isinstance(command_value, list):
+                for each_value in command_value:
+                    comment += f"- {command_key} {each_value}\n"
+            else:
+                comment += f"- {command_key} {command_value}\n"
 
     return comment.strip()

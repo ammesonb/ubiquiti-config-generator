@@ -158,7 +158,8 @@ def test_get_pr_comment(monkeypatch):
         api, "summarize_deploy_config_choices", lambda config: "deploy config"
     )
     all_category_differences = deploy_helper.diff_configurations(
-        ["a 1", "b 2", "c 3", "d 5",], ["a 9", "b 2", "d 4", "e 6"],
+        ["a 1", "b 2", "c 3", "d 5", "d 6", "d 7"],
+        ["a 9", "b 2", "d 4", "d 5", "d 6", "e 6"],
     )
     monkeypatch.setattr(
         deploy_helper,
@@ -176,11 +177,13 @@ def test_get_pr_comment(monkeypatch):
         "deploy config\n"
         "## Commands added:\n\n"
         "- c 3\n"
+        "- d 7\n"
         "## Commands removed:\n\n"
+        "- d 4\n"
         "- e 6\n"
         "## Commands changed:\n\n"
-        "- a 1\n"
-        "- d 5"
+        # No newline for last line
+        "- a 1"
     ), "PR comment generated as expected for all categories"
 
     only_add_differences = deploy_helper.ConfigDifference()
