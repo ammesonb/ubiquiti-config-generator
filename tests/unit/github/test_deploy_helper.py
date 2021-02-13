@@ -103,6 +103,24 @@ def test_compare_list_commands():
         "firewall port": ["3", "2"]
     }, "Ports two and three preserved"
 
+    difference = deploy_helper.ConfigDifference()
+    difference.compare_list_commands({"command": ["1", "2"]}, {})
+    assert difference.added == {
+        "command": ["1", "2"]
+    }, "Commands added without previous"
+    assert not difference.removed, "No removed"
+    assert not difference.changed, "No changed"
+    assert not difference.preserved, "No preserved"
+
+    difference = deploy_helper.ConfigDifference()
+    difference.compare_list_commands({}, {"command": ["1", "2"]})
+    assert difference.removed == {
+        "command": ["1", "2"]
+    }, "Commands removed without current"
+    assert not difference.added, "No added"
+    assert not difference.changed, "No changed"
+    assert not difference.preserved, "No preserved"
+
 
 def test_compare_simple_commands():
     """

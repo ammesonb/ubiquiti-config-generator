@@ -75,9 +75,13 @@ class ConfigDifference:
         """
         Compare two commands with list values
         """
-        command_key = list(current_command.keys())[0]
-        current_values = list(current_command.values())[0]
-        previous_values = list(previous_command.values())[0]
+        command_key = (
+            list(current_command.keys())[0]
+            if current_command
+            else list(previous_command.keys())[0]
+        )
+        current_values = list(current_command.values())[0] if current_command else []
+        previous_values = list(previous_command.values())[0] if previous_command else []
 
         for each_value in current_values:
             if each_value in previous_values:
