@@ -198,6 +198,7 @@ def test_get_pr_comment(monkeypatch):
     ), "Only added returned for command summary"
 
 
+# pylint: disable=too-many-locals,too-many-statements
 def test_process_check_run(monkeypatch, capsys):
     """
     .

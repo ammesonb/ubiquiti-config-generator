@@ -267,7 +267,8 @@ def test_connection_consistency(monkeypatch):
     ]
 
 
-def test_add_firewall_rules(monkeypatch):
+# pylint: disable=too-many-statements,too-many-locals
+def test_add_firewall_rules():
     """
     .
     """

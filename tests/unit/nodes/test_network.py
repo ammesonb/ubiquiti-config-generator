@@ -1,10 +1,8 @@
 """
 Test network
 """
-
 from ubiquiti_config_generator import file_paths
 from ubiquiti_config_generator.nodes import Network, Firewall, Host
-from ubiquiti_config_generator.nodes.validatable import Validatable
 from ubiquiti_config_generator.testing_utils import counter_wrapper
 
 # pylint: disable=protected-access
@@ -168,6 +166,7 @@ def test_is_consistent(monkeypatch):
     .
     """
 
+    # pylint: disable=unused-argument
     @counter_wrapper
     def fake_host_consistent(self):
         """
@@ -363,23 +362,26 @@ def test_command_ordering(monkeypatch):
     .
     """
 
+    # pylint: disable=unused-argument
     @counter_wrapper
     def get_firewall_commands(self):
         """
         .
         """
         if get_firewall_commands.counter == 1:
-            return (
+            commands = (
                 [["firewall1-command"], ["firewall1-command2"]],
                 ["firewall1-command", "firewall1-command2"],
             )
         elif get_firewall_commands.counter == 2:
-            return (
+            commands = (
                 [["firewall2-command", "firewall2-command2"], ["firewall2-command3"]],
                 ["firewall2-command", "firewall2-command2", "firewall2-command3"],
             )
         else:
-            return ([["firewall3-command"]], ["firewall3-command"])
+            commands = ([["firewall3-command"]], ["firewall3-command"])
+
+        return commands
 
     monkeypatch.setattr(Firewall, "commands", get_firewall_commands)
 

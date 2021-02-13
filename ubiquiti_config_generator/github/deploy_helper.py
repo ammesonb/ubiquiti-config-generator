@@ -45,11 +45,56 @@ class ConfigDifference:
         """
         self.preserved.update(command)
 
+    def add_or_append_list_value(self, component: dict, key: str, value: str) -> None:
+        """
+        Adds a given value for a key to a command configuration difference
+        """
+        if key not in component:
+            component[key] = [value]
+        else:
+            component[key].append(value)
+
     def compare_commands(
         self, current_command: Optional[dict], previous_command: Optional[dict]
     ) -> None:
         """
         Compare two commands and add to the appropriate dictionary
+        """
+        is_list = (
+            current_command and isinstance(list(current_command.values())[0], list)
+        ) or (previous_command and isinstance(list(previous_command.values())[0], list))
+
+        if is_list:
+            self.compare_list_commands(current_command, previous_command)
+        else:
+            self.compare_simple_commands(current_command, previous_command)
+
+    def compare_list_commands(
+        self, current_command: Optional[dict], previous_command: Optional[dict]
+    ) -> None:
+        """
+        Compare two commands with list values
+        """
+        command_key = list(current_command.keys())[0]
+        current_values = list(current_command.values())[0]
+        previous_values = list(previous_command.values())[0]
+
+        for each_value in current_values:
+            if each_value in previous_values:
+                self.add_or_append_list_value(self.preserved, command_key, each_value)
+            else:
+                self.add_or_append_list_value(self.added, command_key, each_value)
+
+        for each_value in previous_values:
+            # Don't need preserved, since already added in current
+            if each_value not in current_values:
+                self.add_or_append_list_value(self.removed, command_key, each_value)
+
+    def compare_simple_commands(
+        self, current_command: Optional[dict], previous_command: Optional[dict]
+    ) -> None:
+        """
+        Compare two commands with single values and add to the appropriate dictionary
         """
         if current_command and not previous_command:
             self.add(current_command)
@@ -78,10 +123,40 @@ def diff_configurations(
     previous_commands_by_key = {}
 
     for command in current_commands:
-        current_commands_by_key[get_command_key(command)] = shlex.split(command)[-1]
+        command_key = get_command_key(command)
+        command_value = shlex.split(command)[-1]
+        # If command already found and it's a list,
+        # add this to it for comparison purposes
+        if command_key in current_commands_by_key and isinstance(
+            current_commands_by_key[command_key], list
+        ):
+            current_commands_by_key[command_key].append(command_value)
+        # Otherwise, if not a list, make it into a list with new value
+        elif command_key in current_commands_by_key:
+            current_commands_by_key[command_key] = [
+                current_commands_by_key[command_key],
+                command_value,
+            ]
+        else:
+            current_commands_by_key[command_key] = command_value
 
     for command in previous_commands:
-        previous_commands_by_key[get_command_key(command)] = shlex.split(command)[-1]
+        command_key = get_command_key(command)
+        command_value = shlex.split(command)[-1]
+        # If command already found and it's a list,
+        # add this to it for comparison purposes
+        if command_key in previous_commands_by_key and isinstance(
+            previous_commands_by_key[command_key], list
+        ):
+            previous_commands_by_key[command_key].append(command_value)
+        # Otherwise, if not a list, make it into a list with new value
+        elif command_key in previous_commands_by_key:
+            previous_commands_by_key[command_key] = [
+                previous_commands_by_key[command_key],
+                command_value,
+            ]
+        else:
+            previous_commands_by_key[command_key] = command_value
 
     difference = ConfigDifference()
 
@@ -94,6 +169,11 @@ def diff_configurations(
         )
 
     for command, value in previous_commands_by_key.items():
+        # Lists already had a full diff done in the first pass for the current values
+        # if there was a value for it
+        if isinstance(value, list) and command in current_commands_by_key:
+            continue
+
         difference.compare_commands(
             {command: current_commands_by_key[command]}
             if command in current_commands_by_key
@@ -128,7 +208,13 @@ def get_commands_to_run(
 
     # Run deletes in a single batch first, since that _shouldn't_ cause any issues
     for key, value in difference.removed.items():
-        run_commands[0].append(" ".join(["delete", key, shlex.quote(value)]))
+        if isinstance(value, list):
+            for each_value in value:
+                run_commands[0].append(
+                    " ".join(["delete", key, shlex.quote(each_value)])
+                )
+        else:
+            run_commands[0].append(" ".join(["delete", key, shlex.quote(value)]))
 
     apply_diff_only = only_return_diff or deploy_config["apply-difference-only"]
     for command_set in current_ordered_commands:
@@ -139,13 +225,25 @@ def get_commands_to_run(
                 command if not apply_diff_only else get_command_key(command)
             )
 
-            # Include commands only if applying the entire config, or
+            # Include commands only if applying the entire config
+            should_include = not apply_diff_only
+            if isinstance(
+                difference.changed.get(command_prefix, None), list
+            ) or isinstance(difference.added.get(command_prefix, None), list):
+                command_value = shlex.split(command)[-1]
+                should_include = should_include or (
+                    command_value in difference.added.get(command_prefix, [])
+                    or command_value in difference.changed.get(command_prefix, [])
+                )
+            else:
+                # or the command's value is new or changed
+                should_include = should_include or (
+                    command_prefix in difference.changed
+                    or command_prefix in difference.added
+                )
+
             # the command's value changed
-            if (
-                not apply_diff_only
-                or command_prefix in difference.changed
-                or command_prefix in difference.added
-            ):
+            if should_include:
                 run_commands[-1].append("set " + command)
 
         if not run_commands[-1]:

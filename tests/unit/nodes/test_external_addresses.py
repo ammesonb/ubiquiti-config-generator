@@ -45,7 +45,7 @@ def test_commands():
     assert addresses.commands() == [
         "firewall group address-group external-addresses "
         'description "Externally-facing IP addresses"',
-        "firewall group address-group external-addresses " "address 1.1.1.1",
-        "firewall group address-group external-addresses " "address 2.2.2.2",
-        "firewall group address-group external-addresses " "address 3.3.3.3",
+        "firewall group address-group external-addresses address 1.1.1.1",
+        "firewall group address-group external-addresses address 2.2.2.2",
+        "firewall group address-group external-addresses address 3.3.3.3",
     ], "Address commands correct"

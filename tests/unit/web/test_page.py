@@ -29,6 +29,8 @@ def test_deployment_page():
         }
     )
 
+    # Don't care about HTML
+    # pylint: disable=line-too-long
     assert html == "\n".join(
         [
             "<!DOCTYPE html>",

@@ -76,7 +76,7 @@ def test_get_cursor(monkeypatch):
             return self
 
     @counter_wrapper
-    def connect(db_file: str):
+    def connect(db_file: str, isolation_level=None):
         """
         .
         """
@@ -282,7 +282,7 @@ def test_deployment_logs(monkeypatch):
         remove_db_file(db_file)
 
 
-def test_missing_entries(monkeypatch):
+def test_missing_entries():
     """
     .
     """
@@ -294,8 +294,10 @@ def test_missing_entries(monkeypatch):
         ), "Missing check revision is correct"
 
         missing_check_logs = db.get_check_logs("missing", cursor)
-        assert isinstance(missing_check_logs, list) and not len(
-            missing_check_logs
+        assert (
+            isinstance(missing_check_logs, list)
+            and isinstance(missing_check_logs, list)
+            and not missing_check_logs
         ), "Missing check logs is empty list"
 
         assert db.get_deployment("missing", "also missing", cursor) == Deployment(
@@ -305,8 +307,10 @@ def test_missing_entries(monkeypatch):
         missing_deployment_logs = db.get_deployment_logs(
             "missing", "also missing", cursor
         )
-        assert isinstance(missing_deployment_logs, list) and not len(
-            missing_deployment_logs
+        assert (
+            isinstance(missing_deployment_logs, list)
+            and isinstance(missing_deployment_logs, list)
+            and not missing_deployment_logs
         ), "Missing deployment logs is empty list"
 
         assert not db.update_check_status(

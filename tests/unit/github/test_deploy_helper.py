@@ -35,7 +35,76 @@ def test_get_command_key():
     ), "With quoted argument"
 
 
-def test_compare_commands():
+def test_compare_commands(monkeypatch):
+    """
+    .
+    """
+    # pylint: disable=unused-argument
+    @counter_wrapper
+    def compare_simple(*args, **kwargs):
+        """
+        .
+        """
+
+    @counter_wrapper
+    def compare_list(*args, **kwargs):
+        """
+        .
+        """
+
+    monkeypatch.setattr(
+        deploy_helper.ConfigDifference, "compare_simple_commands", compare_simple
+    )
+    monkeypatch.setattr(
+        deploy_helper.ConfigDifference, "compare_list_commands", compare_list
+    )
+
+    diff = deploy_helper.ConfigDifference()
+    diff.compare_commands({"abc": "def"}, {"abc": "ghi"})
+    assert compare_simple.counter == 1, "Simple comparison"
+    assert compare_list.counter == 0, "No list comparison"
+
+    diff.compare_commands({"abc": ["def"]}, {"abc": "ghi"})
+    assert compare_simple.counter == 1, "Not simple comparison"
+    assert compare_list.counter == 1, "Current uses list comparison"
+
+    diff.compare_commands({"abc": ["def"]}, {"abc": ["ghi"]})
+    assert compare_simple.counter == 1, "Not simple comparison"
+    assert compare_list.counter == 2, "Both use list comparison"
+
+    diff.compare_commands({"abc": "def"}, {"abc": ["ghi"]})
+    assert compare_simple.counter == 1, "Not simple comparison"
+    assert compare_list.counter == 3, "Previous uses list comparison"
+
+
+def test_compare_list_commands():
+    """
+    .
+    """
+    current = [
+        "firewall port 1",
+        "firewall port 3",
+        "firewall port 2",
+    ]
+
+    previous = [
+        "firewall port 2",
+        "firewall port 4",
+        "firewall port 3",
+    ]
+
+    difference = deploy_helper.diff_configurations(current, previous)
+    print(difference.added)
+    print(difference.removed)
+    print(difference.preserved)
+    assert difference.added == {"firewall port": ["1"]}, "Port one added"
+    assert difference.removed == {"firewall port": ["4"]}, "Port four removed"
+    assert difference.preserved == {
+        "firewall port": ["3", "2"]
+    }, "Ports two and three preserved"
+
+
+def test_compare_simple_commands():
     """
     .
     """
@@ -90,6 +159,7 @@ def test_get_commands_to_run(monkeypatch):
                     ["network foo",],
                     ["description test",],
                     ["interface wan",],
+                    ["firewall port 1", "firewall port 2", "firewall port 4",],
                 ],
                 [
                     "command bar",
@@ -97,6 +167,9 @@ def test_get_commands_to_run(monkeypatch):
                     "network foo",
                     "description test",
                     "interface wan",
+                    "firewall port 1",
+                    "firewall port 2",
+                    "firewall port 4",
                 ],
             )
         else:
@@ -105,6 +178,7 @@ def test_get_commands_to_run(monkeypatch):
                     ["firewall ipsum",],
                     ["nat lorem", "command bar",],
                     ["interface wan", "address 192.168.0.1"],
+                    ["firewall port 1", "firewall port 2", "firewall port 3",],
                 ],
                 [
                     "firewall ipsum",
@@ -112,6 +186,9 @@ def test_get_commands_to_run(monkeypatch):
                     "command bar",
                     "interface wan",
                     "address 192.168.0.1",
+                    "firewall port 1",
+                    "firewall port 2",
+                    "firewall port 3",
                 ],
             )
         return commands
@@ -125,10 +202,11 @@ def test_get_commands_to_run(monkeypatch):
     )
     commands = deploy_helper.get_commands_to_run(".", ".")
     assert commands == [
-        ["delete nat lorem", "delete address 192.168.0.1"],
+        ["delete firewall port 3", "delete nat lorem", "delete address 192.168.0.1"],
         ["set firewall baz"],
         ["set network foo"],
         ["set description test"],
+        ["set firewall port 4"],
     ], "Command to run (only difference) correct"
 
     monkeypatch.setattr(
@@ -138,11 +216,12 @@ def test_get_commands_to_run(monkeypatch):
     )
     commands = deploy_helper.get_commands_to_run(".", ".")
     assert commands == [
-        ["delete nat lorem", "delete address 192.168.0.1"],
+        ["delete firewall port 3", "delete nat lorem", "delete address 192.168.0.1"],
         ["set command bar", "set firewall baz"],
         ["set network foo"],
         ["set description test"],
         ["set interface wan"],
+        ["set firewall port 1", "set firewall port 2", "set firewall port 4"],
     ], "Command to run (full config) correct"
 
 
@@ -188,6 +267,7 @@ def test_generate_bash_commands():
             "output=$(/bin/cmd-wrapper delete network foo)",
             'check_output $? "${output}"',
             "",
+            # pylint: disable=line-too-long
             'sudo sg vyattacfg -c "/opt/vyatta/sbin/vyatta-config-mgmt.pl --action=commit-confirm --minutes=10"',
             "if [ $? -ne 0 ]; then",
             '  echo "Failed to schedule reboot!"',
@@ -255,6 +335,7 @@ def test_router_connection(monkeypatch):
 
         expected_connection = {}
 
+        # pylint: disable=unused-argument
         @counter_wrapper
         def load_system_host_keys(self):
             """
@@ -365,12 +446,14 @@ def test_write_data(monkeypatch):
         Will fail to return file
         """
 
+        # pylint: disable=no-self-use
         def file(self, path, mode, buffer):
             """
             Opens file
             """
             return None
 
+    # pylint: disable=no-self-use,too-few-public-methods
     class FakeSFTP:
         """
         Fake SFTP client
@@ -449,15 +532,18 @@ def test_write_data(monkeypatch):
     assert FakeSFTP.close.counter == 2, "Close called"
 
 
-def test_run_command(monkeypatch):
+def test_run_command():
     """
     .
     """
 
+    # pylint: disable=too-few-public-methods,no-self-use
     class FakeSession:
         """
         Fake session
         """
+
+        command = None
 
         def exec_command(self, command):
             """

@@ -25,7 +25,7 @@ def test_kw_set(monkeypatch):
     assert str(settings) == "Global settings", "Name returned"
 
 
-def test_is_consistent(monkeypatch):
+def test_is_consistent():
     """
     .
     """

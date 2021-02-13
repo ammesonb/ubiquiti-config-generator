@@ -83,6 +83,7 @@ def test_validate(monkeypatch):
     .
     """
 
+    # pylint: disable=unused-argument
     @counter_wrapper
     def fake_validate_false(self) -> bool:
         """

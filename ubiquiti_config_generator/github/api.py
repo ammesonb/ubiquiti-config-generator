@@ -145,6 +145,7 @@ def set_commit_status(
     return those statuses as directly attached to the commit....
     There is no documentation I can find indicating this one way or the other
     """
+    url = url.replace("{sha}", sha)
     response = send_github_request(
         url,
         "post",
@@ -197,6 +198,8 @@ def clone_repository(
         shutil.rmtree(clone_path)
 
     print("Cloning {0} into {1}".format(repo.split("/")[-1], clone_path))
+    # Remove the http(s):// from the clone URL since using token auth
+    repo = repo.lstrip("http").lstrip("s").lstrip("://")
     subprocess.run(
         [
             "git",

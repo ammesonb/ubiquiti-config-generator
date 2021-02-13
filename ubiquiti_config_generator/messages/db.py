@@ -79,7 +79,7 @@ def get_cursor(db_file: str = DB_FILE) -> sqlite3.Cursor:
     cursor = (
         initialize_db(db_file)
         if not path.isfile(db_file)
-        else sqlite3.connect(db_file).cursor()
+        else sqlite3.connect(db_file, isolation_level=None).cursor()
     )
     cursor.row_factory = sqlite3.Row
     return cursor

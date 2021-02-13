@@ -87,6 +87,9 @@ def test_validate():
 
 
 def test_equals():
+    """
+    .
+    """
     valid = Validatable({"stuff": lambda: True})
     valid._add_keyword_attributes({"stuff": 123})
     valid2 = Validatable({"stuff": lambda: True})

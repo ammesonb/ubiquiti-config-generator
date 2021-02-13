@@ -274,17 +274,20 @@ def test_load_execute_config(monkeypatch):
         """
         return AttributeError("Deploy config missing parameter or something")
 
+    # pylint: disable=too-few-public-methods
     class FailRouter:
         """
         Fake router
         """
 
+        # pylint: disable=no-self-use
         def exec_command(self, *args, **kwargs):
             """
             .
             """
             raise paramiko.SSHException("Failed to execute")
 
+    # pylint: disable=too-few-public-methods
     class SuccessRouter:
         """
         Fake router
@@ -424,7 +427,7 @@ def test_handle_deployment(monkeypatch, capsys):
         printed.out == "Ignoring deployment action pending\n"
     ), "Ignore message prints"
 
-    # pylint: disable=unused-argument
+    # pylint: disable=unused-argument,too-many-arguments
     @counter_wrapper
     def update_deploy_state(
         status_url: str,

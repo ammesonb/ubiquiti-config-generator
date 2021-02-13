@@ -481,19 +481,21 @@ def test_get_active_deployment_sha(monkeypatch, capsys):
     ), "SHA returned"
 
     @counter_wrapper
-    def send_github_request_statuses_result(*args, **kwargs):
+    def send_github_request_statuses_result_success(*args, **kwargs):
         """
         .
         """
         result = None
-        if send_github_request_statuses_result.counter == 1:
+        if send_github_request_statuses_result_success.counter == 1:
             result = Response([{"id": 1, "statuses_url": "url1", "sha": "abc"},], 200,)
-        elif send_github_request_statuses_result.counter == 2:
+        elif send_github_request_statuses_result_success.counter == 2:
             result = Response([{"state": "failed"}, {"state": "pending"}], 200)
 
         return result
 
-    monkeypatch.setattr(api, "send_github_request", send_github_request_statuses_result)
+    monkeypatch.setattr(
+        api, "send_github_request", send_github_request_statuses_result_success
+    )
     assert (
         api.get_active_deployment_sha("/deployments", "abc123") is None
     ), "No SHA returned if no successful deployment"
@@ -504,6 +506,7 @@ def test_update_deployment_state(monkeypatch, capsys):
     .
     """
 
+    # pylint: disable=unused-argument
     @counter_wrapper
     def patch_post(url: str, json: dict, headers: dict):
         """

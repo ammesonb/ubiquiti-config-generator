@@ -5,7 +5,6 @@ from typing import List
 
 from ubiquiti_config_generator import file_paths
 from ubiquiti_config_generator.nodes import Firewall, Rule
-from ubiquiti_config_generator.nodes.validatable import Validatable
 from ubiquiti_config_generator.testing_utils import counter_wrapper
 
 
@@ -94,6 +93,7 @@ def test_validate(monkeypatch):
     .
     """
 
+    # pylint: disable=unused-argument
     @counter_wrapper
     def fake_validate(self):
         """
@@ -151,6 +151,7 @@ def test_commands(monkeypatch):
     .
     """
 
+    # pylint: disable=unused-argument
     @counter_wrapper
     def rule_commands(self) -> List[str]:
         commands = []
