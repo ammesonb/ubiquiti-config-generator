@@ -193,13 +193,7 @@ def test_send_config_files_to_router(monkeypatch):
     # pylint: disable=unused-argument,too-many-arguments
     @counter_wrapper
     def send_file(
-        before,
-        after,
-        router_connection,
-        group_index,
-        commands,
-        deploy_config,
-        file_name,
+        before, after, router_connection, commands, deploy_config, file_name,
     ):
         """
         .
@@ -412,10 +406,12 @@ def test_handle_deployment(monkeypatch, capsys):
     }
 
     form = {
-        "ref": "fed",
-        "payload": {"previous_commit": "abc"},
+        "deployment": {
+            "statuses_url": "/statuses",
+            "ref": "fed",
+            "payload": {"previous_commit": "abc"},
+        },
         "action": "pending",
-        "deployment": {"statuses_url": "/statuses"},
         "repository": {"clone_url": "/clone"},
     }
 

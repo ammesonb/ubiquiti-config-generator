@@ -24,7 +24,7 @@ PREVIEW_HEADER = {
     "accept": "application/vnd.github.flash-preview+json",
 }
 
-GH_JWT_HEADER = lambda jwt: {**GH_HEADER, "Authorization": "Bearer " + jwt}
+GH_JWT_HEADER = lambda token: {**GH_HEADER, "Authorization": "Bearer " + token}
 GH_TOKEN_HEADER = lambda token: {**GH_HEADER, "Authorization": "token " + token}
 CUSTOM_DEPLOY_HEADER = lambda token: {**GH_TOKEN_HEADER(token), **PREVIEW_HEADER}
 

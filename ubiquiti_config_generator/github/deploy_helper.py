@@ -285,7 +285,7 @@ def generate_bash_commands(commands: List[str], deploy_config: dict) -> str:
         if not deploy_config["auto-rollback-on-failure"]
         else (
             f'output=$({deploy_config["script-cfg-path"]} {{0}})\n'
-            'check_output $? "${{output}}"\n'
+            'check_command $? "${{output}}"\n'
         )
     )
 

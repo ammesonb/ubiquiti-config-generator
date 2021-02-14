@@ -19,8 +19,8 @@ def handle_deployment(form: dict, deploy_config: dict, access_token: str) -> boo
         print(f"Ignoring deployment action {form['action']}")
         return True
 
-    before = form["payload"]["previous_commit"]
-    after = form["ref"]
+    before = form["deployment"]["payload"]["previous_commit"]
+    after = form["deployment"]["ref"]
 
     metadata = DeployMetadata(
         before,
@@ -48,12 +48,12 @@ def handle_deployment(form: dict, deploy_config: dict, access_token: str) -> boo
         access_token,
         [
             api.Repository(
-                deploy_config["git"]["config-folder"],
+                deploy_config["git"]["diff-config-folder"],
                 form["repository"]["clone_url"],
                 after,
             ),
             api.Repository(
-                deploy_config["git"]["diff-config-folder"],
+                deploy_config["git"]["config-folder"],
                 form["repository"]["clone_url"],
                 before,
             ),
@@ -188,7 +188,6 @@ def send_config_files_to_router(
             metadata.before_sha,
             metadata.after_sha,
             router_connection,
-            group_index,
             commands,
             metadata.deployment_configuration,
             file_name,
