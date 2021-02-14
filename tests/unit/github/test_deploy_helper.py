@@ -286,7 +286,7 @@ def test_generate_bash_commands():
             'check_command $? "${output}"',
             "",
             # pylint: disable=line-too-long
-            'sudo sg vyattacfg -c "/opt/vyatta/sbin/vyatta-config-mgmt.pl --action=commit-confirm --minutes=10"',
+            'sudo sg vyattacfg -c "echo y | /opt/vyatta/sbin/vyatta-config-mgmt.pl --action=commit-confirm --minutes=10"',
             "if [ $? -ne 0 ]; then",
             '  echo "Failed to schedule reboot!"',
             "  kill -s TERM $TOP_PID",

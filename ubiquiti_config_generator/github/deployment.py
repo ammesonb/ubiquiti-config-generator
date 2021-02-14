@@ -106,8 +106,6 @@ def load_and_execute_config_changes(
         router_connection = deploy_helper.get_router_connection(
             metadata.deployment_configuration
         )
-        # Pylint doesn't detect usage in f strings I guess
-        # pylint: disable=unused-variable
         config_deploy_file = send_config_files_to_router(
             router_connection, metadata, command_groups
         )
@@ -118,7 +116,14 @@ def load_and_execute_config_changes(
                 revision2=metadata.after_sha,
             )
         )
-        output = router_connection.exec_command("bash {config_deploy_file}")
+        output = router_connection.exec_command(
+            f"bash {config_deploy_file}", get_pty=True
+        )
+        stdout = output[1].read()
+        stderr = output[2].read()
+        log_command_output(
+            metadata.before_sha, metadata.after_sha, stdout.decode(), stderr.decode()
+        )
 
     except ValueError as error:
         fail_deployment(
@@ -157,8 +162,7 @@ def load_and_execute_config_changes(
         )
         return False
 
-    log_command_output(metadata.before_sha, metadata.after_sha, output)
-    return True
+    return not bool(stderr)
 
 
 def send_config_files_to_router(
@@ -289,12 +293,10 @@ def fail_deployment(
         print("Failed to record deployment execution failure in DB")
 
 
-def log_command_output(before: str, after: str, output: tuple):
+def log_command_output(before: str, after: str, stdout: str, stderr: str):
     """
     .
     """
-    _, stdout, stderr = output
-
     for log in stdout.split("\n") + stderr.split("\n"):
         if not log:
             continue

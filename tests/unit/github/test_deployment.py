@@ -38,11 +38,8 @@ def test_log_command_output(monkeypatch, capsys):
     deployment.log_command_output(
         "beforesha",
         "aftersha",
-        (
-            "",
-            "a message\na failure\n",
-            "details about failure\nmore details about failure\n",
-        ),
+        "a message\na failure\n",
+        "details about failure\nmore details about failure\n",
     )
     assert add_log.counter == 4, "Four logs added"
     printed = capsys.readouterr()
@@ -269,6 +266,18 @@ def test_load_execute_config(monkeypatch):
         return AttributeError("Deploy config missing parameter or something")
 
     # pylint: disable=too-few-public-methods
+    class FakeFile:
+        """
+        A fake file
+        """
+
+        def read(self):
+            """
+            .
+            """
+            return "".encode()
+
+    # pylint: disable=too-few-public-methods
     class FailRouter:
         """
         Fake router
@@ -287,10 +296,11 @@ def test_load_execute_config(monkeypatch):
         Fake router
         """
 
-        def exec_command(self, *args, **kwargs):
+        def exec_command(*args, **kwargs):
             """
             .
             """
+            return (FakeFile(), FakeFile(), FakeFile())
 
     def get_fail_router(*args, **kwargs):
         """

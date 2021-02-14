@@ -52,7 +52,6 @@ class PortGroup(Validatable):
         """
         Returns ports in the group
         """
-        print(self.__ports)
         return self.__ports
 
     def is_consistent(self) -> bool:

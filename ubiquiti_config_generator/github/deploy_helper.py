@@ -296,7 +296,9 @@ def generate_bash_commands(commands: List[str], deploy_config: dict) -> str:
         output += (
             # commit-confirm isn't included in the script wrapper, for reasons??
             '\nsudo sg vyattacfg -c "'
-            "/opt/vyatta/sbin/vyatta-config-mgmt.pl "
+            # Need to echo y to auto-confirm,
+            # since there is a prompt that can't be automated
+            "echo y | /opt/vyatta/sbin/vyatta-config-mgmt.pl "
             "--action=commit-confirm "
             f"--minutes={deploy_config['reboot-after-minutes']}\"\n"
             "if [ $? -ne 0 ]; then\n"
