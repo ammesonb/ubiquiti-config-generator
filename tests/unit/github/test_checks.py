@@ -4,8 +4,8 @@ Tests the Github API functionality
 import time
 from typing import Union
 
-from ubiquiti_config_generator import root_parser
-from ubiquiti_config_generator.github import checks, api, deploy_helper
+from ubiquiti_config_generator import root_parser, file_paths
+from ubiquiti_config_generator.github import checks, push, api, deploy_helper
 from ubiquiti_config_generator.github.api import GREEN_CHECK, RED_CROSS
 from ubiquiti_config_generator.messages import db
 from ubiquiti_config_generator.testing_utils import counter_wrapper
@@ -32,13 +32,25 @@ def test_handle_check_suite(monkeypatch, capsys):
     """
     .
     """
-    checks.handle_check_suite({"action": "completed"}, "abc")
+    checks.handle_check_suite({"action": "in_progress"}, "abc")
     printed = capsys.readouterr()
     assert (
-        printed.out == "Ignoring check_suite action completed\n"
-    ), "Completed is skipped"
+        printed.out == "Ignoring check_suite action in_progress\n"
+    ), "In progress is skipped"
 
     # pylint: disable=unused-argument
+    @counter_wrapper
+    def mock_check_trigger_deploy(form: dict, access_token: str):
+        """
+        .
+        """
+
+    monkeypatch.setattr(checks, "check_trigger_deploy", mock_check_trigger_deploy)
+    checks.handle_check_suite({"action": "completed"}, "abc")
+    assert (
+        mock_check_trigger_deploy.counter == 1
+    ), "Checked if a deploy needed to be triggered"
+
     monkeypatch.setattr(
         api,
         "send_github_request",
@@ -505,3 +517,42 @@ def test_finalize_commit_status(monkeypatch):
         "github.com/commits{/sha}", "ba21dc32", "abc123", "success"
     ), "Request value returned"
     assert make_request.counter == 1, "Request sent"
+
+
+def test_check_trigger_deploy(monkeypatch, capsys):
+    """
+    .
+    """
+    form = {
+        "check_suite": {
+            "head_branch": "main",
+            "conclusion": "failure",
+            "before": "bef",
+            "after": "afe",
+        },
+        "repository": {"deployments_url": "/deployments"},
+    }
+    checks.check_trigger_deploy(form, "abc123")
+    printed = capsys.readouterr()
+    assert (
+        printed.out
+        == "Not attempting to schedule deployment due to check suite failure\n"
+    ), "Output printed"
+
+    # pylint: disable=unused-argument
+    @counter_wrapper
+    def create_deploy(*args, **kwargs):
+        """
+        .
+        """
+
+    monkeypatch.setattr(file_paths, "load_yaml_from_file", lambda *args, **kwargs: {})
+    monkeypatch.setattr(push, "create_deployment", create_deploy)
+
+    form["check_suite"]["conclusion"] = "success"
+    checks.check_trigger_deploy(form, "abc123")
+    printed = capsys.readouterr()
+    assert (
+        printed.out == "Preparing to reattempt deployment for branch main\n"
+    ), "Re-try deploy prints"
+    assert create_deploy.counter == 1, "Create deployment called"

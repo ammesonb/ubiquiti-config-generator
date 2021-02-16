@@ -186,11 +186,21 @@ def create_check(check: Check, cursor: Optional[sqlite3.Cursor] = None) -> bool:
             started_at,
             ended_at
         )
-        VALUES (
+        SELECT
             ?, ?, ?, ?
+        WHERE NOT EXISTS (
+            SELECT *
+            FROM   commit_check
+            WHERE  revision = ?
         )
         """,
-        (check.revision, check.status, check.started_at, check.ended_at,),
+        (
+            check.revision,
+            check.status,
+            check.started_at,
+            check.ended_at,
+            check.revision,
+        ),
     )
 
     return bool(result.lastrowid)
@@ -253,8 +263,13 @@ def create_deployment(
             started_at,
             ended_at
         )
-        VALUES (
+        SELECT
             ?, ?, ?, ?, ?
+        WHERE NOT EXISTS (
+            SELECT *
+            FROM   deployment
+            WHERE  from_revision = ?
+            AND    to_revision = ?
         )
         """,
         (
@@ -263,6 +278,8 @@ def create_deployment(
             deployment.status,
             deployment.started_at,
             deployment.ended_at,
+            deployment.from_revision,
+            deployment.to_revision,
         ),
     )
 

@@ -130,6 +130,7 @@ def test_check(monkeypatch):
 
         assert db.create_check(check1, cursor), "First check added successfully"
         assert get_cursor.counter == 0, "Cursor not retrieved if passed in"
+        assert db.create_check(check1, cursor), "Inserting same check twice works"
         assert db.create_check(check2), "Second check added"
         assert get_cursor.counter == 1, "Cursor retrieved if not passed in"
 
@@ -215,6 +216,9 @@ def test_deployment(monkeypatch):
             deploy1, cursor
         ), "First deployment added successfully"
         assert get_cursor.counter == 0, "Cursor not retrieved if passed in"
+        assert db.create_deployment(
+            deploy1, cursor
+        ), "Same deployment can be added twice"
         assert db.create_deployment(deploy2), "Second deployment added"
         assert get_cursor.counter == 1, "Cursor retrieved if not passed in"
 

@@ -5,9 +5,10 @@ Contains the interactions for GitHub webhooks
 from datetime import datetime, timezone
 import time
 
-from ubiquiti_config_generator import root_parser
-from ubiquiti_config_generator.github import deploy_helper, api
+from ubiquiti_config_generator import root_parser, file_paths
+from ubiquiti_config_generator.github import deploy_helper, api, push
 from ubiquiti_config_generator.github.api import GREEN_CHECK, RED_CROSS
+from ubiquiti_config_generator.github.deployment_metadata import DeployMetadata
 from ubiquiti_config_generator.messages import db
 from ubiquiti_config_generator.messages.check import Check
 from ubiquiti_config_generator.messages.log import Log
@@ -17,7 +18,10 @@ def handle_check_suite(form: dict, access_token: str) -> None:
     """
     Performs needed actions if a check suite event occurs
     """
-    if form["action"] not in ["requested", "rerequested"]:
+    if form["action"] == "completed":
+        check_trigger_deploy(form, access_token)
+        return
+    elif form["action"] not in ["requested", "rerequested"]:
         print("Ignoring check_suite action " + form["action"])
         return
 
@@ -334,3 +338,30 @@ def get_pr_comment(
                 comment += f"- {command_key} {command_value}\n"
 
     return comment.strip()
+
+
+def check_trigger_deploy(form: dict, access_token: str):
+    """
+    Checks if a deploy should be attempted, namely, the check suite was successful
+    and we can detect the ref for which the check suite was run
+    """
+    if form["check_suite"]["conclusion"] == "success":
+        print(
+            "Preparing to reattempt deployment for branch "
+            f"{form['check_suite']['head_branch']}"
+        )
+        metadata = DeployMetadata(
+            form["check_suite"]["before"],
+            form["check_suite"]["after"],
+            None,
+            None,
+            file_paths.load_yaml_from_file("deploy.yaml"),
+        )
+        push.create_deployment(
+            access_token,
+            form["check_suite"]["head_branch"],
+            form["repository"]["deployments_url"],
+            metadata,
+        )
+    else:
+        print("Not attempting to schedule deployment due to check suite failure")
