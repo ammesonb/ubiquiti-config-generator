@@ -32,6 +32,7 @@ HOST_TYPES = {
             type_checker.is_source_destination(port["connection"])
             and type_checker.is_string(port["interface"])
             and type_checker.is_string(port["description"])
+            and type_checker.is_number(port.get("inside-port", 0))
             for port in ports
         ]
     ),
@@ -275,6 +276,9 @@ class Host(Validatable):
                 "inside-address": {"address": self.address},
                 "inbound-interface": hairpin["interface"],
             }
+
+            if "inside-port" in hairpin:
+                nat_rule_properties["inside-address"]["port"] = hairpin["inside-port"]
 
             for conn in ["source", "destination"]:
                 if hairpin["connection"].get(conn, {}):

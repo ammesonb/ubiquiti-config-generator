@@ -264,10 +264,11 @@ def generate_bash_commands(commands: List[str], deploy_config: dict) -> str:
         "function check_command() {\n"
         "  status=$1\n"
         '  output="${2}"\n'
+        '  command="${3}"\n'
         "\n"
         "  if [ $status -ne 0 ]; then\n"
-        '    echo "Failed to execute command:"\n'
-        '    echo "${output}"\n'
+        '    echo "Failed to execute command: ${command}" >&2\n'
+        '    echo "${output}" >&2\n'
         f"    {deploy_config['script-cfg-path']} discard\n"
         "    kill -s TERM $TOP_PID\n"
         "  fi\n"
@@ -284,13 +285,14 @@ def generate_bash_commands(commands: List[str], deploy_config: dict) -> str:
         f"{deploy_config['script-cfg-path']} {{0}}\n"
         if not deploy_config["auto-rollback-on-failure"]
         else (
+            "command={1}\n"
             f'output=$({deploy_config["script-cfg-path"]} {{0}})\n'
-            'check_command $? "${{output}}"\n'
+            'check_command $? "${{output}}" "${{command}}"\n'
         )
     )
 
     for command in commands:
-        output += command_template.format(command)
+        output += command_template.format(command, shlex.quote(command))
 
     if deploy_config["reboot-after-minutes"]:
         output += (

@@ -119,11 +119,9 @@ def load_and_execute_config_changes(
         output = router_connection.exec_command(
             f"bash {config_deploy_file}", get_pty=True
         )
-        stdout = output[1].read()
-        stderr = output[2].read()
-        log_command_output(
-            metadata.before_sha, metadata.after_sha, stdout.decode(), stderr.decode()
-        )
+        stdout = output[1].read().decode()
+        stderr = output[2].read().decode()
+        log_command_output(metadata.before_sha, metadata.after_sha, stdout, stderr)
 
     except ValueError as error:
         fail_deployment(
@@ -162,7 +160,14 @@ def load_and_execute_config_changes(
         )
         return False
 
-    return not bool(stderr)
+    return (
+        # No errors printed
+        not bool(stderr)
+        # No failure in setting value was output
+        and "Failed to execute command" not in stdout
+        # No consistency error in committing changes occurred
+        and "Commit failed" not in stdout
+    )
 
 
 def send_config_files_to_router(

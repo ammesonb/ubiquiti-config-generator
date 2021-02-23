@@ -7,7 +7,7 @@ from typing import Optional
 NORMAL = "silver"
 IN_PROGRESS = "#209cee"
 FAILED = "#ff3860"
-SUCCESS = "23d160"
+SUCCESS = "#23d160"
 WARNING = "#ffff00"
 
 
@@ -17,7 +17,7 @@ def get_color_for_status(status: Optional[str]) -> str:
     if None, consider it new, as in queued or created
     """
     color = NORMAL
-    if status == "pending":
+    if status in ["pending", "in_progress"]:
         color = IN_PROGRESS
     elif status in ["failure", "nonexistent"]:
         color = FAILED
