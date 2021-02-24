@@ -10,7 +10,7 @@ domain-name: internal.home
 start: 10.0.12.100
 stop: 10.0.12.254
 lease: 86400
-interface_name: eth1
+interface-name: eth1
 vif: 20
 duplex: auto
 speed: auto

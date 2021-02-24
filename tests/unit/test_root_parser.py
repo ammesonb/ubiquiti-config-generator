@@ -18,6 +18,8 @@ from ubiquiti_config_generator.nodes import (
 )
 from ubiquiti_config_generator.testing_utils import counter_wrapper
 
+DEFAULT_INTERFACE = {"interface-name": "eth0"}
+
 
 def test_create_from_config(monkeypatch):
     """
@@ -127,7 +129,7 @@ def test_validate(monkeypatch):
         GlobalSettings(),
         [PortGroup("group")],
         ExternalAddresses([]),
-        [Network("Network", None, ".", "1.1.1.1/24", "eth0")],
+        [Network("Network", None, ".", "1.1.1.1/24", **DEFAULT_INTERFACE)],
         NAT("."),
     )
     assert node.is_valid(), "Node is valid"
@@ -157,7 +159,7 @@ def test_validation_failures(monkeypatch):
         GlobalSettings(),
         [PortGroup("group")],
         ExternalAddresses([]),
-        [Network("Network", None, ".", "1.1.1.1/24", "eth0")],
+        [Network("Network", None, ".", "1.1.1.1/24", **DEFAULT_INTERFACE)],
         NAT("."),
     )
     result = node.validation_failures()
@@ -189,7 +191,7 @@ def test_consistency_checks_called(monkeypatch):
         GlobalSettings(),
         [PortGroup("Ports", [80])],
         ExternalAddresses(["1.1.1.1"]),
-        [Network("Network", None, ".", "10.0.0.0/24", "etho0")],
+        [Network("Network", None, ".", "10.0.0.0/24", **DEFAULT_INTERFACE)],
         NAT("."),
     )
 
@@ -212,9 +214,9 @@ def test_network_overlap_consistency(monkeypatch):
         [PortGroup("Ports", [80])],
         ExternalAddresses(["1.1.1.1"]),
         [
-            Network("Network 1", None, ".", "10.0.0.0/24", "eth0"),
-            Network("Network 2", None, ".", "10.0.1.0/24", "eth0"),
-            Network("Network 3", None, ".", "10.0.2.0/24", "eth0"),
+            Network("Network 1", None, ".", "10.0.0.0/24", **DEFAULT_INTERFACE),
+            Network("Network 2", None, ".", "10.0.1.0/24", **DEFAULT_INTERFACE),
+            Network("Network 3", None, ".", "10.0.2.0/24", **DEFAULT_INTERFACE),
         ],
         NAT("."),
     )
@@ -227,13 +229,13 @@ def test_network_overlap_consistency(monkeypatch):
         ExternalAddresses(["1.1.1.1"]),
         [
             # First network contains all the others
-            Network("Network 1", None, ".", "10.0.0.0/22", "eth0"),
+            Network("Network 1", None, ".", "10.0.0.0/22", **DEFAULT_INTERFACE),
             # This network has no collisions inside it
-            Network("Network 2", None, ".", "10.0.1.0/24", "eth0"),
+            Network("Network 2", None, ".", "10.0.1.0/24", **DEFAULT_INTERFACE),
             # This network collides with the next
-            Network("Network 2", None, ".", "10.0.2.0/23", "eth0"),
+            Network("Network 2", None, ".", "10.0.2.0/23", **DEFAULT_INTERFACE),
             # This network has no collisions inside it
-            Network("Network 3", None, ".", "10.0.2.0/24", "eth0"),
+            Network("Network 3", None, ".", "10.0.2.0/24", **DEFAULT_INTERFACE),
         ],
         NAT("."),
     )
@@ -301,8 +303,8 @@ def test_get_commands(monkeypatch):
         [PortGroup("group1"), PortGroup("group2")],
         ExternalAddresses([]),
         [
-            Network("network1", None, ".", "1.1.1.1/24", "eth0"),
-            Network("network2", None, ".", "2.2.2.2/24", "eth0"),
+            Network("network1", None, ".", "1.1.1.1/24", **DEFAULT_INTERFACE),
+            Network("network2", None, ".", "2.2.2.2/24", **DEFAULT_INTERFACE),
         ],
         NAT("."),
     )

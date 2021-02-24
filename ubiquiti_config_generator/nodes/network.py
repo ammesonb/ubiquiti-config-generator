@@ -28,8 +28,8 @@ NETWORK_TYPES = {
     "start": type_checker.is_ip_address,
     "stop": type_checker.is_ip_address,
     # Interface properties
-    "interface_name": type_checker.is_name,
-    "interface_description": type_checker.is_description,
+    "interface-name": type_checker.is_name,
+    "interface-description": type_checker.is_description,
     "duplex": type_checker.is_duplex,
     "speed": type_checker.is_speed,
     "vif": type_checker.is_number,
@@ -45,21 +45,13 @@ class Network(Validatable):
     """
 
     # pylint: disable=too-many-arguments
-    def __init__(
-        self,
-        name: str,
-        nat: NAT,
-        config_path: str,
-        cidr: str,
-        interface_name: str,
-        **kwargs
-    ):
+    def __init__(self, name: str, nat: NAT, config_path: str, cidr: str, **kwargs):
         super().__init__(NETWORK_TYPES, ["name", "cidr", "firewalls", "hosts"])
         self.name = name
         self.nat = nat
         self.cidr = cidr
         self.config_path = config_path
-        self.interface_name = interface_name
+        self.interface_name = kwargs["interface-name"]
         self._add_keyword_attributes(kwargs)
 
         self.firewalls_by_direction = {}
@@ -274,9 +266,9 @@ class Network(Validatable):
         else:
             append_command(address_base + "address dhcp")
 
-        if hasattr(self, "interface_description"):
+        if hasattr(self, "interface-description"):
             # pylint: disable=no-member
-            description = shlex.quote(self.interface_description)
+            description = shlex.quote(getattr(self, "interface-description"))
             if description[0] not in ['"', "'"]:
                 description = "'{0}'".format(description)
 

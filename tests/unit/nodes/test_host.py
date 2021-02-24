@@ -42,7 +42,9 @@ def test_is_consistent(monkeypatch):
     .
     """
     monkeypatch.setattr(Host, "add_firewall_rules", lambda self: None)
-    network = Network("network", None, ".", "192.168.0.0/24", "eth0")
+    network = Network(
+        "network", None, ".", "192.168.0.0/24", **{"interface-name": "eth0"}
+    )
     host = Host("host", network, ".", "192.168.0.1")
     monkeypatch.setattr(secondary_configs, "get_port_groups", lambda config_path: [])
     assert host.is_consistent(), "Empty host is consistent"
@@ -150,7 +152,9 @@ def test_host_firewall_consistency(monkeypatch):
     monkeypatch.setattr(secondary_configs, "get_port_groups", lambda config_path: [])
     monkeypatch.setattr(Host, "add_firewall_rules", lambda self: None)
 
-    network = Network("network", None, ".", "192.168.0.0/24", "eth0")
+    network = Network(
+        "network", None, ".", "192.168.0.0/24", **{"interface-name": "eth0"}
+    )
 
     attrs = {
         "address-groups": ["an-address"],
@@ -205,8 +209,7 @@ def test_host_firewall_consistency(monkeypatch):
         None,
         ".",
         "192.168.0.0/24",
-        "eth0",
-        firewalls=[firewall_in, firewall_out],
+        **{"interface-name": "eth0", "firewalls": [firewall_in, firewall_out],}
     )
     attrs = {
         "address-groups": ["an-address"],
@@ -244,7 +247,9 @@ def test_connection_consistency(monkeypatch):
     )
     monkeypatch.setattr(Host, "add_firewall_rules", lambda self: None)
 
-    network = Network("network", None, ".", "192.168.0.0/24", "eth0")
+    network = Network(
+        "network", None, ".", "192.168.0.0/24", **{"interface-name": "eth0"}
+    )
 
     attributes = {
         "connections": [
@@ -334,7 +339,9 @@ def test_add_firewall_rules():
 
     host = Host(
         "host1",
-        Network("network", NAT("."), ".", "192.168.0.0/24", "eth0"),
+        Network(
+            "network", NAT("."), ".", "192.168.0.0/24", **{"interface-name": "eth0"}
+        ),
         ".",
         "192.168.0.100",
         **host_properties

@@ -10,8 +10,8 @@ domain-name: admin.home
 start: 10.0.11.1
 stop: 10.0.11.254
 lease: 86400
-interface_name: eth1
-interface_description: "Internal interface"
+interface-name: eth1
+interface-description: "Internal interface"
 vif: 10
 duplex: auto
 speed: auto

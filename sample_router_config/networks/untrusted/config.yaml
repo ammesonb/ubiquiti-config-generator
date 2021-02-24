@@ -10,8 +10,8 @@ domain-name: untrusted.home
 start: 10.200.0.100
 stop: 10.200.0.254
 lease: 3600
-interface_name: eth2
-interface_description: "Untrusted interface"
+interface-name: eth2
+interface-description: "Untrusted interface"
 duplex: auto
 speed: auto
 ...
