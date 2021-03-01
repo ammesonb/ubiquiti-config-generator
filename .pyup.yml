@@ -5,4 +5,4 @@ requirements:
   - reqs.txt
 
 close_prs: False
-schedule: "every day"
+schedule: "every week"
