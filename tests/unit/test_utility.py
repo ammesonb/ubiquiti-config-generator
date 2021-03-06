@@ -25,9 +25,7 @@ def test_address_in_subnet():
     assert not utility.address_in_subnet(
         "10.0.0.0/8", "host-in-subnet"
     ), "String address group invalid"
-    assert not utility.address_in_subnet(
-        "10.0.0.0/8", None
-    ), "Empty address is not valid"
+    assert utility.address_in_subnet("10.0.0.0/8", None), "Empty address is valid"
     assert utility.address_in_subnet("10.0.0.0/8", "10.1.0.1"), "In subnet valid"
     assert utility.address_in_subnet("10.0.0.0/8", "10.0.0.1"), "In subnet valid"
     assert utility.address_in_subnet("10.0.0.0/8", "10.255.255.255"), "In subnet valid"
