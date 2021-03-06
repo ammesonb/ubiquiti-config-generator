@@ -92,9 +92,19 @@ class RootNode:
         network_count = len(self.networks)
         for network_index in range(network_count):
             network = self.networks[network_index]
+
+            # Skip any DHCP networks, e.g. for WAN
+            if network.cidr is None:
+                continue
+
             ip_network = ipaddress.ip_network(network.cidr)
             for second_network_index in range(network_index + 1, network_count):
                 second_network = self.networks[second_network_index]
+
+                # Skip any DHCP networks, e.g. for WAN
+                if second_network.cidr is None:
+                    continue
+
                 second_ip_network = ipaddress.ip_network(second_network.cidr)
 
                 if ip_network.overlaps(second_ip_network):

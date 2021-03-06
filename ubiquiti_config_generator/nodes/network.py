@@ -45,7 +45,9 @@ class Network(Validatable):
     """
 
     # pylint: disable=too-many-arguments
-    def __init__(self, name: str, nat: NAT, config_path: str, cidr: str, **kwargs):
+    def __init__(
+        self, name: str, nat: NAT, config_path: str, cidr: str = None, **kwargs
+    ):
         super().__init__(NETWORK_TYPES, ["name", "cidr", "firewalls", "hosts"])
         self.name = name
         self.nat = nat
@@ -138,6 +140,10 @@ class Network(Validatable):
         """
         consistent = True
 
+        if self.cidr is None and hasattr(self, "default-router"):
+            self.add_validation_error("Cannot omit CIDR when default router is set")
+            consistent = False
+
         if not utility.address_in_subnet(
             self.cidr, getattr(self, "default-router", None)
         ):
@@ -208,7 +214,7 @@ class Network(Validatable):
             append_command(base + " authoritative " + self.authoritative)
 
         # First set up basic properties of the subnet
-        subnet_base = base + " subnet " + self.cidr
+        subnet_base = base + " subnet " + str(self.cidr)
         for subnet_attribute in [
             "domain-name",
             "default-router",

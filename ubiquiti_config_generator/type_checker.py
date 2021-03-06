@@ -3,7 +3,7 @@ Contains various constants for use in configurations
 """
 import ipaddress
 import re
-from typing import Union
+from typing import Union, Optional
 
 ENABLE = "enable"
 DISABLE = "disable"
@@ -67,12 +67,16 @@ def is_subnet_mask(mask: Union[str, int]) -> bool:
     return type(mask) in [str, int] and mask.isnumeric() and int(mask) in range(33)
 
 
-def is_cidr(cidr: str) -> bool:
+def is_cidr(cidr: Optional[str]) -> bool:
     """
     Is input of the form <address>/<subnet mask>
     """
+    if cidr is None:
+        return True
+
     if "/" not in cidr:
         return False
+
     address, mask = cidr.split("/")
 
     return is_ip_address(address) and is_subnet_mask(mask)
