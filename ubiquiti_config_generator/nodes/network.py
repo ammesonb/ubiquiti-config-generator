@@ -219,7 +219,6 @@ class Network(Validatable):
             "domain-name",
             "default-router",
             "lease",
-            "start",
             "dns-server",
         ]:
             if hasattr(self, subnet_attribute):
@@ -318,13 +317,6 @@ class Network(Validatable):
                 mapping_base + "{0} ip-address {1}".format(host.name, host.address),
                 mapping_base + "{0} mac-address {1}".format(host.name, host.mac),
             ]
-
-            for group in getattr(host, "address-groups", []):
-                static_commands.append(
-                    "firewall group address-group {0} address {1}".format(
-                        group, host.address
-                    )
-                )
 
             # Add the static mapping commands to the beginning of the ordered list
             host_commands.insert(0, [])

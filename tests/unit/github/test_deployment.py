@@ -144,7 +144,9 @@ def test_send_aggregate_file_to_router(monkeypatch, capsys):
         .
         """
         assert file_data == (
+            'echo "On file 0 of 2..."\n'
             "$(which vbash) /tmp/commands1.sh $$\n"
+            'echo "On file 1 of 2..."\n'
             "$(which vbash) /tmp/commands2.sh $$\n\n"
             "exit 0\n"
         ), "File data correct"

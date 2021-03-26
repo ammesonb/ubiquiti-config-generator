@@ -42,10 +42,14 @@ def test_commands():
         "firewall/all-ping": "enable",
         "system/ntp/server": "0.ubnt.pool.ntp.org",
         "system/host-name": "my router",
+        "system/dns/listen-on": ["eth0", "eth1.1", "eth2.2"],
     }
     settings = GlobalSettings(**attrs)
     assert settings.commands() == [
         "firewall all-ping enable",
         "system ntp server 0.ubnt.pool.ntp.org",
         "system host-name 'my router'",
+        "system dns listen-on eth0",
+        "system dns listen-on eth1.1",
+        "system dns listen-on eth2.2",
     ], "Global settings commands correct"

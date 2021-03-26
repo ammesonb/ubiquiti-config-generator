@@ -55,7 +55,7 @@ def test_deployment_page():
             "          Revision: abcdef..fedcba",
             "        </h2>",
             '        <h2 style="margin-top: 0.5%; float: left; vertical-align: middle; line-height: 50px">',
-            "          Elapsed: 2 minutes, 52.44444394111633 seconds",
+            "          Elapsed: 2 minutes, 52.44 seconds",
             "        </h2>",
             '        <h3 style="margin-top: 0.5%; float: right; vertical-align: middle; line-height: 50px">',
             "          Started at: 2021-01-24 19:35:27.543Z",

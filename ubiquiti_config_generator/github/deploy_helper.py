@@ -208,6 +208,7 @@ def get_commands_to_run(
 
     difference = diff_configurations(current_command_list, previous_command_list)
 
+    apply_diff_only = only_return_diff or deploy_config["apply-difference-only"]
     run_commands = [[]]
 
     # Run deletes in a single batch first, since that _shouldn't_ cause any issues
@@ -220,7 +221,62 @@ def get_commands_to_run(
         else:
             run_commands[0].append(" ".join(["delete", key, shlex.quote(value)]))
 
-    apply_diff_only = only_return_diff or deploy_config["apply-difference-only"]
+    # If applying whole diff, ensure nat and firewalls get cleared, since
+    # rule re-ordering could mean something from a previous rule gets merged
+    # e.g. before:
+    # rule 20: source <addr> port 80
+    # after preserves source, ADDING destination instead of overwriting the original:
+    # rule 20 :destination <addr2> source <addr>
+    if not apply_diff_only:
+        # First get every firewall in the previous config
+        previous_firewall_names = [
+            firewall.name
+            for network in previous_config.networks
+            for firewall in network.firewalls
+        ]
+        # And then restrict the current ones to those in the previous, since
+        # won't need to reset a net-new firewall configuration
+        current_firewall_names = [
+            firewall.name
+            for network in current_config.networks
+            for firewall in network.firewalls
+            if firewall.name in previous_firewall_names
+        ]
+        run_commands[0].extend(
+            [
+                "delete service nat",
+                *[
+                    f"delete firewall name {firewall_name} rule"
+                    for firewall_name in current_firewall_names
+                ],
+            ]
+        )
+
+        # Can have multiple DHCP networks set, but on updates
+        # this will likely overlap (e.g. if shrinking or extending) address pool
+        # need to delete any that are in both previous and current configs
+        previous_dhcp_networks = [
+            network.name
+            for network in previous_config.networks
+            if hasattr(network, "stop") and network.stop
+        ]
+
+        current_dhcp_networks = [
+            network
+            for network in current_config.networks
+            if hasattr(network, "stop")
+            and network.stop
+            and network.name in previous_dhcp_networks
+        ]
+
+        run_commands[0].extend(
+            [
+                f"delete service dhcp-server shared-network-name {network.name} "
+                f"subnet {network.cidr} start"
+                for network in current_dhcp_networks
+            ]
+        )
+
     for command_set in current_ordered_commands:
         run_commands.append([])
 

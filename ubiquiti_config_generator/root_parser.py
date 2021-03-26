@@ -165,8 +165,25 @@ class RootNode:
         global_settings = self.global_settings.commands()
         nat_commands = self.nat.commands()
 
+        # Address groups are used in NAT and firewall rules, which are set prior to
+        # the host being parsed. To avoid chicken and egg problems, just pull out
+        # the address groups here instead, which is sub-optimal for efficiency but
+        # necessary to avoid breaking at runtime
+        address_groups = []
+        for network in self.networks:
+            for host in network.hosts:
+                if hasattr(host, "address-groups"):
+                    address_groups.extend(
+                        [
+                            "firewall group address-group {0} address {1}".format(
+                                group, host.address
+                            )
+                            for group in getattr(host, "address-groups")
+                        ]
+                    )
+
         ordered_commands = [
-            [*external_addresses, *port_groups],
+            [*external_addresses, *port_groups, *address_groups],
             global_settings,
             nat_commands,
         ]

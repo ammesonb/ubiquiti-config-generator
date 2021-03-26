@@ -23,29 +23,31 @@ def test_readable_time():
     """
     .
     """
-    assert print_utils.readable_duration(0) == "0 seconds", "No seconds"
-    assert print_utils.readable_duration(1) == "1 second", "One second"
-    assert print_utils.readable_duration(60) == "1 minute, 0 seconds", "One minute"
+    assert print_utils.readable_duration(0) == "0.00 seconds", "No seconds"
+    assert print_utils.readable_duration(1) == "1.00 second", "One second"
+    assert print_utils.readable_duration(60) == "1 minute, 0.00 seconds", "One minute"
     assert (
-        print_utils.readable_duration(61) == "1 minute, 1 second"
+        print_utils.readable_duration(61) == "1 minute, 1.00 second"
     ), "One minute, one second"
     assert (
-        print_utils.readable_duration(3600) == "1 hour, 0 minutes, 0 seconds"
+        print_utils.readable_duration(3600) == "1 hour, 0 minutes, 0.00 seconds"
     ), "One hour"
     assert (
-        print_utils.readable_duration(3601) == "1 hour, 0 minutes, 1 second"
+        print_utils.readable_duration(3601) == "1 hour, 0 minutes, 1.00 second"
     ), "One hour, one second"
     assert (
-        print_utils.readable_duration(86400) == "1 day, 0 hours, 0 minutes, 0 seconds"
+        print_utils.readable_duration(86400)
+        == "1 day, 0 hours, 0 minutes, 0.00 seconds"
     ), "One day"
     assert (
-        print_utils.readable_duration(86401) == "1 day, 0 hours, 0 minutes, 1 second"
+        print_utils.readable_duration(86401) == "1 day, 0 hours, 0 minutes, 1.00 second"
     ), "One day, one second"
     assert (
-        print_utils.readable_duration(90061) == "1 day, 1 hour, 1 minute, 1 second"
+        print_utils.readable_duration(90061) == "1 day, 1 hour, 1 minute, 1.00 second"
     ), "One of everything"
     assert (
-        print_utils.readable_duration(180122) == "2 days, 2 hours, 2 minutes, 2 seconds"
+        print_utils.readable_duration(180122)
+        == "2 days, 2 hours, 2 minutes, 2.00 seconds"
     ), "Two of everything"
 
 

@@ -6,7 +6,13 @@ import pytest
 
 from ubiquiti_config_generator import root_parser, file_paths
 from ubiquiti_config_generator.github import deploy_helper
-from ubiquiti_config_generator.nodes import GlobalSettings, ExternalAddresses, NAT
+from ubiquiti_config_generator.nodes import (
+    GlobalSettings,
+    ExternalAddresses,
+    NAT,
+    Network,
+    Firewall,
+)
 from ubiquiti_config_generator.testing_utils import counter_wrapper
 
 
@@ -94,9 +100,6 @@ def test_compare_list_commands():
     ]
 
     difference = deploy_helper.diff_configurations(current, previous)
-    print(difference.added)
-    print(difference.removed)
-    print(difference.preserved)
     assert difference.added == {"firewall port": ["1"]}, "Port one added"
     assert difference.removed == {"firewall port": ["4"]}, "Port four removed"
     assert difference.preserved == {
@@ -156,15 +159,102 @@ def test_get_commands_to_run(monkeypatch):
     """
     .
     """
-    monkeypatch.setattr(
-        root_parser.RootNode,
-        "create_from_configs",
-        lambda *args, **kwargs: root_parser.RootNode(
-            GlobalSettings(), [], ExternalAddresses([]), [], NAT(".", [])
-        ),
-    )
-
     # pylint: disable=unused-argument
+    @counter_wrapper
+    def from_config(*args, **kwargs):
+        interface_name = {
+            "interface-name": "eth0",
+            "start": "10.10.0.100",
+            "stop": "10.10.0.254",
+        }
+        if from_config.counter % 2:
+            return root_parser.RootNode(
+                GlobalSettings(),
+                [],
+                ExternalAddresses([]),
+                [
+                    Network(
+                        "network1",
+                        NAT(".", []),
+                        ".",
+                        "10.10.0.0/24",
+                        firewalls=[
+                            Firewall("n1f1", "in", "network1", ".", rules=[]),
+                            Firewall("n1f2", "out", "network1", ".", rules=[]),
+                        ],
+                        hosts=[],
+                        **interface_name
+                    ),
+                    Network(
+                        "network2",
+                        NAT(".", []),
+                        ".",
+                        "10.11.0.0/24",
+                        firewalls=[
+                            Firewall("n2f1", "in", "network2", ".", rules=[]),
+                            Firewall("n2f2", "out", "network2", ".", rules=[]),
+                        ],
+                        hosts=[],
+                        **interface_name
+                    ),
+                    Network(
+                        "network3",
+                        NAT(".", []),
+                        ".",
+                        "10.12.0.0/24",
+                        firewalls=[Firewall("n3f1", "in", "network3", ".", rules=[]),],
+                        hosts=[],
+                        **interface_name
+                    ),
+                ],
+                NAT(".", []),
+            )
+        else:
+            return root_parser.RootNode(
+                GlobalSettings(),
+                [],
+                ExternalAddresses([]),
+                [
+                    Network(
+                        "network4",
+                        NAT(".", []),
+                        ".",
+                        "10.13.0.0/24",
+                        firewalls=[
+                            Firewall("n4f1", "in", "network4", ".", rules=[]),
+                            Firewall("n4f2", "out", "network4", ".", rules=[]),
+                        ],
+                        hosts=[],
+                        **interface_name
+                    ),
+                    Network(
+                        "network2",
+                        NAT(".", []),
+                        ".",
+                        "10.11.0.0/24",
+                        firewalls=[
+                            Firewall("n2f1", "in", "network2", ".", rules=[]),
+                            Firewall("n2f2", "out", "network2", ".", rules=[]),
+                        ],
+                        hosts=[],
+                        **interface_name
+                    ),
+                    Network(
+                        "network3",
+                        NAT(".", []),
+                        ".",
+                        "10.12.0.0/24",
+                        firewalls=[
+                            Firewall("n3f1", "in", "network3", ".", rules=[]),
+                            Firewall("n3f2", "in", "network3", ".", rules=[]),
+                        ],
+                        hosts=[],
+                        **interface_name
+                    ),
+                ],
+                NAT(".", []),
+            )
+
     @counter_wrapper
     def get_commands(self):
         """
@@ -211,6 +301,7 @@ def test_get_commands_to_run(monkeypatch):
             )
         return commands
 
+    monkeypatch.setattr(root_parser.RootNode, "create_from_configs", from_config)
     monkeypatch.setattr(root_parser.RootNode, "get_commands", get_commands)
 
     monkeypatch.setattr(
@@ -234,7 +325,22 @@ def test_get_commands_to_run(monkeypatch):
     )
     commands = deploy_helper.get_commands_to_run(".", ".")
     assert commands == [
-        ["delete firewall port 3", "delete nat lorem", "delete address 192.168.0.1"],
+        [
+            "delete firewall port 3",
+            "delete nat lorem",
+            "delete address 192.168.0.1",
+            "delete service nat",
+            "delete firewall name n2f1 rule",
+            "delete firewall name n2f2 rule",
+            "delete firewall name network2-LOCAL rule",
+            "delete firewall name n3f1 rule",
+            "delete firewall name network3-OUT rule",
+            "delete firewall name network3-LOCAL rule",
+            "delete service dhcp-server shared-network-name network2 "
+            "subnet 10.11.0.0/24 start",
+            "delete service dhcp-server shared-network-name network3 "
+            "subnet 10.12.0.0/24 start",
+        ],
         ["set command bar", "set firewall baz"],
         ["set network foo"],
         ["set description test"],

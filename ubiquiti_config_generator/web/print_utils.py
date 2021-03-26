@@ -87,4 +87,6 @@ def readable_duration(seconds) -> str:
     if minutes or hours or days:
         time_string += "{0} minute{1}, ".format(minutes, "s" if minutes != 1 else "")
 
-    return time_string + "{0} second{1}".format(seconds, "s" if seconds != 1 else "")
+    return time_string + "{0:.2f} second{1}".format(
+        seconds, "s" if seconds != 1 else ""
+    )

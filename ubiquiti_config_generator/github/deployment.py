@@ -251,8 +251,12 @@ def send_aggregate_file_to_router(
     """
     mega_file = ""
 
+    file_index = 0
+    file_count = len(file_names)
     for file_name in file_names:
+        mega_file += f'echo "On file {file_index} of {file_count}..."\n'
         mega_file += f"$(which vbash) {file_name} $$\n"
+        file_index += 1
 
     mega_file += "\nexit 0\n"
 

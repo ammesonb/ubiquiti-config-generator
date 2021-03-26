@@ -458,7 +458,10 @@ def test_add_firewall_rules():
     hairpin_rule_2 = copy.deepcopy(hairpin_rule)
     hairpin_rule_2["number"] = 80
     hairpin_rule_2["description"] = "Hairpin server ports back to host"
-    hairpin_rule_2["destination"] = {"port": "server-ports"}
+    hairpin_rule_2["destination"] = {
+        "address": "external-addresses",
+        "port": "server-ports",
+    }
     hairpin_rule_2["inbound-interface"] = "eth0"
 
     assert host.network.nat.rules == [

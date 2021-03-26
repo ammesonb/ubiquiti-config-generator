@@ -36,6 +36,7 @@ First, there are a few auxiliary schemas to call out up front:
 The bulk of the configuration follows.
 - A network is the parent node, which defines a subnet and interface (and any other dhcp server options).
     - Currently only ONE subnet per network is supported, but it should be fairly trivial to extend the YAML to allow for subnets to be a list
+    - Also limits DHCP ranges to ONE per network, e.g. 200-254, NOT 100-150 + 200-250
     - Interface details are rolled up to be include in the network, including VIF
 - Firewalls belong to the network, and have directions, default actions, and how of a gap to leave when creating rule numbers (e.g. 10, 20, 30, ...).
     - Firewall rules will be automatically created based on host configurations, but can be explicitly defined as well

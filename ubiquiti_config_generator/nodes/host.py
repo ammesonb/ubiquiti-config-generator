@@ -275,6 +275,11 @@ class Host(Validatable):
                 "protocol": "tcp_udp",
                 "inside-address": {"address": self.address},
                 "inbound-interface": hairpin["interface"],
+                # Hairpin should default to the external addresses address group
+                # Otherwise, it will redirect ALL traffic bound for those ports
+                # to this host, which is likely NEVER what is desired
+                # This can be overridden using a setting on the rule, however
+                "destination": {"address": "external-addresses"},
             }
 
             if "inside-port" in hairpin:
@@ -282,7 +287,10 @@ class Host(Validatable):
 
             for conn in ["source", "destination"]:
                 if hairpin["connection"].get(conn, {}):
-                    nat_rule_properties[conn] = hairpin["connection"][conn]
+                    if conn not in nat_rule_properties:
+                        nat_rule_properties[conn] = {}
+
+                    nat_rule_properties[conn].update(hairpin["connection"][conn])
 
             self.network.nat.add_rule(nat_rule_properties)
 

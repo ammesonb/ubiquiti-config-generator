@@ -44,7 +44,20 @@ class GlobalSettings(Validatable):
         """
         Generate commands to set global settings
         """
-        return [
-            setting.replace("/", " ") + " " + shlex.quote(str(getattr(self, setting)))
-            for setting in self._validate_attributes
-        ]
+        command_list = []
+        for setting in self._validate_attributes:
+            setting_path = setting.replace("/", " ")
+            # For lists, make sure we preserve all values
+            # Otherwise, just set the value directly
+            if isinstance(getattr(self, setting), list):
+                command_list.extend(
+                    [
+                        f"{setting_path} " + shlex.quote(str(value))
+                        for value in getattr(self, setting)
+                    ]
+                )
+            else:
+                setting_value = shlex.quote(str(getattr(self, setting)))
+                command_list.append(f"{setting_path} {setting_value}")
+
+        return command_list
