@@ -4,6 +4,7 @@ Contains the interactions for GitHub webhooks
 """
 import secrets
 
+import asyncio
 from fastapi import FastAPI, Depends, Request, Response, HTTPException, status
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -49,7 +50,7 @@ async def on_webhook_action(request: Request) -> Response:
     """
     body = await request.body()
     form = await request.json()
-    process_request(request.headers, body, form)
+    await asyncio.to_thread(process_request, request.headers, body, form)
 
 
 @app.get("/background.png")
