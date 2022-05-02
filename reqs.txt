@@ -1,6 +1,6 @@
 aiofiles==0.8.0
 black==22.3.0
-cryptography==36.0.2
+cryptography==37.0.1
 fastapi==0.75.1
 paramiko==2.10.3
 pre-commit==2.18.1
