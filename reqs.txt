@@ -1,5 +1,5 @@
 aiofiles==0.8.0
-black==22.3.0
+black==22.6.0
 cryptography==37.0.3
 fastapi==0.78.0
 paramiko==2.11.0
