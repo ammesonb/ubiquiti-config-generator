@@ -3,7 +3,7 @@ Configuration path definitions
 """
 import glob
 from os import path
-from typing import List, Union
+from typing import Any, Dict, List
 import yaml
 
 CURRENT_CONFIG_DIRECTORY = "router_config"
@@ -19,7 +19,7 @@ FIREWALL_FOLDER = "firewalls"
 RULE_FOLDER = "rules"
 
 
-def load_yaml_from_file(file_path: str) -> Union[list, dict]:
+def load_yaml_from_file(file_path: str) -> Dict[str, Any]:
     """
     Loads yaml data from a given file
     """

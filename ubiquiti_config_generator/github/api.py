@@ -48,6 +48,10 @@ def get_jwt(deploy_config: dict) -> str:
     """
     Get the JSON web token, needed for basic API access
     """
+    if not deploy_config["git"]["app-id"]:
+        print("No application ID configured!")
+        exit(1)
+
     return jwt.encode(
         {
             # Request starting now
@@ -56,7 +60,7 @@ def get_jwt(deploy_config: dict) -> str:
             "exp": int(time.time()) + 600,
             "iss": deploy_config["git"]["app-id"],
         },
-        open(deploy_config["git"]["private-key-path"], "rb").read(),
+        open(deploy_config["git"]["private-key-path"], "rb").read().decode(),
         "RS256",
     )
 
@@ -75,10 +79,14 @@ def get_access_token(jwt_token: str) -> str:
     return response.json()["token"]
 
 
-def validate_message(deploy_config: dict, body: str, sha: str) -> bool:
+def validate_message(deploy_config: dict, body: bytes, sha: str) -> bool:
     """
     Check if the request body is valid
     """
+    if not deploy_config["git"]["webhook-secret"]:
+        print("No webhook secret configured!")
+        exit(1)
+
     signature = hmac.new(
         deploy_config["git"]["webhook-secret"].encode(), body, hashlib.sha256
     ).hexdigest()
@@ -299,7 +307,7 @@ def update_deployment_state(
     to_revision: str,
     access_token: str,
     state: str,
-    description: str = None,
+    description: Optional[str] = None,
 ) -> bool:
     """
     .
@@ -351,7 +359,7 @@ def get_default_deploy_description(state: str) -> str:
 
 
 def send_github_request(
-    url: str, method: str, access_token: str, json_data: dict = None
+    url: str, method: str, access_token: str, json_data: Optional[dict] = None
 ) -> requests.Response:
     """
     Send a request to github

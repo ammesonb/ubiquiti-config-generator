@@ -3,9 +3,10 @@
 Contains the interactions for GitHub webhooks
 """
 import secrets
+from typing import Any, Dict
 
 import asyncio
-from fastapi import FastAPI, Depends, Request, Response, HTTPException, status
+from fastapi import FastAPI, Depends, Request, HTTPException, status
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 import uvicorn
@@ -44,7 +45,7 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
 
 
 @app.post("/")
-async def on_webhook_action(request: Request) -> Response:
+async def on_webhook_action(request: Request):
     """
     Runs for each webhook action
     """
@@ -124,11 +125,11 @@ def render_deployment(revision1: str, revision2: str) -> str:
     )
 
 
-def process_request(headers: dict, body: str, form: dict) -> Response:
+def process_request(headers: dict, body: bytes, form: dict):
     """
     Perform the actual processing of a request
     """
-    deploy_config = file_paths.load_yaml_from_file("deploy.yaml")
+    deploy_config: Dict[str, Any] = file_paths.load_yaml_from_file("deploy.yaml")
 
     if not api.validate_message(deploy_config, body, headers["x-hub-signature-256"]):
         print("Unauthorized request!")
@@ -160,7 +161,7 @@ def run_listener():
     """
     deploy_config = file_paths.load_yaml_from_file("deploy.yaml")
     uvicorn.run(
-        "webhook_listener:app", port=deploy_config["git"]["webhook-port"], reload=True
+        "webhook_listener:app", host="0.0.0.0", port=deploy_config["git"]["webhook-port"], reload=True
     )
 
 

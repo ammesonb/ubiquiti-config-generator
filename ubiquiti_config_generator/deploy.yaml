@@ -22,7 +22,7 @@ apply-difference-only: False
 auto-rollback-on-failure: True
 # Schedule reboot after N minutes, to ensure you don't accidentally lose access to the router
 # Can be canceled with `shutdown -c`
-reboot-after-minutes: 5
+reboot-after-minutes: 15
 # Save config after commit
 # NOT RECOMMENDED - manually validate the config after deploying to ensure there are no flaws
 # This could lock you out of the router!!!
