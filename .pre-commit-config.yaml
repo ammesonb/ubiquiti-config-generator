@@ -1,13 +1,27 @@
 repos:
   - repo: https://github.com/ambv/black
-    rev: stable
+    rev: 23.3.0
     hooks:
     - id: black
 
   - repo: https://github.com/pycqa/pylint
-    rev: master
+    rev: v3.0.0a6
     hooks:
     - id: pylint
       language: system
       args:
         - --fail-under=9
+
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+        - id: go-fmt
+        - id: go-vet
+        - id: go-lint
+        - id: go-imports
+        - id: go-cyclo
+          args: [-over=15]
+        - id: validate-toml
+        - id: golangci-lint
+        - id: go-unit-tests
+        - id: go-mod-tidy

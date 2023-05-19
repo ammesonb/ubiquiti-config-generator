@@ -5,13 +5,13 @@
 # --no-skip-worktree to add things back
 
 router:
-  address:
-  port:
-  user:
+  address: 10.16.32.1
+  port: 12244
+  user: automated-deploy
   # Either password or keyfile may be specified - keyfile is preferred
   # If both are provided, the password will be used as the passphrase to the keyfile
-  password:
-  keyfile:
+  password: jGCUG!!$K10ft9wYrWMUFs%s38ISGDHk
+  keyfile: /home/brett/.config/router/id
   # The path to store the command files in, will be something like:
   # rev1..rev2-000.sh, rev1..rev2-001.sh, etc for ordered execution
   command-file-path: /tmp
@@ -31,17 +31,23 @@ save-after-commit: False
 # Typically in /opt/vyatta/[s]bin
 script-cfg-path: /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper
 
+logging:
+  user: admin
+  pass: git-log-passwd
+
 git:
   # The ID of the application
-  app-id:
+  app-id: 95943
   # The main GitHub branch
   primary-branch: main
 
   private-key-path: ./ubiquiti-config.pem
+  # The external URL of the webhook, should match the GitHub app configuration
+  webhook-url: https://git.bammeson.com
   # The port to listen on for GitHub webhook stuff
   webhook-port: 54321
   # The secret to use with GitHub webhooks
-  webhook-secret:
+  webhook-secret: 8111c849de34b095f84681b9fd39359b9338c64114be3954c87c85c115a6422f
   # where to clone the repo - need both to ensure a consistent configuration is applied
   # A node may be deleted from the previous config, which simply applying the updated one
   # will not always catch
