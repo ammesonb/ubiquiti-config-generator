@@ -24,11 +24,14 @@ type Node struct {
 	Name string
 	Type string
 	Help string
+	// If the node is a tag, e.g. allows multiple named entries like firewalls
+	// or rule numbers
+	IsTag bool
 	// If can have multiple options, like with ports in a port group
 	// ex. firewall/groups/port-group/node.tag/port/node.def
 	Multi bool
 
-	Children map[string][]Node
+	Children map[string]*Node
 
 	// Can have multiple validations, usually with patterns
 	Constraints []NodeConstraint

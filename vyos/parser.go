@@ -22,7 +22,7 @@ func isNodeDef(templatesPath string) (bool, error) {
 }
 
 // Parse converts the provided templates path into an analyzable list of nodes
-func Parse(templatesPath string) ([]Node, error) {
+func Parse(templatesPath string) (*Node, error) {
 	isNode, err := isNodeDef(templatesPath)
 	if err != nil {
 		return nil, err
