@@ -41,7 +41,7 @@ func TestAddOption(t *testing.T) {
 		addOption("val_help", "u32", helpValues, &allowed, &expression, n)
 		if len(*helpValues) == 0 {
 			t.Errorf("No value added to help descriptions")
-		} else if len(*helpValues) > 0 {
+		} else if len(*helpValues) > 1 {
 			t.Errorf("Too many values added to help descriptions: %#v", *helpValues)
 		} else if (*helpValues)[0] != "u32" {
 			t.Errorf("Got unexpected help value: %s", (*helpValues)[0])
@@ -54,7 +54,7 @@ func TestAddOption(t *testing.T) {
 		}
 	})
 	t.Run("syntax", func(t *testing.T) {
-		addOption("syntax:", "pattern $VAR(@)", helpValues, &allowed, &expression, n)
+		addOption("syntax", "pattern $VAR(@)", helpValues, &allowed, &expression, n)
 		if expression != "pattern $VAR(@)" {
 			t.Errorf("Got unexpected expression value: '%s'", expression)
 		}
