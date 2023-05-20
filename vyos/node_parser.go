@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"unicode"
 )
@@ -59,6 +60,7 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 			if err = parseDefinition(reader, node); err != nil {
 				return nil, err
 			}
+			reader.Close()
 			continue
 		} else if !entry.IsDir() {
 			continue
@@ -79,13 +81,13 @@ func openDefinitionFile(path string) (io.ReadCloser, error) {
 	return os.Open(path)
 }
 
-func parseDefinition(reader io.ReadCloser, node *Node) error {
+func parseDefinition(reader io.Reader, node *Node) error {
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)
 
 	scope := ""
 	value := ""
-	helpValues := &[]string{}
+	helpValues := []string{}
 	allowed := ""
 	expression := ""
 	for scanner.Scan() {
@@ -94,20 +96,20 @@ func parseDefinition(reader io.ReadCloser, node *Node) error {
 		// value needs to be concatenated for each line beginning with space, tab, etc
 		// then when done, assign to relevant part of the node and clear the value array
 
-		if !unicode.IsSpace(rune(line[0])) && strings.Contains(line, ":") {
+		if len(line) == 0 {
+			// Blank lines end scope
+			addOption(scope, value, &helpValues, &allowed, &expression, node)
+			scope = ""
+			value = ""
+		} else if !unicode.IsSpace(rune(line[0])) && strings.Contains(line, ":") {
 			// If a character starts the line and the line contains a colon, this is a new option
 			// Close out the old scope if set, since this one will override it
 			if scope != "" {
-				addOption(scope, value, helpValues, &allowed, &expression, node)
+				addOption(scope, value, &helpValues, &allowed, &expression, node)
 			}
 
 			scope = strings.Split(line, ":")[0]
 			value = line
-		} else if len(line) == 0 {
-			// Blank lines end scope
-			addOption(scope, value, helpValues, &allowed, &expression, node)
-			scope = ""
-			value = ""
 		} else if unicode.IsSpace(rune(line[0])) && strings.Contains(line, ":") {
 			// If a space, then just simply append this line to the option value
 			value += "\n" + line
@@ -128,6 +130,8 @@ func addOption(
 	expression *string,
 	node *Node,
 ) {
+	expr := regexp.MustCompile("^[[:word:]:]+:")
+	value = strings.TrimSpace(expr.ReplaceAllString(value, ""))
 	switch scope {
 	case "tag":
 		node.IsTag = true
@@ -140,7 +144,7 @@ func addOption(
 	case "val_help":
 		*helpValues = append(
 			// For val_help, strip the description after the semi colon
-			*helpValues, strings.TrimSpace(strings.Split(value, ";")[0]),
+			*helpValues, strings.TrimSpace(value),
 		)
 	case "allowed":
 		*allowed = value
