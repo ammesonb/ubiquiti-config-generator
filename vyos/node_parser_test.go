@@ -11,9 +11,11 @@ import (
 // TestAddOption uses basic configuration stubs to verify variables are set properly
 func TestAddOption(t *testing.T) {
 	n := &Node{
-		Name:  "TestNode",
-		IsTag: false,
-		Multi: false,
+		Name:        "TestNode",
+		IsTag:       false,
+		Multi:       false,
+		Children:    map[string]*Node{},
+		Constraints: []NodeConstraint{},
 	}
 	helpValues := &[]string{}
 	allowed := ""
@@ -134,9 +136,11 @@ func TestSimpleDefinition(t *testing.T) {
 	)
 
 	node := &Node{
-		Name:  "TestNode",
-		IsTag: false,
-		Multi: false,
+		Name:        "TestNode",
+		IsTag:       false,
+		Multi:       false,
+		Children:    map[string]*Node{},
+		Constraints: []NodeConstraint{},
 	}
 	err := parseDefinition(ioutil.NopCloser(&buffer), node)
 	if err != nil {
@@ -154,6 +158,16 @@ func TestSimpleDefinition(t *testing.T) {
 	}
 	if node.Help != "Port numbers to include in the group" {
 		t.Errorf("Node should have help %s, got: '%s'", help, node.Help)
+	}
+	if len(node.Constraints) != 1 {
+		t.Errorf("Single constraint should be added for port range, got %d", len(node.Constraints))
+		t.FailNow()
+	}
+	if node.Constraints[0].MinBound != 1 {
+		t.Errorf("Node should have minimum bound of 1, got: %d", node.Constraints[0].MinBound)
+	}
+	if node.Constraints[0].MaxBound != 65535 {
+		t.Errorf("Node should have maximum bound of 65535, got: %d", node.Constraints[0].MaxBound)
 	}
 
 	// TODO: what should constraints look like?

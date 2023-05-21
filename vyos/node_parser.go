@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -45,7 +46,8 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 		IsTag: false,
 		Multi: false,
 
-		Children: make(map[string]*Node),
+		Children:    make(map[string]*Node),
+		Constraints: []NodeConstraint{},
 	}
 
 	// If node.def in entries, update node from this path
@@ -117,6 +119,7 @@ func parseDefinition(reader io.Reader, node *Node) error {
 
 	}
 
+	checkRange(&expression, node)
 	// TODO: constraints
 
 	return nil
@@ -151,5 +154,25 @@ func addOption(
 	case "syntax":
 		*expression = value
 	}
+}
 
+func checkRange(expression *string, node *Node) bool {
+	if expression == nil {
+		return false
+	}
+
+	boundsExpr := regexp.MustCompile(`\(?\$VAR\(@\) ?>= ?([0-9]+)\)? ?&& ?\(?\$VAR\(@\) ?<= ?([0-9]+)\)?`)
+	result := boundsExpr.FindStringSubmatch(*expression)
+	if len(result) > 1 {
+		// Since regex match will always only contain numbers, can assume no errors
+		min, _ := strconv.Atoi(result[1])
+		max, _ := strconv.Atoi(result[2])
+		node.Constraints = append(
+			node.Constraints,
+			NodeConstraint{MinBound: min, MaxBound: max},
+		)
+		return true
+	}
+
+	return false
 }

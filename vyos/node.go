@@ -22,6 +22,16 @@ package vyos
 // Node represents a configurable path or entry in the VyOS template directory
 type Node struct {
 	Name string
+	/* Type of the node, can be:
+	- bool
+	- u32
+	- txt
+	- macaddr
+	- ipv4
+	- ipv6
+	- ipv4net
+	- ipv6net
+	*/
 	Type string
 	Help string
 	// If the node is a tag, e.g. allows multiple named entries like firewalls
@@ -62,4 +72,8 @@ type NodeConstraint struct {
 	// RegEx pattern
 	// ex. zone-policy/zone/node.def
 	Pattern string
+
+	// Minimum/maximum values for the node
+	MinBound int
+	MaxBound int
 }
