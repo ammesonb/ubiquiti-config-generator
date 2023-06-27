@@ -112,14 +112,36 @@ func parseDefinition(reader io.Reader, node *Node) error {
 
 			scope = strings.Split(line, ":")[0]
 			value = line
-		} else if unicode.IsSpace(rune(line[0])) && strings.Contains(line, ":") {
+		} else if unicode.IsSpace(rune(line[0])) && !strings.Contains(line, ":") {
 			// If a space, then just simply append this line to the option value
 			value += "\n" + line
 		}
-
 	}
 
-	checkRange(&expression, node)
+	if len(value) > 0 {
+		addOption(scope, value, &helpValues, &allowed, &expression, node)
+	}
+
+	if strings.Count(expression, ";") > 1 {
+		fmt.Printf("Got extra semicolons in value: %s\n", expression)
+	}
+
+	if expression == "" {
+		return nil
+	}
+
+	helpSplit := regexp.MustCompile(` ?; ?\\?`)
+	parts := helpSplit.Split(expression, 2)
+	expr := strings.TrimSpace(parts[0])
+	help := strings.TrimSpace(parts[1])
+
+	done := false
+	done = done || checkRange(expr, help, node)
+	done = done || addPattern(expr, help, node)
+
+	if !done {
+		fmt.Printf("Expression did not match any parser: %s (help: %s)\n", expr, help)
+	}
 	// TODO: constraints
 
 	return nil
@@ -156,23 +178,45 @@ func addOption(
 	}
 }
 
-func checkRange(expression *string, node *Node) bool {
-	if expression == nil {
-		return false
-	}
-
+func checkRange(expression string, help string, node *Node) bool {
+	/*
+		The expression captures something of the form VAR >= min && VAR <= max
+		But spaces are sometimes omitted, and rarely both terms have parens around them
+		(VAR>=min)&&(VAR<=max)
+	*/
 	boundsExpr := regexp.MustCompile(`\(?\$VAR\(@\) ?>= ?([0-9]+)\)? ?&& ?\(?\$VAR\(@\) ?<= ?([0-9]+)\)?`)
-	result := boundsExpr.FindStringSubmatch(*expression)
+	result := boundsExpr.FindStringSubmatch(expression)
 	if len(result) > 1 {
 		// Since regex match will always only contain numbers, can assume no errors
 		min, _ := strconv.Atoi(result[1])
 		max, _ := strconv.Atoi(result[2])
 		node.Constraints = append(
 			node.Constraints,
-			NodeConstraint{MinBound: min, MaxBound: max},
+			NodeConstraint{
+				FailureReason: help,
+				MinBound:      min,
+				MaxBound:      max,
+			},
 		)
 		return true
 	}
 
 	return false
+}
+
+func addPattern(expression string, help string, node *Node) bool {
+	if !strings.Contains(expression, "syntax:expression: pattern ") {
+		return false
+	}
+
+	node.Constraints = append(node.Constraints,
+		NodeConstraint{
+			FailureReason: help,
+			Pattern: strings.Split(
+				strings.Split(expression, "pattern ")[1],
+				"\"",
+			)[1],
+		})
+
+	return true
 }

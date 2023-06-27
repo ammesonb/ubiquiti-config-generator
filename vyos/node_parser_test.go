@@ -114,17 +114,58 @@ func constructDefinition(
 	return value
 }
 
+func createTestNode(isTag bool, isMulti bool, options []string) (*Node, error) {
+	node := &Node{
+		Name:        "TestNode",
+		IsTag:       isTag,
+		Multi:       isMulti,
+		Children:    map[string]*Node{},
+		Constraints: []NodeConstraint{},
+	}
+
+	var buffer bytes.Buffer
+	for _, option := range options {
+		buffer.Truncate(0)
+		buffer.WriteString(option)
+
+		err := parseDefinition(ioutil.NopCloser(&buffer), node)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return node, nil
+}
+
+func validateNode(node *Node, isTag bool, isMulti bool, ntype string, help string) []string {
+	errors := []string{}
+
+	if node.IsTag != isTag {
+		errors = append(errors, fmt.Sprintf("Node tag should be %t, got %t", isTag, node.IsTag))
+	}
+	if node.Multi != isMulti {
+		errors = append(errors, fmt.Sprintf("Node multi should be %t, got %t", isMulti, node.Multi))
+	}
+	if node.Type != ntype {
+		errors = append(errors, fmt.Sprintf("Node should have type %s, got: '%s'", ntype, node.Type))
+	}
+	if node.Help != help {
+		errors = append(errors, fmt.Sprintf("Node should have help %s, got: '%s'", help, node.Help))
+	}
+
+	return errors
+}
+
 // TestSimpleDefinition checks basic type/help attributes for a node
 func TestSimpleDefinition(t *testing.T) {
 	ntype := "u32"
 	help := "Port numbers to include in the group"
 	val := "u32:1-65535 ;\\\nA port number to include"
-	expr := "syntax:expression: ($VAR(@) >= 1 && $VAR(@) <= 65535) ; \\\n\"Must be a valid port number\""
+	expr := "syntax:expression: ($VAR(@) >= 1 && $VAR(@) <= 65535) ; \\\n    \"Must be a valid port number\""
 	tr := true
 
-	var buffer bytes.Buffer
-	buffer.WriteString(
-		constructDefinition(
+	node, err := createTestNode(false, false,
+		[]string{constructDefinition(
 			&ntype,
 			&help,
 			&tr,
@@ -132,43 +173,75 @@ func TestSimpleDefinition(t *testing.T) {
 			[]string{val},
 			nil,
 			&expr,
-		),
+		)},
 	)
 
-	node := &Node{
-		Name:        "TestNode",
-		IsTag:       false,
-		Multi:       false,
-		Children:    map[string]*Node{},
-		Constraints: []NodeConstraint{},
-	}
-	err := parseDefinition(ioutil.NopCloser(&buffer), node)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	if !node.IsTag {
-		t.Errorf("Expected node to have IsTag set")
+	for _, err := range validateNode(node, tr, tr, ntype, help) {
+		t.Error(err)
 	}
-	if !node.Multi {
-		t.Errorf("Expected node to have Multi set")
-	}
-	if node.Type != ntype {
-		t.Errorf("Node should have type %s, got: '%s'", ntype, node.Type)
-	}
-	if node.Help != "Port numbers to include in the group" {
-		t.Errorf("Node should have help %s, got: '%s'", help, node.Help)
-	}
+
 	if len(node.Constraints) != 1 {
 		t.Errorf("Single constraint should be added for port range, got %d", len(node.Constraints))
 		t.FailNow()
 	}
 	if node.Constraints[0].MinBound != 1 {
-		t.Errorf("Node should have minimum bound of 1, got: %d", node.Constraints[0].MinBound)
+		t.Errorf("Node constraint should have minimum bound of 1, got: %d", node.Constraints[0].MinBound)
 	}
 	if node.Constraints[0].MaxBound != 65535 {
-		t.Errorf("Node should have maximum bound of 65535, got: %d", node.Constraints[0].MaxBound)
+		t.Errorf("Node constraint should have maximum bound of 65535, got: %d", node.Constraints[0].MaxBound)
+	}
+	if node.Constraints[0].FailureReason != "\"Must be a valid port number\"" {
+		t.Errorf("Got incorrect node constraint failure reason, got: %s", node.Constraints[0].FailureReason)
+	}
+}
+
+func TestPatternDefinition(t *testing.T) {
+	ntype := "txt"
+	help := "Zone name"
+	pattern := "^[[:print:]]{1,18}$"
+	reason := "\"Zone name must be 18 characters or less\""
+	expr := fmt.Sprintf(`syntax:expression: pattern $VAR(@) "%s" ;
+                %s`, pattern, reason)
+	tr := true
+	fa := false
+
+	node, err := createTestNode(
+		tr,
+		fa,
+		[]string{constructDefinition(
+			&ntype,
+			&help,
+			&tr,
+			&fa,
+			[]string{},
+			nil,
+			&expr,
+		)},
+	)
+
+	if err != nil {
+		t.Error(err.Error())
 	}
 
-	// TODO: what should constraints look like?
+	for _, err := range validateNode(node, tr, fa, ntype, help) {
+		t.Error(err)
+	}
+
+	if len(node.Constraints) != 1 {
+		t.Errorf("Single constraint should be added for pattern, got %d", len(node.Constraints))
+		t.FailNow()
+	}
+
+	if node.Constraints[0].Pattern != pattern {
+		t.Errorf("Pattern was incorrect, got '%s'", node.Constraints[0].Pattern)
+	}
+
+	if node.Constraints[0].FailureReason != reason {
+		t.Errorf("Failure reason was incorrect, got '%s'", node.Constraints[0].FailureReason)
+	}
+
 }

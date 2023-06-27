@@ -17,6 +17,7 @@ package vyos
 		* may also be a command (or local -a array, same thing)?
 			e.g. interfaces/switch/node.tag/redirect/node.def
 			e.g. interfaces/switch/node.tag/switch-port/interface/node.def
+	* $VAR(@) needs to be replaced for both commands/expressions/etc and help text
 */
 
 // Node represents a configurable path or entry in the VyOS template directory
@@ -70,6 +71,10 @@ type NodeConstraint struct {
 	Command string
 
 	// RegEx pattern
+	// Note that it fails if it does NOT match this pattern
+	// e.g. pattern looks for cases where the value does not start with a "-", but
+	//      that is actually indicating the value is VALID, so if we want to detect
+	//			invalid instances we need to negate that check
 	// ex. zone-policy/zone/node.def
 	Pattern string
 
