@@ -273,7 +273,7 @@ func TestSimpleDefinition(t *testing.T) {
 	ntype := "u32"
 	help := "Port numbers to include in the group"
 	val := "u32:1-65535 ;\\\nA port number to include"
-	expr := "syntax:expression: ($VAR(@) >= 1 && $VAR(@) <= 65535) ; \\\n    \"Must be a valid port number\""
+	expr := ""
 
 	node, err := createTestTagMultiNode(
 		&ntype,
@@ -291,26 +291,53 @@ func TestSimpleDefinition(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(node.Constraints) != 1 {
-		t.Errorf("Single constraint should be added for port range, got %d", len(node.Constraints))
-		t.FailNow()
+	if len(node.Constraints) > 0 {
+		t.Error("No constraints expected")
 	}
-	if node.Constraints[0].MinBound != 1 {
-		t.Errorf("Node constraint should have minimum bound of 1, got: %d", node.Constraints[0].MinBound)
-	}
-	if node.Constraints[0].MaxBound != 65535 {
-		t.Errorf("Node constraint should have maximum bound of 65535, got: %d", node.Constraints[0].MaxBound)
-	}
-	if node.Constraints[0].FailureReason != `"Must be a valid port number"` {
-		t.Errorf("Got incorrect node constraint failure reason, got: %s", node.Constraints[0].FailureReason)
-	}
+
 }
 
 func TestConstraints(t *testing.T) {
+	t.Run("Expression Bounds", testExprBounds)
 	t.Run("Pattern", testPattern)
 	t.Run("Exec", testExec)
 	t.Run("ExecNewline", testNewlineExec)
 	t.Run("Expression List", testExprList)
+}
+
+func testExprBounds(t *testing.T) {
+	ntype := "txt"
+	help := "Port number"
+	reason := `"Must be a valid port number"`
+	expr := fmt.Sprintf("syntax:expression: ($VAR(@) >= 1 && $VAR(@) <= 65535) ; \\\n    %s", reason)
+	node, err := createTestTagNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	for _, err := range validateTagNode(node, ntype, help) {
+		t.Error(err)
+	}
+
+	if node.Constraints[0].MinBound != 1 {
+		t.Errorf("Node constraint should have minimum bound of 1, got: %d", node.Constraints[0].MinBound)
+		t.FailNow()
+	}
+
+	if node.Constraints[0].MaxBound != 65535 {
+		t.Errorf("Node constraint should have maximum bound of 65535, got: %d", node.Constraints[0].MaxBound)
+	}
+	if node.Constraints[0].FailureReason != reason {
+		t.Errorf("Failure reason for expression bounds was incorrect, got '%s'", node.Constraints[0].FailureReason)
+	}
+
 }
 
 func testPattern(t *testing.T) {
