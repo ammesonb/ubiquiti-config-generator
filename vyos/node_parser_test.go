@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -80,8 +82,8 @@ func getBlank() string {
 func constructDefinition(
 	ntype *string,
 	help *string,
-	isTag *bool,
-	isMulti *bool,
+	isTag bool,
+	isMulti bool,
 	helpValues []string,
 	allowed *string,
 	syntax *string,
@@ -93,10 +95,10 @@ func constructDefinition(
 	if help != nil {
 		value += fmt.Sprintf("help: %s\n%s", *help, getBlank())
 	}
-	if isTag != nil && *isTag {
+	if isTag {
 		value += fmt.Sprintf("tag:\n%s", getBlank())
 	}
-	if isMulti != nil && *isMulti {
+	if isMulti {
 		value += fmt.Sprintf("multi:\n%s", getBlank())
 	}
 	if len(helpValues) > 0 {
@@ -114,7 +116,11 @@ func constructDefinition(
 	return value
 }
 
-func createTestNode(isTag bool, isMulti bool, options []string) (*Node, error) {
+func createTestNode(
+	isTag bool,
+	isMulti bool,
+	options []string,
+) (*Node, error) {
 	node := &Node{
 		Name:        "TestNode",
 		IsTag:       isTag,
@@ -137,6 +143,98 @@ func createTestNode(isTag bool, isMulti bool, options []string) (*Node, error) {
 	return node, nil
 }
 
+func createTestNormalNode(
+	ntype *string,
+	help *string,
+	helpValues []string,
+	allowed *string,
+	syntax *string,
+) (*Node, error) {
+	return createTestNode(
+		false,
+		false,
+		[]string{
+			constructDefinition(
+				ntype,
+				help,
+				false,
+				false,
+				helpValues,
+				allowed,
+				syntax,
+			),
+		})
+}
+
+func createTestTagNode(
+	ntype *string,
+	help *string,
+	helpValues []string,
+	allowed *string,
+	syntax *string,
+) (*Node, error) {
+	return createTestNode(
+		true,
+		false,
+		[]string{
+			constructDefinition(
+				ntype,
+				help,
+				true,
+				false,
+				helpValues,
+				allowed,
+				syntax,
+			),
+		})
+}
+
+func createTestMultiNode(
+	ntype *string,
+	help *string,
+	helpValues []string,
+	allowed *string,
+	syntax *string,
+) (*Node, error) {
+	return createTestNode(
+		false,
+		true,
+		[]string{
+			constructDefinition(
+				ntype,
+				help,
+				false,
+				true,
+				helpValues,
+				allowed,
+				syntax,
+			),
+		})
+}
+
+func createTestTagMultiNode(
+	ntype *string,
+	help *string,
+	helpValues []string,
+	allowed *string,
+	syntax *string,
+) (*Node, error) {
+	return createTestNode(
+		true,
+		true,
+		[]string{
+			constructDefinition(
+				ntype,
+				help,
+				true,
+				true,
+				helpValues,
+				allowed,
+				syntax,
+			),
+		})
+}
+
 func validateNode(node *Node, isTag bool, isMulti bool, ntype string, help string) []string {
 	errors := []string{}
 
@@ -156,31 +254,40 @@ func validateNode(node *Node, isTag bool, isMulti bool, ntype string, help strin
 	return errors
 }
 
+func validateNormalNode(node *Node, ntype string, help string) []string {
+	return validateNode(node, false, false, ntype, help)
+}
+
+func validateTagNode(node *Node, ntype string, help string) []string {
+	return validateNode(node, true, false, ntype, help)
+}
+func validateMultiNode(node *Node, ntype string, help string) []string {
+	return validateNode(node, false, true, ntype, help)
+}
+func validateTagMultiNode(node *Node, ntype string, help string) []string {
+	return validateNode(node, true, true, ntype, help)
+}
+
 // TestSimpleDefinition checks basic type/help attributes for a node
 func TestSimpleDefinition(t *testing.T) {
 	ntype := "u32"
 	help := "Port numbers to include in the group"
 	val := "u32:1-65535 ;\\\nA port number to include"
 	expr := "syntax:expression: ($VAR(@) >= 1 && $VAR(@) <= 65535) ; \\\n    \"Must be a valid port number\""
-	tr := true
 
-	node, err := createTestNode(false, false,
-		[]string{constructDefinition(
-			&ntype,
-			&help,
-			&tr,
-			&tr,
-			[]string{val},
-			nil,
-			&expr,
-		)},
+	node, err := createTestTagMultiNode(
+		&ntype,
+		&help,
+		[]string{val},
+		nil,
+		&expr,
 	)
 
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	for _, err := range validateNode(node, tr, tr, ntype, help) {
+	for _, err := range validateTagMultiNode(node, ntype, help) {
 		t.Error(err)
 	}
 
@@ -194,40 +301,39 @@ func TestSimpleDefinition(t *testing.T) {
 	if node.Constraints[0].MaxBound != 65535 {
 		t.Errorf("Node constraint should have maximum bound of 65535, got: %d", node.Constraints[0].MaxBound)
 	}
-	if node.Constraints[0].FailureReason != "\"Must be a valid port number\"" {
+	if node.Constraints[0].FailureReason != `"Must be a valid port number"` {
 		t.Errorf("Got incorrect node constraint failure reason, got: %s", node.Constraints[0].FailureReason)
 	}
 }
 
-func TestPatternDefinition(t *testing.T) {
+func TestConstraints(t *testing.T) {
+	t.Run("Pattern", testPattern)
+
+	t.Run("Exec", testExec)
+
+	t.Run("Expression List", testExprList)
+}
+
+func testPattern(t *testing.T) {
 	ntype := "txt"
 	help := "Zone name"
 	pattern := "^[[:print:]]{1,18}$"
-	reason := "\"Zone name must be 18 characters or less\""
+	reason := `"Zone name must be 18 characters or less"`
 	expr := fmt.Sprintf(`syntax:expression: pattern $VAR(@) "%s" ;
                 %s`, pattern, reason)
-	tr := true
-	fa := false
-
-	node, err := createTestNode(
-		tr,
-		fa,
-		[]string{constructDefinition(
-			&ntype,
-			&help,
-			&tr,
-			&fa,
-			[]string{},
-			nil,
-			&expr,
-		)},
+	node, err := createTestTagNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
 	)
 
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	for _, err := range validateNode(node, tr, fa, ntype, help) {
+	for _, err := range validateTagNode(node, ntype, help) {
 		t.Error(err)
 	}
 
@@ -241,7 +347,87 @@ func TestPatternDefinition(t *testing.T) {
 	}
 
 	if node.Constraints[0].FailureReason != reason {
-		t.Errorf("Failure reason was incorrect, got '%s'", node.Constraints[0].FailureReason)
+		t.Errorf("Failure reason for pattern was incorrect, got '%s'", node.Constraints[0].FailureReason)
 	}
 
+}
+
+func testExec(t *testing.T) {
+	ntype := "txt"
+	help := "Firewall name"
+	command := `/usr/sbin/ubnt-fw validate-fw-name '$VAR(@)'`
+	expr := fmt.Sprintf(`syntax:expression: exec "%s"`, command)
+	reason := ""
+
+	node, err := createTestNormalNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	for _, err := range validateNormalNode(node, ntype, help) {
+		t.Error(err)
+	}
+
+	if len(node.Constraints) != 1 {
+		t.Errorf("Single constraint should be added for exec, got %d", len(node.Constraints))
+		t.FailNow()
+	}
+
+	if node.Constraints[0].Command != command {
+		t.Errorf("Exec command is incorrect, got %s", node.Constraints[0].Command)
+	}
+
+	if node.Constraints[0].FailureReason != reason {
+		t.Errorf("Failure reason for exec command was incorrect, got '%s'", node.Constraints[0].FailureReason)
+	}
+}
+
+func testExprList(t *testing.T) {
+	ntype := "txt"
+	help := "Log mode, reference strongSwan documentation"
+	options := []string{
+		"dmn", "mgr", "ike", "chd", "job", "cfg", "knl", "net", "asn", "enc", "lib", "esp", "tls", "tnc", "imc", "imv", "pts",
+	}
+	reason := `"must be one of the following: dmn, mgr, ike, chd, job, cfg, knl, net, asn, enc, lib, esp, tls, tnc, imc, imv, pts"`
+	expr := fmt.Sprintf(
+		`syntax:expression: $VAR(@) in "%s"; %s`,
+		strings.Join(options, `", "`),
+		reason,
+	)
+
+	node, err := createTestMultiNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	for _, err := range validateMultiNode(node, ntype, help) {
+		t.Error(err)
+	}
+
+	if len(node.Constraints) != 1 {
+		t.Errorf("Single constraint should be added for list, got %d", len(node.Constraints))
+		t.FailNow()
+	}
+
+	if !reflect.DeepEqual(node.Constraints[0].Allowed, options) {
+		t.Errorf("Allowed options are incorrect, got +%v", node.Constraints[0].Allowed)
+	}
+
+	if node.Constraints[0].FailureReason != reason {
+		t.Errorf("Failure reason for expr list was incorrect, got '%s'", node.Constraints[0].FailureReason)
+	}
 }

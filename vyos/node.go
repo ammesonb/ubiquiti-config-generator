@@ -17,6 +17,8 @@ package vyos
 		* may also be a command (or local -a array, same thing)?
 			e.g. interfaces/switch/node.tag/redirect/node.def
 			e.g. interfaces/switch/node.tag/switch-port/interface/node.def
+		* However, in some cases may not yet be defined yet - e.g. firewall rule group address
+		  where this now creates a new group
 	* $VAR(@) needs to be replaced for both commands/expressions/etc and help text
 */
 

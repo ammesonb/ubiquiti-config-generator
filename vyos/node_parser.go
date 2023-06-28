@@ -122,29 +122,37 @@ func parseDefinition(reader io.Reader, node *Node) error {
 		addOption(scope, value, &helpValues, &allowed, &expression, node)
 	}
 
+	if !parseConstraints(node, expression) {
+		fmt.Printf("Expression did not match any parser: %s\n", expression)
+	}
+
+	return nil
+}
+
+func parseConstraints(node *Node, expression string) bool {
 	if strings.Count(expression, ";") > 1 {
 		fmt.Printf("Got extra semicolons in value: %s\n", expression)
 	}
 
 	if expression == "" {
-		return nil
+		return true
 	}
 
 	helpSplit := regexp.MustCompile(` ?; ?\\?`)
 	parts := helpSplit.Split(expression, 2)
 	expr := strings.TrimSpace(parts[0])
-	help := strings.TrimSpace(parts[1])
+	help := ""
+	if len(parts) > 1 {
+		help = strings.TrimSpace(parts[1])
+	}
 
 	done := false
 	done = done || checkRange(expr, help, node)
 	done = done || addPattern(expr, help, node)
+	done = done || addExec(expr, help, node)
+	done = done || addExprList(expr, help, node)
 
-	if !done {
-		fmt.Printf("Expression did not match any parser: %s (help: %s)\n", expr, help)
-	}
-	// TODO: constraints
-
-	return nil
+	return done
 }
 
 func addOption(
@@ -216,6 +224,51 @@ func addPattern(expression string, help string, node *Node) bool {
 				strings.Split(expression, "pattern ")[1],
 				"\"",
 			)[1],
+		})
+
+	return true
+}
+
+func addExec(expression string, help string, node *Node) bool {
+	if !strings.Contains(expression, "syntax:expression: exec ") {
+		return false
+	}
+
+	node.Constraints = append(node.Constraints,
+		NodeConstraint{
+			// Help will frequently be blank for commands since the command will output
+			// the failure reason
+			FailureReason: help,
+			// Commands are usually contained in quotes on the left and right,
+			// so strip those
+			Command: strings.Trim(
+				strings.Split(expression, "exec ")[1],
+				"\"",
+			),
+		})
+
+	return true
+}
+
+func addExprList(expression string, help string, node *Node) bool {
+	if !strings.Contains(expression, "syntax:expression: $VAR(@) in ") {
+		return false
+	}
+
+	options := make([]string, 0)
+
+	optionRegex := regexp.MustCompile(`"([[:alnum:]]+)"`)
+	for _, option := range optionRegex.FindAllStringSubmatch(
+		strings.Split(expression, " in ")[1],
+		-1,
+	) {
+		options = append(options, option[1])
+	}
+
+	node.Constraints = append(node.Constraints,
+		NodeConstraint{
+			FailureReason: help,
+			Allowed:       options,
 		})
 
 	return true
