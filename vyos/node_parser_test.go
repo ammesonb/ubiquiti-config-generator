@@ -308,9 +308,8 @@ func TestSimpleDefinition(t *testing.T) {
 
 func TestConstraints(t *testing.T) {
 	t.Run("Pattern", testPattern)
-
 	t.Run("Exec", testExec)
-
+	t.Run("ExecNewline", testNewlineExec)
 	t.Run("Expression List", testExprList)
 }
 
@@ -359,6 +358,45 @@ func testExec(t *testing.T) {
 	expr := fmt.Sprintf(`syntax:expression: exec "%s"`, command)
 	reason := ""
 
+	node, err := createTestTagNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	for _, err := range validateTagNode(node, ntype, help) {
+		t.Error(err)
+	}
+
+	if len(node.Constraints) != 1 {
+		t.Errorf("Single constraint should be added for exec, got %d", len(node.Constraints))
+		t.FailNow()
+	}
+
+	if node.Constraints[0].Command != command {
+		t.Errorf("Exec command is incorrect, got %s", node.Constraints[0].Command)
+	}
+
+	if node.Constraints[0].FailureReason != reason {
+		t.Errorf("Failure reason for exec command was incorrect, got '%s'", node.Constraints[0].FailureReason)
+	}
+}
+
+func testNewlineExec(t *testing.T) {
+	ntype := "u32"
+	help := "Max number of entries to keep in the ARP cache"
+	command := `                               \
+        /opt/vyatta/sbin/vyatta-update-arp-params       \
+                'syntax-check' 'table-size' '$VAR(@)' 'ipv4'`
+	expr := fmt.Sprintf(`syntax:expression: exec "%s"`, command)
+	reason := ""
+
 	node, err := createTestNormalNode(
 		&ntype,
 		&help,
@@ -380,7 +418,7 @@ func testExec(t *testing.T) {
 		t.FailNow()
 	}
 
-	if node.Constraints[0].Command != command {
+	if node.Constraints[0].Command != strings.TrimSpace(command) {
 		t.Errorf("Exec command is incorrect, got %s", node.Constraints[0].Command)
 	}
 
@@ -388,7 +426,6 @@ func testExec(t *testing.T) {
 		t.Errorf("Failure reason for exec command was incorrect, got '%s'", node.Constraints[0].FailureReason)
 	}
 }
-
 func testExprList(t *testing.T) {
 	ntype := "txt"
 	help := "Log mode, reference strongSwan documentation"

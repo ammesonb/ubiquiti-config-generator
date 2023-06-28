@@ -241,10 +241,10 @@ func addExec(expression string, help string, node *Node) bool {
 			FailureReason: help,
 			// Commands are usually contained in quotes on the left and right,
 			// so strip those
-			Command: strings.Trim(
-				strings.Split(expression, "exec ")[1],
+			Command: strings.TrimSpace(strings.Trim(
+				strings.TrimSpace(strings.Split(expression, "exec ")[1]),
 				"\"",
-			),
+			)),
 		})
 
 	return true
