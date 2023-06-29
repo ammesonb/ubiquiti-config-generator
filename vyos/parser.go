@@ -8,6 +8,7 @@ import (
 )
 
 func isNodeDef(templatesPath string) (bool, error) {
+	// Uses arbitrary firewall node.def file to determine if running using nodes or XML
 	info, err := os.Stat(filepath.Join(templatesPath, "firewall", "node.def"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {

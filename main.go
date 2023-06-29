@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+
+	"github.com/ammesonb/ubiquiti-config-generator.git/vyos"
 )
 
 /* TODO:
@@ -17,4 +19,19 @@ import (
  */
 func main() {
 	fmt.Println("vim-go")
+
+	configData, err := ReadConfig("./config.yaml")
+	if err != nil {
+		panic(err)
+	}
+
+	config, err := LoadConfig(configData)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = vyos.Parse(config.TemplatesDir)
+	if err != nil {
+		panic(err)
+	}
 }
