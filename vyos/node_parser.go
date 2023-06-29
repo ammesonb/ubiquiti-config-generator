@@ -289,7 +289,7 @@ func addExprList(expression string, help string, node *Node) bool {
 }
 
 func addAllowedCommand(expression string, help string, node *Node) bool {
-	if !strings.Contains(expression, "allowed: ") {
+	if !strings.Contains(expression, "allowed:") {
 		return false
 	}
 
@@ -297,8 +297,10 @@ func addAllowedCommand(expression string, help string, node *Node) bool {
 
 	node.Constraints = append(node.Constraints,
 		NodeConstraint{
-			FailureReason:  help,
-			OptionsCommand: stripCommand(command),
+			FailureReason: help,
+			// Allowed commands appear to not use double quotes, so only need to strip
+			// spaces, not backslashes and other punctuation
+			OptionsCommand: strings.TrimSpace(command),
 		})
 
 	return true

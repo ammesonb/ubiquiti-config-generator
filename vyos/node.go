@@ -67,7 +67,6 @@ type NodeConstraint struct {
 	// ex. allowed: interfaces/switch/node.tag/redirect.node.def - TODO also has syntax expression, not sure how to represent
 	// ex. allowed: interfaces/switch/node.tag/switch-port/interface/node.def
 	// ex. allowed: firewall/name/node.tag/rules/node.tag/protocol/node.def
-	// ex. allowed: service/nat/rule/node.tag/destination/group/port-group/node.def - this one may have new entries
 	OptionsCommand string
 
 	// The VyOS command to run to validate

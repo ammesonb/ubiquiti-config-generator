@@ -338,7 +338,11 @@ func TestConstraints(t *testing.T) {
 	t.Run("If-Block Validate", testIfBlockValidateCommand)
 	t.Run("ExecNewline", testNewlineExec)
 	t.Run("Expression List", testExprList)
-	t.Run("Allowed Cli Shell", testAllowedCliShell)
+	t.Run("Allowed CLI Shell", testAllowedCliShell)
+	t.Run("Allowed Echo", testAllowedEcho)
+	t.Run("Allowed Executable", testAllowedExecutable)
+	t.Run("Allowed Array", testAllowedArrayVar)
+	t.Run("Allowed Bash Command", testAllowedBashCommand)
 }
 
 func testExprBounds(t *testing.T) {
@@ -594,6 +598,153 @@ func testAllowedCliShell(t *testing.T) {
 		t,
 		node,
 		"Allowed CLI Shell",
+		OptionsCommand,
+		command,
+		reason,
+	)
+}
+
+func testAllowedEcho(t *testing.T) {
+	// See system/ip/arp/table-size/node.deF
+	ntype := "u32"
+	help := "Max number of entries to keep in the ARP cache"
+	command := `echo "1024 2048 4096 8192 16384 32768 65536 131072 262144"`
+	expr := fmt.Sprintf(`allowed: %s`, command)
+	reason := ""
+
+	node, err := createTestNormalNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	for _, err := range validateNormalNode(node, ntype, help) {
+		t.Error(err)
+	}
+
+	validateConstraint(
+		t,
+		node,
+		"Allowed Echo",
+		OptionsCommand,
+		command,
+		reason,
+	)
+}
+
+func testAllowedExecutable(t *testing.T) {
+	// See interfaces/switch/node.tag/redirect/node.def
+	ntype := "txt"
+	help := "Incoming packet redirection destination"
+	command := `/opt/vyatta/sbin/ubnt-interface --show=input`
+	expr := fmt.Sprintf(`allowed: %s`, command)
+	reason := ""
+
+	node, err := createTestNormalNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	for _, err := range validateNormalNode(node, ntype, help) {
+		t.Error(err)
+	}
+
+	validateConstraint(
+		t,
+		node,
+		"Allowed Executable",
+		OptionsCommand,
+		command,
+		reason,
+	)
+}
+
+func testAllowedArrayVar(t *testing.T) {
+	// See interfaces/switch/node.tag/switch-port/interface/node.def
+	ntype := "txt"
+	help := "Interfaces on switch"
+	command := `local -a array
+         ports=` + "`/usr/sbin/ubnt-hal getPortCount`" + `
+         (( ports-- ))
+         for ((i=0; i<=$ports; i++)); do
+            if /usr/sbin/ubnt-hal onSwitch $i > /dev/null ; then
+               array+=(eth$i)
+            fi
+         done
+         echo -n ${array[@]##*/}`
+	expr := fmt.Sprintf(`allowed: %s`, command)
+	reason := ""
+
+	node, err := createTestTagNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	for _, err := range validateTagNode(node, ntype, help) {
+		t.Error(err)
+	}
+
+	validateConstraint(
+		t,
+		node,
+		"Allowed Array",
+		OptionsCommand,
+		command,
+		reason,
+	)
+}
+
+func testAllowedBashCommand(t *testing.T) {
+	// See firewall/name/node.tag/rule/node.tag/protocol/node.def
+	ntype := "txt"
+	help := "Protocol to match"
+	command := `protos=` + "cat /etc/protocols | sed -e '/^#.*/d' | awk '{ print $1 }' | grep -v 'v6'`" + `
+        protos="all $protos tcp_udp"
+        echo -n $protos`
+	expr := fmt.Sprintf(`allowed:
+	%s`, command)
+	reason := ""
+
+	node, err := createTestTagNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	for _, err := range validateTagNode(node, ntype, help) {
+		t.Error(err)
+	}
+
+	validateConstraint(
+		t,
+		node,
+		"Allowed Bash Command",
 		OptionsCommand,
 		command,
 		reason,
