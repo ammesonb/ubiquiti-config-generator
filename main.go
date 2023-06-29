@@ -5,7 +5,8 @@ import (
 )
 
 /* TODO:
- * Config parser
+ * Settings parser
+ * Templates parser
  * Load config
  * Convert custom YAML files into VyOS equivalents
  * Get existing configuration from router

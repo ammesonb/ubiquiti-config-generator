@@ -57,7 +57,7 @@ type NodeConstraint struct {
 
 	// A list of possible options, explicit and static values
 	// ex. list: vpn/ipsec/logging/log-modes/node.def
-	// ex. allowed: firewall/name/node.tag/default-action/node.def
+	// ex. list: firewall/name/node.tag/default-action/node.def
 	Options []string
 
 	// A command that will generate the possible options
@@ -89,4 +89,47 @@ type NodeConstraint struct {
 	// ex: vpn/ipsec/esp-group/node.tag/proposal/node.def
 	MinBound int
 	MaxBound int
+}
+
+// ConstraintKey represents the name of a possible VyOS constraint
+type ConstraintKey string
+
+const (
+	// FailureReason is a human-readable failure message for the constraint
+	FailureReason ConstraintKey = "FailureReason"
+	// Options contains a complete list of possible values
+	Options ConstraintKey = "Options"
+	// OptionsCommand generates a list of values, but may not include newly-generated options,
+	// like with firewall name, address groups, interfaces, etc
+	OptionsCommand ConstraintKey = "OptionsCommand"
+	// ValidateCommand is a function to execute with a value to verifu validity
+	ValidateCommand ConstraintKey = "ValidateCommand"
+	// Pattern is a RegExp pattern to validate a value against
+	Pattern ConstraintKey = "Pattern"
+	// MinBound is the lowest a numerical value can be
+	MinBound ConstraintKey = "MinBound"
+	// MaxBound is the largest a numerical value can be
+	MaxBound ConstraintKey = "MaxBound"
+)
+
+// GetProperty Dynamically looks up the value of a particular constraint value by its key
+func (n *NodeConstraint) GetProperty(field ConstraintKey) interface{} {
+	switch field {
+	case FailureReason:
+		return n.FailureReason
+	case Options:
+		return n.Options
+	case OptionsCommand:
+		return n.OptionsCommand
+	case ValidateCommand:
+		return n.ValidateCommand
+	case Pattern:
+		return n.Pattern
+	case MinBound:
+		return n.MinBound
+	case MaxBound:
+		return n.MaxBound
+	}
+
+	return nil
 }

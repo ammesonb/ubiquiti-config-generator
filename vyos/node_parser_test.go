@@ -261,11 +261,45 @@ func validateNormalNode(node *Node, ntype string, help string) []string {
 func validateTagNode(node *Node, ntype string, help string) []string {
 	return validateNode(node, true, false, ntype, help)
 }
+
 func validateMultiNode(node *Node, ntype string, help string) []string {
 	return validateNode(node, false, true, ntype, help)
 }
+
 func validateTagMultiNode(node *Node, ntype string, help string) []string {
 	return validateNode(node, true, true, ntype, help)
+}
+
+func validateConstraint(
+	t *testing.T,
+	node *Node,
+	description string,
+	constraintName ConstraintKey,
+	value interface{},
+	failureReason string,
+) {
+	if len(node.Constraints) != 1 {
+		t.Errorf("Single constraint should be added for %s, got %d", description, len(node.Constraints))
+		t.FailNow()
+	}
+
+	if !reflect.DeepEqual(node.Constraints[0].GetProperty(constraintName), value) {
+		t.Errorf(
+			"Constraint value for %s is incorrect, expected '%v' got '%v'",
+			description,
+			value,
+			node.Constraints[0].GetProperty(constraintName),
+		)
+	}
+
+	if node.Constraints[0].FailureReason != failureReason {
+		t.Errorf(
+			"Failure reason for constraint %s was incorrect, expected '%s' but got '%s'",
+			description,
+			failureReason,
+			node.Constraints[0].FailureReason,
+		)
+	}
 }
 
 // TestSimpleDefinition checks basic type/help attributes for a node
@@ -300,16 +334,19 @@ func TestSimpleDefinition(t *testing.T) {
 func TestConstraints(t *testing.T) {
 	t.Run("Expression Bounds", testExprBounds)
 	t.Run("Pattern", testPattern)
-	t.Run("Exec", testExec)
+	t.Run("Validate", testSimpleValidateCommand)
+	t.Run("If-Block Validate", testIfBlockValidateCommand)
 	t.Run("ExecNewline", testNewlineExec)
 	t.Run("Expression List", testExprList)
+	t.Run("Allowed Cli Shell", testAllowedCliShell)
 }
 
 func testExprBounds(t *testing.T) {
+	// See vpn/ipsec/esp-group/node.tag/proposal/node.def
 	ntype := "txt"
 	help := "Port number"
-	reason := `"Must be a valid port number"`
-	expr := fmt.Sprintf("syntax:expression: ($VAR(@) >= 1 && $VAR(@) <= 65535) ; \\\n    %s", reason)
+	reason := `Must be a valid port number`
+	expr := fmt.Sprintf("syntax:expression: ($VAR(@) >= 1 && $VAR(@) <= 65535) ; \\\n    \"%s\"", reason)
 	node, err := createTestTagNode(
 		&ntype,
 		&help,
@@ -326,27 +363,32 @@ func testExprBounds(t *testing.T) {
 		t.Error(err)
 	}
 
-	if node.Constraints[0].MinBound != 1 {
-		t.Errorf("Node constraint should have minimum bound of 1, got: %d", node.Constraints[0].MinBound)
-		t.FailNow()
-	}
-
-	if node.Constraints[0].MaxBound != 65535 {
-		t.Errorf("Node constraint should have maximum bound of 65535, got: %d", node.Constraints[0].MaxBound)
-	}
-	if node.Constraints[0].FailureReason != reason {
-		t.Errorf("Failure reason for expression bounds was incorrect, got '%s'", node.Constraints[0].FailureReason)
-	}
-
+	validateConstraint(
+		t,
+		node,
+		"Expression Bounds",
+		MinBound,
+		1,
+		reason,
+	)
+	validateConstraint(
+		t,
+		node,
+		"Expression Bounds",
+		MaxBound,
+		65535,
+		reason,
+	)
 }
 
 func testPattern(t *testing.T) {
+	// See zone-policy/zone/node.def
 	ntype := "txt"
 	help := "Zone name"
 	pattern := "^[[:print:]]{1,18}$"
-	reason := `"Zone name must be 18 characters or less"`
+	reason := `Zone name must be 18 characters or less`
 	expr := fmt.Sprintf(`syntax:expression: pattern $VAR(@) "%s" ;
-                %s`, pattern, reason)
+                "%s"`, pattern, reason)
 	node, err := createTestTagNode(
 		&ntype,
 		&help,
@@ -363,22 +405,18 @@ func testPattern(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(node.Constraints) != 1 {
-		t.Errorf("Single constraint should be added for pattern, got %d", len(node.Constraints))
-		t.FailNow()
-	}
-
-	if node.Constraints[0].Pattern != pattern {
-		t.Errorf("Pattern was incorrect, got '%s'", node.Constraints[0].Pattern)
-	}
-
-	if node.Constraints[0].FailureReason != reason {
-		t.Errorf("Failure reason for pattern was incorrect, got '%s'", node.Constraints[0].FailureReason)
-	}
-
+	validateConstraint(
+		t,
+		node,
+		"Pattern",
+		Pattern,
+		pattern,
+		reason,
+	)
 }
 
-func testExec(t *testing.T) {
+func testSimpleValidateCommand(t *testing.T) {
+	// See firewall/name/node.def
 	ntype := "txt"
 	help := "Firewall name"
 	command := `/usr/sbin/ubnt-fw validate-fw-name '$VAR(@)'`
@@ -401,27 +439,65 @@ func testExec(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(node.Constraints) != 1 {
-		t.Errorf("Single constraint should be added for exec, got %d", len(node.Constraints))
-		t.FailNow()
+	validateConstraint(
+		t,
+		node,
+		"Simple Validate",
+		ValidateCommand,
+		command,
+		reason,
+	)
+}
+
+func testIfBlockValidateCommand(t *testing.T) {
+	// See interfaces/name/node.tag/rule/node.tag/protocol/node.def
+	ntype := "txt"
+	help := "Interfaces on switch"
+	command := `intf=$VAR(@); \
+     port=${intf:3}; \
+     if ! /usr/sbin/ubnt-hal onSwitch $port > /dev/null ; \
+     then \
+        echo \"interface $VAR(@): is not a switch port\"; \
+        exit 1; \
+     fi`
+	expr := fmt.Sprintf(`syntax:expression: exec \
+	"%s"`, command)
+	reason := ""
+
+	node, err := createTestTagNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
 	}
 
-	if node.Constraints[0].ValidateCommand != command {
-		t.Errorf("Exec command is incorrect, got %s", node.Constraints[0].ValidateCommand)
+	for _, err := range validateTagNode(node, ntype, help) {
+		t.Error(err)
 	}
 
-	if node.Constraints[0].FailureReason != reason {
-		t.Errorf("Failure reason for exec command was incorrect, got '%s'", node.Constraints[0].FailureReason)
-	}
+	validateConstraint(
+		t,
+		node,
+		"If-Block Validate",
+		ValidateCommand,
+		command,
+		reason,
+	)
 }
 
 func testNewlineExec(t *testing.T) {
+	// See system/ip/arp/table-size/node.def
 	ntype := "u32"
 	help := "Max number of entries to keep in the ARP cache"
-	command := `                               \
-        /opt/vyatta/sbin/vyatta-update-arp-params       \
+	command := `/opt/vyatta/sbin/vyatta-update-arp-params       \
                 'syntax-check' 'table-size' '$VAR(@)' 'ipv4'`
-	expr := fmt.Sprintf(`syntax:expression: exec "%s"`, command)
+	expr := fmt.Sprintf(`syntax:expression: exec "                               \
+			%s"`, command)
 	reason := ""
 
 	node, err := createTestNormalNode(
@@ -440,28 +516,26 @@ func testNewlineExec(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(node.Constraints) != 1 {
-		t.Errorf("Single constraint should be added for exec, got %d", len(node.Constraints))
-		t.FailNow()
-	}
-
-	if node.Constraints[0].ValidateCommand != strings.TrimSpace(command) {
-		t.Errorf("Exec command is incorrect, got %s", node.Constraints[0].ValidateCommand)
-	}
-
-	if node.Constraints[0].FailureReason != reason {
-		t.Errorf("Failure reason for exec command was incorrect, got '%s'", node.Constraints[0].FailureReason)
-	}
+	validateConstraint(
+		t,
+		node,
+		"Validate with newline",
+		ValidateCommand,
+		command,
+		reason,
+	)
 }
+
 func testExprList(t *testing.T) {
+	// See vpn/ipsec/logging/log-modes/node.def
 	ntype := "txt"
 	help := "Log mode, reference strongSwan documentation"
 	options := []string{
 		"dmn", "mgr", "ike", "chd", "job", "cfg", "knl", "net", "asn", "enc", "lib", "esp", "tls", "tnc", "imc", "imv", "pts",
 	}
-	reason := `"must be one of the following: dmn, mgr, ike, chd, job, cfg, knl, net, asn, enc, lib, esp, tls, tnc, imc, imv, pts"`
+	reason := `must be one of the following: dmn, mgr, ike, chd, job, cfg, knl, net, asn, enc, lib, esp, tls, tnc, imc, imv, pts`
 	expr := fmt.Sprintf(
-		`syntax:expression: $VAR(@) in "%s"; %s`,
+		`syntax:expression: $VAR(@) in "%s"; "%s"`,
 		strings.Join(options, `", "`),
 		reason,
 	)
@@ -482,16 +556,46 @@ func testExprList(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(node.Constraints) != 1 {
-		t.Errorf("Single constraint should be added for list, got %d", len(node.Constraints))
-		t.FailNow()
+	validateConstraint(
+		t,
+		node,
+		"Expression List",
+		Options,
+		options,
+		reason,
+	)
+}
+
+func testAllowedCliShell(t *testing.T) {
+	// See vpn/ipsec/remote-access/ike-settings/esp-group/node.def
+	ntype := "txt"
+	help := "Default ESP group name"
+	command := `cli-shell-api listActiveNodes vpn ipsec esp-group`
+	expr := fmt.Sprintf(`allowed: %s`, command)
+	reason := ""
+
+	node, err := createTestTagNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
 	}
 
-	if !reflect.DeepEqual(node.Constraints[0].Options, options) {
-		t.Errorf("Allowed options are incorrect, got +%v", node.Constraints[0].Options)
+	for _, err := range validateTagNode(node, ntype, help) {
+		t.Error(err)
 	}
 
-	if node.Constraints[0].FailureReason != reason {
-		t.Errorf("Failure reason for expr list was incorrect, got '%s'", node.Constraints[0].FailureReason)
-	}
+	validateConstraint(
+		t,
+		node,
+		"Allowed CLI Shell",
+		OptionsCommand,
+		command,
+		reason,
+	)
 }
