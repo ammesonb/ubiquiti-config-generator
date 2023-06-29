@@ -241,7 +241,7 @@ func addExec(expression string, help string, node *Node) bool {
 			FailureReason: help,
 			// Commands are usually contained in quotes on the left and right,
 			// so strip those
-			Command: strings.TrimSpace(strings.Trim(
+			ValidateCommand: strings.TrimSpace(strings.Trim(
 				strings.TrimSpace(strings.Split(expression, "exec ")[1]),
 				"\"",
 			)),
@@ -268,8 +268,13 @@ func addExprList(expression string, help string, node *Node) bool {
 	node.Constraints = append(node.Constraints,
 		NodeConstraint{
 			FailureReason: help,
-			Allowed:       options,
+			Options:       options,
 		})
 
 	return true
 }
+
+// TODO: this likely breaks it
+// interfaces/switch/node.tag/redirect/node.def
+// syntax:expression: $VAR(@) != "$VAR(../@)" ;\
+//         "interface $VAR(../@): redirect to same interface not allowed"

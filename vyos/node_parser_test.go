@@ -406,8 +406,8 @@ func testExec(t *testing.T) {
 		t.FailNow()
 	}
 
-	if node.Constraints[0].Command != command {
-		t.Errorf("Exec command is incorrect, got %s", node.Constraints[0].Command)
+	if node.Constraints[0].ValidateCommand != command {
+		t.Errorf("Exec command is incorrect, got %s", node.Constraints[0].ValidateCommand)
 	}
 
 	if node.Constraints[0].FailureReason != reason {
@@ -445,8 +445,8 @@ func testNewlineExec(t *testing.T) {
 		t.FailNow()
 	}
 
-	if node.Constraints[0].Command != strings.TrimSpace(command) {
-		t.Errorf("Exec command is incorrect, got %s", node.Constraints[0].Command)
+	if node.Constraints[0].ValidateCommand != strings.TrimSpace(command) {
+		t.Errorf("Exec command is incorrect, got %s", node.Constraints[0].ValidateCommand)
 	}
 
 	if node.Constraints[0].FailureReason != reason {
@@ -487,8 +487,8 @@ func testExprList(t *testing.T) {
 		t.FailNow()
 	}
 
-	if !reflect.DeepEqual(node.Constraints[0].Allowed, options) {
-		t.Errorf("Allowed options are incorrect, got +%v", node.Constraints[0].Allowed)
+	if !reflect.DeepEqual(node.Constraints[0].Options, options) {
+		t.Errorf("Allowed options are incorrect, got +%v", node.Constraints[0].Options)
 	}
 
 	if node.Constraints[0].FailureReason != reason {
