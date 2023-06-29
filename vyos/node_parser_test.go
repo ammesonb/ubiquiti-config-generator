@@ -350,7 +350,7 @@ func testExprBounds(t *testing.T) {
 	ntype := "txt"
 	help := "Port number"
 	reason := `Must be a valid port number`
-	expr := fmt.Sprintf("syntax:expression: ($VAR(@) >= 1 && $VAR(@) <= 65535) ; \\\n    \"%s\"", reason)
+	expr := fmt.Sprintf("($VAR(@) >= 1 && $VAR(@) <= 65535) ; \\\n    \"%s\"", reason)
 	node, err := createTestTagNode(
 		&ntype,
 		&help,
@@ -391,7 +391,7 @@ func testPattern(t *testing.T) {
 	help := "Zone name"
 	pattern := "^[[:print:]]{1,18}$"
 	reason := `Zone name must be 18 characters or less`
-	expr := fmt.Sprintf(`syntax:expression: pattern $VAR(@) "%s" ;
+	expr := fmt.Sprintf(`pattern $VAR(@) "%s" ;
                 "%s"`, pattern, reason)
 	node, err := createTestTagNode(
 		&ntype,
@@ -424,7 +424,7 @@ func testSimpleValidateCommand(t *testing.T) {
 	ntype := "txt"
 	help := "Firewall name"
 	command := `/usr/sbin/ubnt-fw validate-fw-name '$VAR(@)'`
-	expr := fmt.Sprintf(`syntax:expression: exec "%s"`, command)
+	expr := fmt.Sprintf(`exec "%s"`, command)
 	reason := ""
 
 	node, err := createTestTagNode(
@@ -464,7 +464,7 @@ func testIfBlockValidateCommand(t *testing.T) {
         echo \"interface $VAR(@): is not a switch port\"; \
         exit 1; \
      fi`
-	expr := fmt.Sprintf(`syntax:expression: exec \
+	expr := fmt.Sprintf(`exec \
 	"%s"`, command)
 	reason := ""
 
@@ -500,7 +500,7 @@ func testNewlineExec(t *testing.T) {
 	help := "Max number of entries to keep in the ARP cache"
 	command := `/opt/vyatta/sbin/vyatta-update-arp-params       \
                 'syntax-check' 'table-size' '$VAR(@)' 'ipv4'`
-	expr := fmt.Sprintf(`syntax:expression: exec "                               \
+	expr := fmt.Sprintf(`exec "                               \
 			%s"`, command)
 	reason := ""
 
@@ -539,7 +539,7 @@ func testExprList(t *testing.T) {
 	}
 	reason := `must be one of the following: dmn, mgr, ike, chd, job, cfg, knl, net, asn, enc, lib, esp, tls, tnc, imc, imv, pts`
 	expr := fmt.Sprintf(
-		`syntax:expression: $VAR(@) in "%s"; "%s"`,
+		`$VAR(@) in "%s"; "%s"`,
 		strings.Join(options, `", "`),
 		reason,
 	)

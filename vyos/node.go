@@ -44,6 +44,9 @@ type Node struct {
 	// ex. firewall/groups/port-group/node.tag/port/node.def
 	Multi bool
 
+	// The full path to this node
+	Path string
+
 	Children map[string]*Node
 
 	// Can have multiple validations, usually with patterns

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/ammesonb/ubiquiti-config-generator.git/vyos"
+	"github.com/ammesonb/ubiquiti-config-generator/vyos"
 )
 
 /* TODO:

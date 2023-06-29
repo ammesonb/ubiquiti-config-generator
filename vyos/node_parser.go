@@ -33,7 +33,7 @@ import (
 */
 
 // ParseNodeDef takes a template path and converts it into a list of nodes for analysis/validation
-func ParseNodeDef(templatesPath string) (*Node, error) {
+func ParseNodeDef(templatesPath string, parentPath string) (*Node, error) {
 	// ReadDir returns relative paths, so /etc will return hosts, passwd, shadow, etc
 	// Not including the parent `/etc/` prefix
 	entries, err := ioutil.ReadDir(templatesPath)
@@ -49,6 +49,9 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 		Children:    make(map[string]*Node),
 		Constraints: []NodeConstraint{},
 	}
+
+	fullPath := fmt.Sprintf("%s.%s", parentPath, node.Name)
+	node.Path = fullPath
 
 	// If node.def in entries, update node from this path
 	// For directories, recurse and extend nodes
@@ -68,7 +71,7 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 			continue
 		}
 
-		childNode, err := ParseNodeDef(filepath.Join(templatesPath, entry.Name()))
+		childNode, err := ParseNodeDef(filepath.Join(templatesPath, entry.Name()), fullPath)
 		if err != nil {
 			return nil, err
 		}
@@ -123,7 +126,7 @@ func parseDefinition(reader io.Reader, node *Node) error {
 	}
 
 	if !parseConstraints(node, expression) {
-		fmt.Printf("Expression did not match any parser: %s\n", expression)
+		fmt.Printf("Expression in node %s did not match any parser: %s\n", node.Path, expression)
 	}
 
 	return nil
@@ -228,7 +231,7 @@ func checkRange(expression string, help string, node *Node) bool {
 }
 
 func addPattern(expression string, help string, node *Node) bool {
-	if !strings.Contains(expression, "syntax:expression: pattern ") {
+	if !strings.HasPrefix(expression, "pattern ") {
 		return false
 	}
 
@@ -245,7 +248,7 @@ func addPattern(expression string, help string, node *Node) bool {
 }
 
 func addExec(expression string, help string, node *Node) bool {
-	if !strings.Contains(expression, "syntax:expression: exec ") {
+	if !strings.HasPrefix(expression, "exec ") {
 		return false
 	}
 
@@ -265,7 +268,7 @@ func addExec(expression string, help string, node *Node) bool {
 }
 
 func addExprList(expression string, help string, node *Node) bool {
-	if !strings.Contains(expression, "syntax:expression: $VAR(@) in ") {
+	if !strings.HasPrefix(expression, "$VAR(@) in ") {
 		return false
 	}
 
@@ -289,7 +292,7 @@ func addExprList(expression string, help string, node *Node) bool {
 }
 
 func addAllowedCommand(expression string, help string, node *Node) bool {
-	if !strings.Contains(expression, "allowed:") {
+	if !strings.HasPrefix(expression, "allowed:") {
 		return false
 	}
 

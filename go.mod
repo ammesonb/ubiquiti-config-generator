@@ -1,4 +1,4 @@
-module github.com/ammesonb/ubiquiti-config-generator.git
+module github.com/ammesonb/ubiquiti-config-generator
 
 go 1.17
 

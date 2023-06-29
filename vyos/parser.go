@@ -28,7 +28,7 @@ func Parse(templatesPath string) (*Node, error) {
 	if err != nil {
 		return nil, err
 	} else if isNode {
-		return ParseNodeDef(templatesPath)
+		return ParseNodeDef(templatesPath, "")
 	}
 
 	return nil, fmt.Errorf("Unsupported templates directory type")
