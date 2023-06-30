@@ -147,7 +147,7 @@ func parseConstraints(node *Node, expression string) bool {
 		help = stripCommand(parts[1])
 	}
 
-	done := false
+	done := skipPath(expression)
 	done = done || checkRange(expr, help, node)
 	done = done || addPattern(expr, help, node)
 	done = done || addExec(expr, help, node)
@@ -200,6 +200,13 @@ func stripCommand(command string) string {
 			`"\`,
 		),
 	)
+}
+
+func skipPath(expression string) bool {
+	// These check values of parent nodes, which is tricky to evaluate
+	// in this structure since it is frequently mixed in with commands
+	// and other syntax, so since there are relatively few of them skip them for now
+	return strings.Contains(expression, "VAR(../")
 }
 
 func checkRange(expression string, help string, node *Node) bool {
