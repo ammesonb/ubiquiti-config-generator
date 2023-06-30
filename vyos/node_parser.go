@@ -135,6 +135,12 @@ func parseConstraints(node *Node, expression string) bool {
 		return true
 	}
 
+	// Skip things with path references first, because they often are multi-part
+	// validations that also use commands or bash scripting
+	if skipPath(expression) {
+		return true
+	}
+
 	helpSplit := regexp.MustCompile(` ?; ?\\?[[:space:]]*"`)
 	if len(helpSplit.FindAllStringIndex(expression, -1)) > 1 {
 		fmt.Printf("Got extra semicolons in value: %s\n", expression)
@@ -147,8 +153,7 @@ func parseConstraints(node *Node, expression string) bool {
 		help = stripCommand(parts[1])
 	}
 
-	done := skipPath(expression)
-	done = done || checkRange(expr, help, node)
+	done := checkRange(expr, help, node)
 	done = done || addPattern(expr, help, node)
 	done = done || addNegatedPattern(expr, help, node)
 	done = done || addExec(expr, help, node)
@@ -210,7 +215,7 @@ func skipPath(expression string) bool {
 	// These check values of parent nodes, which is tricky to evaluate
 	// in this structure since it is frequently mixed in with commands
 	// and other syntax, so since there are relatively few of them skip them for now
-	return strings.Contains(expression, "VAR(../")
+	return strings.Contains(expression, "$VAR(../")
 }
 
 func checkRange(expression string, help string, node *Node) bool {
@@ -432,8 +437,3 @@ func addMultiOption(expression string, help string, node *Node) bool {
 
 	return true
 }
-
-// TODO: this likely breaks it
-// interfaces/switch/node.tag/redirect/node.def
-// syntax:expression: $VAR(@) != "$VAR(../@)" ;\
-//         "interface $VAR(../@): redirect to same interface not allowed"

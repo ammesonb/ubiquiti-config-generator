@@ -71,7 +71,7 @@ type NodeConstraint struct {
 	// This will frequently miss new values, such as a new firewall name or group, so will only show as a warning not a blocking error
 	// ex. allowed: vpn/ipsec/remote-access/ike-settings/esp-group/node.def
 	// ex. allowed: system/ip/arp/table-size/node.def
-	// ex. allowed: interfaces/switch/node.tag/redirect.node.def - TODO also has syntax expression, not sure how to represent
+	// ex. allowed: interfaces/switch/node.tag/redirect.node.def
 	// ex. allowed: interfaces/switch/node.tag/switch-port/interface/node.def
 	// ex. allowed: firewall/name/node.tag/rules/node.tag/protocol/node.def
 	OptionsCommand string
