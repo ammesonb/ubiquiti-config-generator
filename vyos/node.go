@@ -63,6 +63,10 @@ type NodeConstraint struct {
 	// ex. list: firewall/name/node.tag/default-action/node.def
 	Options []string
 
+	// A list of disallowed values
+	// ex. system/login/user/node.tag/group/node.def
+	NegatedOptions []string
+
 	// A command that will generate the possible options
 	// This will frequently miss new values, such as a new firewall name or group, so will only show as a warning not a blocking error
 	// ex. allowed: vpn/ipsec/remote-access/ike-settings/esp-group/node.def
@@ -87,6 +91,9 @@ type NodeConstraint struct {
 	// ex. zone-policy/zone/node.def
 	Pattern string
 
+	// Like pattern, but negated
+	NegatedPattern string
+
 	// Minimum/maximum values for the node
 	// ex: vpn/ipsec/esp-group/node.tag/proposal/node.def
 	MinBound *int
@@ -101,6 +108,8 @@ const (
 	FailureReason ConstraintKey = "FailureReason"
 	// Options contains a complete list of possible values
 	Options ConstraintKey = "Options"
+	// NegatedOptions contains a complete list of disallowed values
+	NegatedOptions ConstraintKey = "NegatedOptions"
 	// OptionsCommand generates a list of values, but may not include newly-generated options,
 	// like with firewall name, address groups, interfaces, etc
 	OptionsCommand ConstraintKey = "OptionsCommand"
@@ -108,6 +117,8 @@ const (
 	ValidateCommand ConstraintKey = "ValidateCommand"
 	// Pattern is a RegExp pattern to validate a value against
 	Pattern ConstraintKey = "Pattern"
+	// NegatedPattern is a negated RegExp pattern to validate a value against
+	NegatedPattern ConstraintKey = "NegatedPattern"
 	// MinBound is the lowest a numerical value can be
 	MinBound ConstraintKey = "MinBound"
 	// MaxBound is the largest a numerical value can be
@@ -121,12 +132,16 @@ func (n *NodeConstraint) GetProperty(field ConstraintKey) interface{} {
 		return n.FailureReason
 	case Options:
 		return n.Options
+	case NegatedOptions:
+		return n.NegatedOptions
 	case OptionsCommand:
 		return n.OptionsCommand
 	case ValidateCommand:
 		return n.ValidateCommand
 	case Pattern:
 		return n.Pattern
+	case NegatedPattern:
+		return n.NegatedPattern
 	case MinBound:
 		if n.MinBound == nil {
 			// Random value, should only be used for testing anyways

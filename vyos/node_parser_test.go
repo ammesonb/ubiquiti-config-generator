@@ -336,10 +336,12 @@ func TestConstraints(t *testing.T) {
 	t.Run("Minimum Bound", testMinBound)
 	t.Run("Maximum Bound", testMaxBound)
 	t.Run("Pattern", testPattern)
+	t.Run("Negated Pattern", testNegatedPattern)
 	t.Run("Validate", testSimpleValidateCommand)
 	t.Run("If-Block Validate", testIfBlockValidateCommand)
 	t.Run("ExecNewline", testNewlineExec)
 	t.Run("Expression List", testExprList)
+	t.Run("Negated Expression List", testNegatedExprList)
 	t.Run("Allowed CLI Shell", testAllowedCliShell)
 	t.Run("Allowed Echo", testAllowedEcho)
 	t.Run("Allowed Executable", testAllowedExecutable)
@@ -481,6 +483,41 @@ func testPattern(t *testing.T) {
 		node,
 		"Pattern",
 		Pattern,
+		pattern,
+		reason,
+	)
+}
+
+func testNegatedPattern(t *testing.T) {
+	// See service/webproxy/url-filtering/squidguard/local-ok/node.def
+	// See zone-policy/zone/node.def
+	ntype := "txt"
+	help := "Local site to allow"
+	pattern := "^https://"
+	reason := `site should not start with https://`
+	expr := fmt.Sprintf(`! pattern $VAR(@) "%s" ; \
+                "%s"`, pattern, reason)
+	node, err := createTestMultiNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	for _, err := range validateMultiNode(node, ntype, help) {
+		t.Error(err)
+	}
+
+	validateConstraint(
+		t,
+		node,
+		"Negated Pattern",
+		NegatedPattern,
 		pattern,
 		reason,
 	)
@@ -632,6 +669,48 @@ func testExprList(t *testing.T) {
 		node,
 		"Expression List",
 		Options,
+		options,
+		reason,
+	)
+}
+
+func testNegatedExprList(t *testing.T) {
+	// See system/login/user/node.tag/group/node.def
+	ntype := "txt"
+	help := "Additional group membership"
+	options := []string{
+		"quaggavty", "vyattacfg", "vyattaop", "sudo", "adm", "operator",
+	}
+	reason := "Use configuration level to change membership of operator and admin groups"
+	expr := fmt.Sprintf(
+		`! $VAR(@) in \
+			"%s"
+			; "%s"`,
+		strings.Join(options, `", "`),
+		reason,
+	)
+
+	node, err := createTestMultiNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	for _, err := range validateMultiNode(node, ntype, help) {
+		t.Error(err)
+	}
+
+	validateConstraint(
+		t,
+		node,
+		"Negated Expression List",
+		NegatedOptions,
 		options,
 		reason,
 	)

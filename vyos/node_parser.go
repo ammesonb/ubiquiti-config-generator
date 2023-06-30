@@ -150,8 +150,10 @@ func parseConstraints(node *Node, expression string) bool {
 	done := skipPath(expression)
 	done = done || checkRange(expr, help, node)
 	done = done || addPattern(expr, help, node)
+	done = done || addNegatedPattern(expr, help, node)
 	done = done || addExec(expr, help, node)
 	done = done || addExprList(expr, help, node)
+	done = done || addNegatedExprList(expr, help, node)
 	done = done || addAllowedCommand(expr, help, node)
 	done = done || addNumericalInfinity(expr, help, node)
 
@@ -282,6 +284,23 @@ func addPattern(expression string, help string, node *Node) bool {
 	return true
 }
 
+func addNegatedPattern(expression string, help string, node *Node) bool {
+	if !strings.HasPrefix(expression, "! pattern ") {
+		return false
+	}
+
+	node.Constraints = append(node.Constraints,
+		NodeConstraint{
+			FailureReason: help,
+			NegatedPattern: strings.Split(
+				strings.Split(expression, "! pattern ")[1],
+				"\"",
+			)[1],
+		})
+
+	return true
+}
+
 func addExec(expression string, help string, node *Node) bool {
 	if !strings.HasPrefix(expression, "exec ") {
 		return false
@@ -326,6 +345,29 @@ func addExprList(expression string, help string, node *Node) bool {
 	return true
 }
 
+func addNegatedExprList(expression string, help string, node *Node) bool {
+	if !strings.HasPrefix(expression, "! $VAR(@) in ") {
+		return false
+	}
+
+	options := make([]string, 0)
+
+	optionRegex := regexp.MustCompile(`"([[:alnum:]]+)"`)
+	for _, option := range optionRegex.FindAllStringSubmatch(
+		strings.Split(expression, " in ")[1],
+		-1,
+	) {
+		options = append(options, option[1])
+	}
+
+	node.Constraints = append(node.Constraints,
+		NodeConstraint{
+			FailureReason:  help,
+			NegatedOptions: options,
+		})
+
+	return true
+}
 func addAllowedCommand(expression string, help string, node *Node) bool {
 	if !strings.HasPrefix(expression, "allowed:") {
 		return false
