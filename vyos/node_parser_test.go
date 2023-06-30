@@ -348,6 +348,7 @@ func TestConstraints(t *testing.T) {
 	t.Run("Allowed Array", testAllowedArrayVar)
 	t.Run("Allowed Bash Command", testAllowedBashCommand)
 	t.Run("Infinity/Number", testInfinityOrNumber)
+	t.Run("Multi Option List", testMultiOptionList)
 }
 
 func testExprBounds(t *testing.T) {
@@ -945,4 +946,41 @@ func testInfinityOrNumber(t *testing.T) {
 		reason,
 	)
 
+}
+
+func testMultiOptionList(t *testing.T) {
+	// See service/dhcp-server/use-dnsmasq/node.def
+	ntype := "txt"
+	help := "Option to use dnsmasq as DHCP server"
+	options := []string{
+		"disable", "enable",
+	}
+	reason := `"use-dnsmasq" must be "enable" or "disable"`
+	expr := `($VAR(@) == "disable" || $VAR(@) == "enable" ); \
+    "\"use-dnsmasq\" must be \"enable\" or \"disable\""`
+
+	node, err := createTestNormalNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	for _, err := range validateNormalNode(node, ntype, help) {
+		t.Error(err)
+	}
+
+	validateConstraint(
+		t,
+		node,
+		"Multi Option List",
+		Options,
+		options,
+		reason,
+	)
 }

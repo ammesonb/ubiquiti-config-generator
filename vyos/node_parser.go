@@ -156,6 +156,7 @@ func parseConstraints(node *Node, expression string) bool {
 	done = done || addNegatedExprList(expr, help, node)
 	done = done || addAllowedCommand(expr, help, node)
 	done = done || addNumericalInfinity(expr, help, node)
+	done = done || addMultiOption(expr, help, node)
 
 	return done
 }
@@ -396,6 +397,37 @@ func addNumericalInfinity(expression string, help string, node *Node) bool {
 			FailureReason: help,
 			Options:       []string{"infinity"},
 			Pattern:       "[0-9]*",
+		})
+
+	return true
+}
+
+func addMultiOption(expression string, help string, node *Node) bool {
+	options := make([]string, 0)
+
+	optionRegex := regexp.MustCompile(`(?:\$VAR\(@\) == "([[:alnum:]]+)"(?: ?|| ?)?)+`)
+	matches := optionRegex.FindAllStringSubmatch(expression, -1)
+	if len(matches) == 0 {
+		return false
+	}
+	for _, option := range matches {
+		options = append(options, option[1])
+	}
+
+	help = strings.ReplaceAll(help, `\"`, `"`)
+	addStartQuote := regexp.MustCompile(`^[a-zA-Z0-9-_]+"`)
+	if addStartQuote.MatchString(help) {
+		help = `"` + help
+	}
+	addEndQuote := regexp.MustCompile(`"[a-zA-Z0-9-_]+$`)
+	if addEndQuote.MatchString(help) {
+		help = help + `"`
+	}
+
+	node.Constraints = append(node.Constraints,
+		NodeConstraint{
+			FailureReason: help,
+			Options:       options,
 		})
 
 	return true
