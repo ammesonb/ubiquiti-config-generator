@@ -345,6 +345,7 @@ func TestConstraints(t *testing.T) {
 	t.Run("Allowed Executable", testAllowedExecutable)
 	t.Run("Allowed Array", testAllowedArrayVar)
 	t.Run("Allowed Bash Command", testAllowedBashCommand)
+	t.Run("Infinity/Number", testInfinityOrNumber)
 }
 
 func testExprBounds(t *testing.T) {
@@ -815,4 +816,54 @@ func testAllowedBashCommand(t *testing.T) {
 		command,
 		reason,
 	)
+}
+
+func testInfinityOrNumber(t *testing.T) {
+	// See interfaces/bridge/node.tag/ipv6/router-advert/prefix/node.tag/valid-lifetime/node.def
+	// See firewall/name/node.tag/rule/node.tag/protocol/node.def
+	ntype := "txt"
+	help := "Time in seconds the prefix will remain valid"
+	option := "infinity"
+	pattern := "[0-9]*"
+	reason := "Must be 'infinity' or a number"
+	expr := fmt.Sprintf(
+		`($VAR(@) == "%s" || (pattern $VAR(@) "%s")) ; "%s"`,
+		option,
+		pattern,
+		reason,
+	)
+
+	node, err := createTestNormalNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	for _, err := range validateNormalNode(node, ntype, help) {
+		t.Error(err)
+	}
+
+	validateConstraint(
+		t,
+		node,
+		"Infinity/Number",
+		Options,
+		[]string{option},
+		reason,
+	)
+	validateConstraint(
+		t,
+		node,
+		"Infinity/Number",
+		Pattern,
+		pattern,
+		reason,
+	)
+
 }

@@ -153,6 +153,7 @@ func parseConstraints(node *Node, expression string) bool {
 	done = done || addExec(expr, help, node)
 	done = done || addExprList(expr, help, node)
 	done = done || addAllowedCommand(expr, help, node)
+	done = done || addNumericalInfinity(expr, help, node)
 
 	return done
 }
@@ -338,6 +339,21 @@ func addAllowedCommand(expression string, help string, node *Node) bool {
 			// Allowed commands appear to not use double quotes, so only need to strip
 			// spaces, not backslashes and other punctuation
 			OptionsCommand: strings.TrimSpace(command),
+		})
+
+	return true
+}
+
+func addNumericalInfinity(expression string, help string, node *Node) bool {
+	if expression != `($VAR(@) == "infinity" || (pattern $VAR(@) "[0-9]*"))` {
+		return false
+	}
+
+	node.Constraints = append(node.Constraints,
+		NodeConstraint{
+			FailureReason: help,
+			Options:       []string{"infinity"},
+			Pattern:       "[0-9]*",
 		})
 
 	return true
