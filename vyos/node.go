@@ -89,8 +89,8 @@ type NodeConstraint struct {
 
 	// Minimum/maximum values for the node
 	// ex: vpn/ipsec/esp-group/node.tag/proposal/node.def
-	MinBound int
-	MaxBound int
+	MinBound *int
+	MaxBound *int
 }
 
 // ConstraintKey represents the name of a possible VyOS constraint
@@ -128,9 +128,17 @@ func (n *NodeConstraint) GetProperty(field ConstraintKey) interface{} {
 	case Pattern:
 		return n.Pattern
 	case MinBound:
-		return n.MinBound
+		if n.MinBound == nil {
+			// Random value, should only be used for testing anyways
+			return -12345
+		}
+		return *n.MinBound
 	case MaxBound:
-		return n.MaxBound
+		if n.MaxBound == nil {
+			// Random value, should only be used for testing anyways
+			return 123456789
+		}
+		return *n.MaxBound
 	}
 
 	return nil

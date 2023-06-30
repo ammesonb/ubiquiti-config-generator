@@ -333,6 +333,8 @@ func TestSimpleDefinition(t *testing.T) {
 
 func TestConstraints(t *testing.T) {
 	t.Run("Expression Bounds", testExprBounds)
+	t.Run("Minimum Bound", testMinBound)
+	t.Run("Maximum Bound", testMaxBound)
 	t.Run("Pattern", testPattern)
 	t.Run("Validate", testSimpleValidateCommand)
 	t.Run("If-Block Validate", testIfBlockValidateCommand)
@@ -379,6 +381,70 @@ func testExprBounds(t *testing.T) {
 		t,
 		node,
 		"Expression Bounds",
+		MaxBound,
+		65535,
+		reason,
+	)
+}
+
+func testMinBound(t *testing.T) {
+	// See vpn/ipsec/esp-group/node.tag/proposal/node.def
+	ntype := "txt"
+	help := "Port number"
+	reason := `Must be a valid port number`
+	expr := fmt.Sprintf("($VAR(@) > 0) ; \\\n    \"%s\"", reason)
+	node, err := createTestTagNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	for _, err := range validateTagNode(node, ntype, help) {
+		t.Error(err)
+	}
+
+	validateConstraint(
+		t,
+		node,
+		"Minimum bound",
+		MinBound,
+		1,
+		reason,
+	)
+}
+
+func testMaxBound(t *testing.T) {
+	// See vpn/ipsec/esp-group/node.tag/proposal/node.def
+	ntype := "txt"
+	help := "Port number"
+	reason := `Must be a valid port number`
+	expr := fmt.Sprintf("$VAR(@) < 65536 ; \\\n    \"%s\"", reason)
+	node, err := createTestTagNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	for _, err := range validateTagNode(node, ntype, help) {
+		t.Error(err)
+	}
+
+	validateConstraint(
+		t,
+		node,
+		"Maximum bound",
 		MaxBound,
 		65535,
 		reason,

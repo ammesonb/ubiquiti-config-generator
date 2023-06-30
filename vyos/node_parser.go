@@ -33,7 +33,7 @@ import (
 */
 
 // ParseNodeDef takes a template path and converts it into a list of nodes for analysis/validation
-func ParseNodeDef(templatesPath string, parentPath string) (*Node, error) {
+func ParseNodeDef(templatesPath string) (*Node, error) {
 	// ReadDir returns relative paths, so /etc will return hosts, passwd, shadow, etc
 	// Not including the parent `/etc/` prefix
 	entries, err := ioutil.ReadDir(templatesPath)
@@ -45,13 +45,11 @@ func ParseNodeDef(templatesPath string, parentPath string) (*Node, error) {
 		Name:  filepath.Base(templatesPath),
 		IsTag: false,
 		Multi: false,
+		Path:  templatesPath,
 
 		Children:    make(map[string]*Node),
 		Constraints: []NodeConstraint{},
 	}
-
-	fullPath := fmt.Sprintf("%s.%s", parentPath, node.Name)
-	node.Path = fullPath
 
 	// If node.def in entries, update node from this path
 	// For directories, recurse and extend nodes
@@ -71,7 +69,7 @@ func ParseNodeDef(templatesPath string, parentPath string) (*Node, error) {
 			continue
 		}
 
-		childNode, err := ParseNodeDef(filepath.Join(templatesPath, entry.Name()), fullPath)
+		childNode, err := ParseNodeDef(filepath.Join(templatesPath, entry.Name()))
 		if err != nil {
 			return nil, err
 		}
@@ -209,25 +207,54 @@ func checkRange(expression string, help string, node *Node) bool {
 		The expression captures something of the form VAR >= min && VAR <= max
 		But spaces are sometimes omitted, and rarely both terms have parens around them
 		(VAR>=min)&&(VAR<=max)
+		Also sometimes only a min or max value is present, so check for them individually instead of combined
 	*/
-	boundsExpr := regexp.MustCompile(`\(?\$VAR\(@\) ?>= ?([0-9]+)\)? ?&& ?\(?\$VAR\(@\) ?<= ?([0-9]+)\)?`)
-	result := boundsExpr.FindStringSubmatch(expression)
-	if len(result) > 1 {
-		// Since regex match will always only contain numbers, can assume no errors
-		min, _ := strconv.Atoi(result[1])
-		max, _ := strconv.Atoi(result[2])
-		node.Constraints = append(
-			node.Constraints,
-			NodeConstraint{
-				FailureReason: help,
-				MinBound:      min,
-				MaxBound:      max,
-			},
-		)
-		return true
+	min := checkMinBound(expression, node)
+	max := checkMaxBound(expression, node)
+
+	if min == nil && max == nil {
+		return false
 	}
 
-	return false
+	node.Constraints = append(
+		node.Constraints,
+		NodeConstraint{
+			FailureReason: help,
+			MinBound:      min,
+			MaxBound:      max,
+		},
+	)
+	return true
+}
+
+func checkMinBound(expression string, node *Node) *int {
+	boundsExpr := regexp.MustCompile(`\(?\$VAR\(@\) ?(>=?) ?([0-9]+)\)?`)
+	result := boundsExpr.FindStringSubmatch(expression)
+	if len(result) < 2 {
+		return nil
+	}
+
+	// Since regex match will always only contain numbers, can assume no errors
+	min, _ := strconv.Atoi(result[2])
+	if result[1] == ">" {
+		min++
+	}
+	return &min
+}
+
+func checkMaxBound(expression string, node *Node) *int {
+	boundsExpr := regexp.MustCompile(`\(?\$VAR\(@\) ?(<=?) ?([0-9]+)\)?`)
+	result := boundsExpr.FindStringSubmatch(expression)
+	if len(result) < 2 {
+		return nil
+	}
+
+	// Since regex match will always only contain numbers, can assume no errors
+	max, _ := strconv.Atoi(result[2])
+	if result[1] == "<" {
+		max--
+	}
+	return &max
 }
 
 func addPattern(expression string, help string, node *Node) bool {
