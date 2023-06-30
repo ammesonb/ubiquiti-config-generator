@@ -1,5 +1,7 @@
 package vyos
 
+import "github.com/charmbracelet/log"
+
 /** Config notes:
 	* REFERENCE: https://docs.vyos.io/en/crux/contributing/vyos_cli.html#mapping-old-node-def-style-to-new-xml-definitions
 	* Parser needs to read multiple lines, though looks like blank will mean new property
@@ -145,12 +147,14 @@ func (n *NodeConstraint) GetProperty(field ConstraintKey) interface{} {
 	case MinBound:
 		if n.MinBound == nil {
 			// Random value, should only be used for testing anyways
+			log.Warn("Requested unset minimum bound")
 			return -12345
 		}
 		return *n.MinBound
 	case MaxBound:
 		if n.MaxBound == nil {
 			// Random value, should only be used for testing anyways
+			log.Warn("Requested unset maximum bound")
 			return 123456789
 		}
 		return *n.MaxBound

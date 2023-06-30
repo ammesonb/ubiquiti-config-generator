@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
+	"os"
 
 	"github.com/ammesonb/ubiquiti-config-generator/vyos"
+	"github.com/charmbracelet/log"
 )
 
 /* TODO:
@@ -18,20 +19,23 @@ import (
  * Perform load commands
  */
 func main() {
-	fmt.Println("vim-go")
-
+	log.Debug("Reading settings")
 	configData, err := ReadConfig("./config.yaml")
 	if err != nil {
-		panic(err)
+		log.Fatal(err.Error())
+		os.Exit(1)
 	}
 
 	config, err := LoadConfig(configData)
 	if err != nil {
-		panic(err)
+		log.Fatal(err.Error())
+		os.Exit(1)
 	}
 
+	log.Debugf("Parsing templates from %s", config.TemplatesDir)
 	_, err = vyos.Parse(config.TemplatesDir)
 	if err != nil {
-		panic(err)
+		log.Fatal(err.Error())
+		os.Exit(1)
 	}
 }

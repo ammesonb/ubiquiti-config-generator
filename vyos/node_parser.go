@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/charmbracelet/log"
 )
 
 /** Config notes:
@@ -124,7 +126,7 @@ func parseDefinition(reader io.Reader, node *Node) error {
 	}
 
 	if !parseConstraints(node, expression) {
-		fmt.Printf("Expression in node %s did not match any parser: %s\n", node.Path, expression)
+		log.Warnf("Expression in node %s did not match any parser: %s\n", node.Path, expression)
 	}
 
 	return nil
@@ -143,7 +145,7 @@ func parseConstraints(node *Node, expression string) bool {
 
 	helpSplit := regexp.MustCompile(` ?; ?\\?[[:space:]]*"`)
 	if len(helpSplit.FindAllStringIndex(expression, -1)) > 1 {
-		fmt.Printf("Got extra semicolons in value: %s\n", expression)
+		log.Warnf("Got extra semicolons in value: %s\n", expression)
 	}
 
 	parts := helpSplit.Split(expression, 2)

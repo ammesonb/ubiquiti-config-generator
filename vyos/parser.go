@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/charmbracelet/log"
 )
 
 func isNodeDef(templatesPath string) (bool, error) {
@@ -28,6 +30,7 @@ func Parse(templatesPath string) (*Node, error) {
 	if err != nil {
 		return nil, err
 	} else if isNode {
+		log.Info("Detected node templates definitions")
 		return ParseNodeDef(templatesPath)
 	}
 
