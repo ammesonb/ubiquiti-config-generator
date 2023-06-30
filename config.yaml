@@ -1,0 +1,56 @@
+# Contains deployment configurations
+#
+# If customizing this file for actual use, while still committing changes, use:
+# git update-index --skip-worktree deploy.yaml to remove any future changes, with
+# --no-skip-worktree to add things back
+
+templatesDir: "./templates"
+
+router:
+  address: 10.16.32.1
+  port: 12244
+  user: $UBQ_USER
+  # Either password or keyfile may be specified - keyfile is preferred
+  # If both are provided, the password will be used as the passphrase to the keyfile
+  password: $UBQ_PASS
+  keyfile: $UBQ_KEYFILE
+  # The path to store the command files in, will be something like:
+  # rev1..rev2-000.sh, rev1..rev2-001.sh, etc for ordered execution
+  command-file-path: /tmp
+
+# Immediately revert failed changes
+auto-rollback-on-failure: True
+# Schedule reboot after N minutes, to ensure you don't accidentally lose access to the router
+# Can be canceled with `shutdown -c`
+reboot-after-minutes: 5
+# Save config after commit
+# NOT RECOMMENDED - manually validate the config after deploying to ensure there are no flaws
+# This could lock you out of the router!!!
+save-after-commit: False
+# The path to vyatta-cfg-cmd-wrapper
+# Typically in /opt/vyatta/[s]bin
+script-cfg-path: /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper
+
+# Interface settings
+logging:
+  user: $UBQ_CONFIG_USER
+  pass: $UBQ_CONFIG_PASS
+
+git:
+  # The ID of the application
+  app-id: 95943
+  # The main GitHub branch
+  primary-branch: main
+
+  private-key-path: ./ubiquiti-config.pem
+  # The external URL of the webhook, should match the GitHub app configuration
+  webhook-url: https://git.bammeson.com
+  # The port to listen on for GitHub webhook stuff
+  webhook-port: 54321
+  # The secret to use with GitHub webhooks
+  webhook-secret: $UBQ_GITHUB_WEBHOOK_SECRET
+  # where to clone the repo - need both to ensure a consistent configuration is applied
+  # A node may be deleted from the previous config, which simply applying the updated one
+  # will not always catch
+  config-folder: /tmp/router_config
+  diff-config-folder: /tmp/previous_router_config
