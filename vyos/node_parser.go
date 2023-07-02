@@ -126,7 +126,7 @@ func parseDefinition(reader io.Reader, node *Node) error {
 	}
 
 	if !parseConstraints(node, expression) {
-		log.Warnf("Expression in node %s did not match any parser: %s\n", node.Path, expression)
+		log.Warn(fmt.Sprintf("Expression in node %s did not match any parser", node.Path), "expression", expression)
 	}
 
 	return nil
@@ -145,7 +145,7 @@ func parseConstraints(node *Node, expression string) bool {
 
 	helpSplit := regexp.MustCompile(` ?; ?\\?[[:space:]]*"`)
 	if len(helpSplit.FindAllStringIndex(expression, -1)) > 1 {
-		log.Warnf("Got extra semicolons in value: %s\n", expression)
+		log.Warn("Got extra semicolons in expression", "expression", expression)
 	}
 
 	parts := helpSplit.Split(expression, 2)

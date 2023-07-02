@@ -10,6 +10,7 @@ import (
 // Config contains the runtime settings needed to analyze and deploy configurations
 type Config struct {
 	TemplatesDir string `yaml:"templatesDir"`
+	ConfigFile   string `yaml:"configFile"`
 }
 
 // ReadConfig takes a path and returns its contents
