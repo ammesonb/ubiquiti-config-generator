@@ -1,6 +1,6 @@
 module github.com/ammesonb/ubiquiti-config-generator
 
-go 1.17
+go 1.20
 
 require (
 	github.com/charmbracelet/log v0.2.2

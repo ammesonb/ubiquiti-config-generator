@@ -3,7 +3,7 @@ package vyos
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"reflect"
 	"strings"
@@ -16,7 +16,7 @@ func TestAddOption(t *testing.T) {
 		Name:        "TestNode",
 		IsTag:       false,
 		Multi:       false,
-		Children:    map[string]*Node{},
+		ChildNodes:  map[string]*Node{},
 		Constraints: []NodeConstraint{},
 	}
 	helpValues := &[]string{}
@@ -125,7 +125,7 @@ func createTestNode(
 		Name:        "TestNode",
 		IsTag:       isTag,
 		Multi:       isMulti,
-		Children:    map[string]*Node{},
+		ChildNodes:  map[string]*Node{},
 		Constraints: []NodeConstraint{},
 	}
 
@@ -134,7 +134,7 @@ func createTestNode(
 		buffer.Truncate(0)
 		buffer.WriteString(option)
 
-		err := parseDefinition(ioutil.NopCloser(&buffer), node)
+		err := parseDefinition(io.NopCloser(&buffer), node)
 		if err != nil {
 			return nil, err
 		}

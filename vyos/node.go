@@ -49,10 +49,21 @@ type Node struct {
 	// The full path to this node
 	Path string
 
-	Children map[string]*Node
+	ChildNodes map[string]*Node
 
 	// Can have multiple validations, usually with patterns
 	Constraints []NodeConstraint
+}
+
+// Children returns an unordered list of nodes this one contains
+func (node *Node) Children() []*Node {
+	children := []*Node{}
+
+	for _, child := range node.ChildNodes {
+		children = append(children, child)
+	}
+
+	return children
 }
 
 // NodeConstraint contains a set of values, command, or pattern the value of the node must satisfy

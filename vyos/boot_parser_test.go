@@ -13,11 +13,11 @@ func TestLineDetection(t *testing.T) {
 	quotedValue := `    description "Firewall rule {20}"`
 
 	t.Run("Comment", func(t *testing.T) {
-		verifyLine(t, comment, true, false, false)
+		verifyLine(t, comment, true, false, false, false)
 	})
 
 	t.Run("Open Tag Node", func(t *testing.T) {
-		verifyLine(t, tagNodeOpen, false, true, false)
+		verifyLine(t, tagNodeOpen, false, true, false, false)
 
 		description, name := splitNameFromValue(tagNodeOpen)
 		if description != "name" {
@@ -33,15 +33,15 @@ func TestLineDetection(t *testing.T) {
 	})
 
 	t.Run("Close Tag Node", func(t *testing.T) {
-		verifyLine(t, tagNodeClose, false, false, true)
+		verifyLine(t, tagNodeClose, false, false, true, false)
 	})
 
 	t.Run("Open Normal Node", func(t *testing.T) {
-		verifyLine(t, normalNodeOpen, false, true, false)
+		verifyLine(t, normalNodeOpen, false, true, false, false)
 	})
 
 	t.Run("Value", func(t *testing.T) {
-		verifyLine(t, value, false, false, false)
+		verifyLine(t, value, false, false, false, true)
 
 		nodeName, nodeValue := splitNameFromValue(value)
 		if nodeName != "port" {
@@ -57,9 +57,40 @@ func TestLineDetection(t *testing.T) {
 	})
 
 	t.Run("Quoted value", func(t *testing.T) {
-		verifyLine(t, quotedValue, false, false, false)
+		verifyLine(t, quotedValue, false, false, false, true)
 
 	})
+}
+
+func verifyLine(t *testing.T, line string, isComment bool, isNode bool, closesNode bool, hasValue bool) {
+	if lineIsComment(line) != isComment {
+		negate := ""
+		if !isComment {
+			negate = "not "
+		}
+		t.Errorf("Line should be %sdetected as comment", negate)
+	}
+	if lineCreatesNode(line) != isNode {
+		negate := ""
+		if !isNode {
+			negate = "not "
+		}
+		t.Errorf("Line should %screate a node", negate)
+	}
+	if lineEndsNode(line) != closesNode {
+		negate := ""
+		if !closesNode {
+			negate = "not "
+		}
+		t.Errorf("Line should %sclose a node", negate)
+	}
+	if lineHasValue(line) != hasValue {
+		negate := ""
+		if !closesNode {
+			negate = "not "
+		}
+		t.Errorf("Line should %shave a value", negate)
+	}
 }
 
 func TestSplitName(t *testing.T) {
@@ -93,28 +124,4 @@ func TestSplitName(t *testing.T) {
 			)
 		}
 	})
-}
-
-func verifyLine(t *testing.T, line string, isComment bool, isNode bool, closesNode bool) {
-	if lineIsComment(line) != isComment {
-		negate := ""
-		if !isComment {
-			negate = "not "
-		}
-		t.Errorf("Line should be %sdetected as comment", negate)
-	}
-	if lineCreatesNode(line) != isNode {
-		negate := ""
-		if !isNode {
-			negate = "not "
-		}
-		t.Errorf("Line should %screate a node", negate)
-	}
-	if lineEndsNode(line) != closesNode {
-		negate := ""
-		if !closesNode {
-			negate = "not "
-		}
-		t.Errorf("Line should %sclose a node", negate)
-	}
 }

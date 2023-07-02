@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -38,7 +37,7 @@ import (
 func ParseNodeDef(templatesPath string) (*Node, error) {
 	// ReadDir returns relative paths, so /etc will return hosts, passwd, shadow, etc
 	// Not including the parent `/etc/` prefix
-	entries, err := ioutil.ReadDir(templatesPath)
+	entries, err := os.ReadDir(templatesPath)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read files in %s: %s", templatesPath, err.Error())
 	}
@@ -49,7 +48,7 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 		Multi: false,
 		Path:  templatesPath,
 
-		Children:    make(map[string]*Node),
+		ChildNodes:  make(map[string]*Node),
 		Constraints: []NodeConstraint{},
 	}
 
@@ -76,7 +75,7 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 			return nil, err
 		}
 
-		node.Children[entry.Name()] = childNode
+		node.ChildNodes[entry.Name()] = childNode
 	}
 
 	return node, nil
