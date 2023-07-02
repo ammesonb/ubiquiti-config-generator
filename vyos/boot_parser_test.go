@@ -125,3 +125,15 @@ func TestSplitName(t *testing.T) {
 		}
 	})
 }
+
+func TestDefinitionName(t *testing.T) {
+	name := getDefinitionName("    firewall {")
+	if name != "firewall" {
+		t.Errorf("Got incorrect name '%s', expected 'firewall'", name)
+	}
+
+	name = getDefinitionName("    name some-firewall {")
+	if name != "some-firewall" {
+		t.Errorf("Got incorrect tag name '%s', expected 'some-firewall'", name)
+	}
+}
