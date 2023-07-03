@@ -3,7 +3,7 @@ black==23.3.0
 cryptography==41.0.1
 fastapi==0.99.1
 paramiko==3.2.0
-pre-commit==2.21.0
+pre-commit==3.3.3
 pyhtml==1.3.2
 pyjwt==2.6.0
 pylint==2.15.10
