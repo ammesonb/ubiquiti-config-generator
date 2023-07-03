@@ -11,6 +11,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/ammesonb/ubiquiti-config-generator/logger"
 	"github.com/charmbracelet/log"
 )
 
@@ -38,8 +39,9 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 	// ReadDir returns relative paths, so /etc will return hosts, passwd, shadow, etc
 	// Not including the parent `/etc/` prefix
 	entries, err := os.ReadDir(templatesPath)
+	logger := logger.DefaultLogger()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read files in %s: %s", templatesPath, err.Error())
+		return nil, fmt.Errorf("Failed to read files in %s: %+v", templatesPath, err)
 	}
 
 	node := &Node{
@@ -58,10 +60,10 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 		if entry.Name() == "node.def" {
 			reader, err := openDefinitionFile(filepath.Join(templatesPath, entry.Name()))
 			if err != nil {
-				return nil, fmt.Errorf("Failed opening node.def: %s", err.Error())
+				return nil, fmt.Errorf("Failed opening node.def: %+v", err)
 			}
 
-			if err = parseDefinition(reader, node); err != nil {
+			if err = parseDefinition(reader, logger, node); err != nil {
 				return nil, err
 			}
 			reader.Close()
@@ -85,7 +87,7 @@ func openDefinitionFile(path string) (io.ReadCloser, error) {
 	return os.Open(path)
 }
 
-func parseDefinition(reader io.Reader, node *Node) error {
+func parseDefinition(reader io.Reader, logger *log.Logger, node *Node) error {
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)
 
@@ -124,14 +126,14 @@ func parseDefinition(reader io.Reader, node *Node) error {
 		addOption(scope, value, &helpValues, &allowed, &expression, node)
 	}
 
-	if !parseConstraints(node, expression) {
-		log.Warn(fmt.Sprintf("Expression in node %s did not match any parser", node.Path), "expression", expression)
+	if !parseConstraints(node, logger, expression) {
+		logger.Warn(fmt.Sprintf("Expression in node %s did not match any parser", node.Path), "expression", expression)
 	}
 
 	return nil
 }
 
-func parseConstraints(node *Node, expression string) bool {
+func parseConstraints(node *Node, logger *log.Logger, expression string) bool {
 	if expression == "" {
 		return true
 	}
@@ -144,7 +146,7 @@ func parseConstraints(node *Node, expression string) bool {
 
 	helpSplit := regexp.MustCompile(` ?; ?\\?[[:space:]]*"`)
 	if len(helpSplit.FindAllStringIndex(expression, -1)) > 1 {
-		log.Warn("Got extra semicolons in expression", "expression", expression)
+		logger.Warn("Got extra semicolons in expression", "expression", expression)
 	}
 
 	parts := helpSplit.Split(expression, 2)
@@ -375,6 +377,7 @@ func addNegatedExprList(expression string, help string, node *Node) bool {
 
 	return true
 }
+
 func addAllowedCommand(expression string, help string, node *Node) bool {
 	if !strings.HasPrefix(expression, "allowed:") {
 		return false

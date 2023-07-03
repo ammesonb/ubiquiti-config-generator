@@ -1,6 +1,7 @@
 package vyos
 
 import (
+	"os"
 	"testing"
 )
 
@@ -133,7 +134,46 @@ func TestDefinitionName(t *testing.T) {
 	}
 
 	name = getDefinitionName("    name some-firewall {")
+	if name != "name" {
+		t.Errorf("Got incorrect tag attribute '%s', expected 'name'", name)
+	}
+}
+
+func TestGetTagDefinitionName(t *testing.T) {
+	name := getTagDefinitionName("    name some-firewall {")
 	if name != "some-firewall" {
 		t.Errorf("Got incorrect tag name '%s', expected 'some-firewall'", name)
 	}
+}
+
+/*
+	Tests:
+
+- Multiple root nodes like firewall + service
+- Multi node
+- Tag nodes
+- Comments
+- Compound test combining above elements like a normal config would
+*/
+func TestParseBootDefinitions(t *testing.T) {
+	rootNode, err := GetGeneratedNodes()
+	if err != nil {
+		t.Error(err.Error())
+		t.FailNow()
+	}
+
+	t.Run("Firewall", func(t *testing.T) {
+		testFirewallBoot(t, rootNode)
+	})
+}
+
+func testFirewallBoot(t *testing.T, rootNode *Node) {
+	file, err := os.Open("../vyos_test/firewall.boot")
+	if err != nil {
+		t.Errorf("Failed to read firewall boot data: %+v", err)
+		t.FailNow()
+	}
+
+	definitions := initDefinitions()
+	ParseBootDefinitions(file, definitions, rootNode)
 }

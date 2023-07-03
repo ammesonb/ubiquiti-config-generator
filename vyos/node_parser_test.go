@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/ammesonb/ubiquiti-config-generator/logger"
 )
 
 // TestAddOption uses basic configuration stubs to verify variables are set properly
@@ -134,7 +136,11 @@ func createTestNode(
 		buffer.Truncate(0)
 		buffer.WriteString(option)
 
-		err := parseDefinition(io.NopCloser(&buffer), node)
+		err := parseDefinition(
+			io.NopCloser(&buffer),
+			logger.DefaultLogger(),
+			node,
+		)
 		if err != nil {
 			return nil, err
 		}

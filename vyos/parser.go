@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/charmbracelet/log"
+	"github.com/ammesonb/ubiquiti-config-generator/logger"
 )
 
 func isNodeDef(templatesPath string) (bool, error) {
@@ -18,7 +18,7 @@ func isNodeDef(templatesPath string) (bool, error) {
 		}
 
 		return false,
-			fmt.Errorf("Failed to stat firewall node info: %s", err.Error())
+			fmt.Errorf("Failed to stat firewall node info: %+v", err)
 	}
 
 	return !info.IsDir(), nil
@@ -30,7 +30,7 @@ func Parse(templatesPath string) (*Node, error) {
 	if err != nil {
 		return nil, err
 	} else if isNode {
-		log.Info("Detected node templates definitions")
+		logger.DefaultLogger().Info("Detected node templates definitions")
 		return ParseNodeDef(templatesPath)
 	}
 

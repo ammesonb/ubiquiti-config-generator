@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/log"
+	"github.com/ammesonb/ubiquiti-config-generator/logger"
 )
 
 // Definition contains the actual values for a given node
@@ -16,12 +16,43 @@ type Definition struct {
 	Comment  string
 	Value    any
 	Values   []any
-	Children []Definition
+	Children []*Definition
+}
+
+// ParentPath returns a slash-joined version of the path to the definition's parent
+func (definition *Definition) ParentPath() string {
+	if definition.Node.IsTag {
+		// For tags, include the name since that will describe the parent path
+		// and e.g. firewall groups could have overlapping port-group and address-group names
+		return strings.Join(definition.Path, "/")
+	}
+
+	return strings.Join(definition.Path, "/")
+}
+
+// JoinedPath returns a slash-joined version of the definition's path
+func (definition *Definition) JoinedPath() string {
+	if definition.Node.IsTag {
+		// For tags, include the name since that will describe the parent path
+		// and e.g. firewall groups could have overlapping port-group and address-group names
+		return strings.Join(append(definition.Path, definition.Name), "/")
+	}
+
+	return strings.Join(definition.Path, "/")
 }
 
 // FullPath returns the entire configuration path to this node, including itself
 func (definition *Definition) FullPath() string {
-	return fmt.Sprintf("%s/%s", strings.Join(definition.Path, "/"), definition.Name)
+	name := definition.Name
+	// For a tag, the path to use is actually the value
+	if definition.Node.IsTag {
+		name = definition.Value.(string)
+	}
+	if len(definition.Path) > 0 {
+		return fmt.Sprintf("%s/%s", definition.JoinedPath(), name)
+	}
+
+	return name
 }
 
 // Definitions collects all user-defined node values, including methods of indexing them
@@ -35,8 +66,9 @@ type Definitions struct {
 }
 
 func (definitions *Definitions) add(definition *Definition) {
+	logger := logger.DefaultLogger()
 	if _, ok := definitions.NodeByPath[definition.FullPath()]; ok {
-		log.Warnf(
+		logger.Warnf(
 			"Already has node '%s' (%s) defined for path '%s'",
 			definitions.NodeByPath[definition.FullPath()].Name,
 			definitions.NodeByPath[definition.FullPath()].Help,
@@ -44,18 +76,38 @@ func (definitions *Definitions) add(definition *Definition) {
 		)
 	}
 	if _, ok := definitions.DefinitionByPath[definition.FullPath()]; ok {
-		log.Warnf(
+		logger.Warnf(
 			"Already has definition '%s' defined for path '%s'",
 			definitions.DefinitionByPath[definition.FullPath()].FullPath(),
 			definition.FullPath(),
 		)
 	}
 
+	logger.Debugf("Adding indexing for path %s", definition.FullPath())
 	definitions.NodeByPath[definition.FullPath()] = definition.Node
 	definitions.DefinitionByPath[definition.FullPath()] = definition
 
 	// Only add root definitions to the list since others will be nested as children
 	if len(definition.Path) == 0 {
+		logger.Debugf("Adding definition for '%s' to root list", definition.Name)
 		definitions.Definitions = append(definitions.Definitions, *definition)
+	} else {
+		logger.Debugf(
+			"Adding relationship for definition '%s' with parent '%s'",
+			definition.FullPath(),
+			definition.ParentPath(),
+		)
+		// Add this definition to its parent
+		definitions.DefinitionByPath[definition.ParentPath()].Children = append(
+			definitions.DefinitionByPath[definition.ParentPath()].Children, definition,
+		)
+	}
+}
+
+func initDefinitions() *Definitions {
+	return &Definitions{
+		Definitions:      make([]Definition, 0),
+		NodeByPath:       make(map[string]*Node),
+		DefinitionByPath: make(map[string]*Definition),
 	}
 }

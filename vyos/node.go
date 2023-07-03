@@ -1,6 +1,8 @@
 package vyos
 
-import "github.com/charmbracelet/log"
+import (
+	"github.com/ammesonb/ubiquiti-config-generator/logger"
+)
 
 /** Config notes:
 	* REFERENCE: https://docs.vyos.io/en/crux/contributing/vyos_cli.html#mapping-old-node-def-style-to-new-xml-definitions
@@ -26,7 +28,7 @@ import "github.com/charmbracelet/log"
 
 // Node represents a configurable path or entry in the VyOS template directory
 type Node struct {
-	Name string
+	Name string `yaml:"Name"`
 	/* Type of the node, can be:
 	- bool
 	- u32
@@ -37,22 +39,25 @@ type Node struct {
 	- ipv4net
 	- ipv6net
 	*/
-	Type string
-	Help string
+	// VyOS type for node, like txt or u32
+	// Can be omitted, like for services/ssh/disable-password-authentication,
+	// where it is used as a boolean - present is true, omitted is false
+	Type string `yaml:"Type"`
+	Help string `yaml:"Help"`
 	// If the node is a tag, e.g. allows multiple named entries like firewalls
 	// or rule numbers
-	IsTag bool
+	IsTag bool `yaml:"IsTag"`
 	// If can have multiple options, like with ports in a port group
 	// ex. firewall/groups/port-group/node.tag/port/node.def
-	Multi bool
+	Multi bool `yaml:"Multi"`
 
 	// The full path to this node
-	Path string
+	Path string `yaml:"Path"`
 
-	ChildNodes map[string]*Node
+	ChildNodes map[string]*Node `yaml:"ChildNodes"`
 
 	// Can have multiple validations, usually with patterns
-	Constraints []NodeConstraint
+	Constraints []NodeConstraint `yaml:"Constraints"`
 }
 
 // Children returns an unordered list of nodes this one contains
@@ -69,16 +74,16 @@ func (node *Node) Children() []*Node {
 // NodeConstraint contains a set of values, command, or pattern the value of the node must satisfy
 type NodeConstraint struct {
 	// Friendly reason for what this validation checks
-	FailureReason string
+	FailureReason string `yaml:"FailureReason"`
 
 	// A list of possible options, explicit and static values
 	// ex. list: vpn/ipsec/logging/log-modes/node.def
 	// ex. list: firewall/name/node.tag/default-action/node.def
-	Options []string
+	Options []string `yaml:"Options"`
 
 	// A list of disallowed values
 	// ex. system/login/user/node.tag/group/node.def
-	NegatedOptions []string
+	NegatedOptions []string `yaml:"NegatedOptions"`
 
 	// A command that will generate the possible options
 	// This will frequently miss new values, such as a new firewall name or group, so will only show as a warning not a blocking error
@@ -87,14 +92,14 @@ type NodeConstraint struct {
 	// ex. allowed: interfaces/switch/node.tag/redirect.node.def
 	// ex. allowed: interfaces/switch/node.tag/switch-port/interface/node.def
 	// ex. allowed: firewall/name/node.tag/rules/node.tag/protocol/node.def
-	OptionsCommand string
+	OptionsCommand string `yaml:"OptionsCommand"`
 
 	// The VyOS command to run to validate
 	// Will take an $VAR(@) parameter somewhere to verify a value is valid
 	// ex. exec: firewall/name/node.def
 	// ex. allowed: system/ip/arp/table-size/node.def
 	// ex. allowed: interfaces/switch/node.tag/switch-port/interface/node.def
-	ValidateCommand string
+	ValidateCommand string `yaml:"ValidateCommand"`
 
 	// RegEx pattern
 	// Note that it fails if it does NOT match this pattern
@@ -102,15 +107,15 @@ type NodeConstraint struct {
 	//      that is actually indicating the value is VALID, so if we want to detect
 	//			invalid instances we need to negate that check
 	// ex. zone-policy/zone/node.def
-	Pattern string
+	Pattern string `yaml:"Pattern"`
 
 	// Like pattern, but negated
-	NegatedPattern string
+	NegatedPattern string `yaml:"NegatedPattern"`
 
 	// Minimum/maximum values for the node
 	// ex: vpn/ipsec/esp-group/node.tag/proposal/node.def
-	MinBound *int
-	MaxBound *int
+	MinBound *int `yaml:"MinBound"`
+	MaxBound *int `yaml:"MaxBound"`
 }
 
 // ConstraintKey represents the name of a possible VyOS constraint
@@ -158,14 +163,14 @@ func (n *NodeConstraint) GetProperty(field ConstraintKey) interface{} {
 	case MinBound:
 		if n.MinBound == nil {
 			// Random value, should only be used for testing anyways
-			log.Warn("Requested unset minimum bound")
+			logger.DefaultLogger().Warn("Requested unset minimum bound")
 			return -12345
 		}
 		return *n.MinBound
 	case MaxBound:
 		if n.MaxBound == nil {
 			// Random value, should only be used for testing anyways
-			log.Warn("Requested unset maximum bound")
+			logger.DefaultLogger().Warn("Requested unset maximum bound")
 			return 123456789
 		}
 		return *n.MaxBound

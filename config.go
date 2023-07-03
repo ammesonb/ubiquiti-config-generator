@@ -24,7 +24,7 @@ func LoadConfig(config []byte) (*Config, error) {
 	err := yaml.Unmarshal(config, conf)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed loading config: %s", err.Error())
+		return nil, fmt.Errorf("Failed loading config: %+v", err)
 	}
 
 	return conf, nil
