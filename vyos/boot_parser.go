@@ -2,7 +2,6 @@ package vyos
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"regexp"
 	"strings"
@@ -26,7 +25,6 @@ import (
 // and will update the definitions with the data from the file
 func ParseBootDefinitions(reader io.Reader, definitions *Definitions, rootNode *Node) {
 	logger := logger.DefaultLogger()
-	logger.SetLevel(log.DebugLevel)
 	definitionStack := make([]*Definition, 0)
 	nodeStack := []*Node{rootNode}
 
@@ -130,7 +128,7 @@ func openScope(
 		if definition.Node != nil && definition.Node.IsTag {
 			// Tag nodes are basically placeholders for children, so skip over it
 			*nodeStack = append(*nodeStack, definition.Node.ChildNodes["node.tag"])
-			fmt.Printf("Tag node: %#v\n", definition.Node.ChildNodes["node.tag"])
+			logger.Debug("Skipping empty node.tag stack entry")
 		}
 	}
 

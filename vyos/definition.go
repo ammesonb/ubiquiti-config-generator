@@ -33,7 +33,7 @@ func (definition *Definition) ParentPath() string {
 
 // JoinedPath returns a slash-joined version of the definition's path
 func (definition *Definition) JoinedPath() string {
-	if definition.Node.IsTag {
+	if definition.Node != nil && definition.Node.IsTag {
 		// For tags, include the name since that will describe the parent path
 		// and e.g. firewall groups could have overlapping port-group and address-group names
 		return strings.Join(append(definition.Path, definition.Name), "/")
@@ -46,7 +46,7 @@ func (definition *Definition) JoinedPath() string {
 func (definition *Definition) FullPath() string {
 	name := definition.Name
 	// For a tag, the path to use is actually the value
-	if definition.Node.IsTag {
+	if definition.Node != nil && definition.Node.IsTag {
 		name = definition.Value.(string)
 	}
 	if len(definition.Path) > 0 {
@@ -58,6 +58,33 @@ func (definition *Definition) FullPath() string {
 
 // Diff returns where another definition differs from this one
 func (definition *Definition) Diff(other *Definition) []string {
+	differences := definition.diffDefinition(other)
+
+	if definition.Node != nil && other.Node != nil {
+		differences = append(differences, definition.diffNode(other)...)
+	}
+
+	if len(definition.Children) != len(other.Children) {
+		return append(
+			differences,
+			fmt.Sprintf(
+				"%s: Should have %d children but got %d",
+				definition.FullPath(),
+				len(definition.Children),
+				len(other.Children),
+			),
+		)
+	}
+
+	for idx, child := range definition.Children {
+		otherChild := other.Children[idx]
+		differences = append(differences, child.Diff(otherChild)...)
+	}
+
+	return differences
+}
+
+func (definition *Definition) diffDefinition(other *Definition) []string {
 	differences := []string{}
 	if definition.Name != other.Name {
 		differences = append(
@@ -114,18 +141,32 @@ func (definition *Definition) Diff(other *Definition) []string {
 			),
 		)
 	}
-	if len(definition.Children) != len(other.Children) {
+	if definition.Node == nil {
 		differences = append(
 			differences,
 			fmt.Sprintf(
-				"%s: Count of children be %d but got %d",
+				"%s: Definition node should not be nil",
 				definition.FullPath(),
-				len(definition.Children),
-				len(other.Children),
 			),
 		)
 	}
-	// Skip node child check since that could be expensive {}
+	if other.Node == nil {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: Other node should not be nil",
+				definition.FullPath(),
+			),
+		)
+	}
+
+	return differences
+}
+
+func (definition *Definition) diffNode(other *Definition) []string {
+	differences := []string{}
+
+	// Skip node child check since that could be expensive
 	if definition.Node.Name != other.Node.Name {
 		differences = append(
 			differences,
@@ -182,18 +223,13 @@ func (definition *Definition) Diff(other *Definition) []string {
 		)
 	}
 
-	for idx, child := range definition.Children {
-		otherChild := other.Children[idx]
-		differences = append(differences, child.Diff(otherChild)...)
-	}
-
 	return differences
 }
 
 // Definitions collects all user-defined node values, including methods of indexing them
 // Used to merge in generic vyos configurations with custom YAML-based abstractions
 type Definitions struct {
-	Definitions []Definition
+	Definitions []*Definition
 	// While some nodes will have multiple values, since they are tagged "multi" then
 	// the values will be arrays so only one definition per path still
 	NodeByPath       map[string]*Node
@@ -225,7 +261,7 @@ func (definitions *Definitions) add(definition *Definition) {
 	// Only add root definitions to the list since others will be nested as children
 	if len(definition.Path) == 0 {
 		logger.Debugf("Adding definition for '%s' to root list", definition.Name)
-		definitions.Definitions = append(definitions.Definitions, *definition)
+		definitions.Definitions = append(definitions.Definitions, definition)
 	} else {
 		logger.Debugf(
 			"Adding relationship for definition '%s' with parent '%s'",
@@ -241,7 +277,7 @@ func (definitions *Definitions) add(definition *Definition) {
 
 func initDefinitions() *Definitions {
 	return &Definitions{
-		Definitions:      make([]Definition, 0),
+		Definitions:      make([]*Definition, 0),
 		NodeByPath:       make(map[string]*Node),
 		DefinitionByPath: make(map[string]*Definition),
 	}

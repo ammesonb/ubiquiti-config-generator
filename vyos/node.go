@@ -1,6 +1,8 @@
 package vyos
 
 import (
+	"strings"
+
 	"github.com/ammesonb/ubiquiti-config-generator/logger"
 )
 
@@ -69,6 +71,26 @@ func (node *Node) Children() []*Node {
 	}
 
 	return children
+}
+
+// FindChild recursively delves into this node's children along the given path
+func (node *Node) FindChild(path []string) *Node {
+	children := []*Node{node}
+	for _, step := range path {
+		child, ok := children[len(children)-1].ChildNodes[step]
+		if !ok {
+			logger.DefaultLogger().Debugf(
+				"Could not find node for step '%s' of path '%s'",
+				step,
+				strings.Join(path, "/"),
+			)
+			return nil
+		}
+
+		children = append(children, child)
+	}
+
+	return children[len(children)-1]
 }
 
 // NodeConstraint contains a set of values, command, or pattern the value of the node must satisfy

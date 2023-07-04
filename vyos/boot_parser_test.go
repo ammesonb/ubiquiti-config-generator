@@ -162,12 +162,144 @@ func TestParseBootDefinitions(t *testing.T) {
 		t.FailNow()
 	}
 
+	firewall := Definition{
+		Name: "firewall",
+		Path: []string{},
+		Node: rootNode.ChildNodes["firewall"],
+		Children: []*Definition{
+			{
+				Name:     "all-ping",
+				Path:     []string{"firewall"},
+				Node:     rootNode.FindChild([]string{"firewall", "all-ping"}),
+				Value:    "enable",
+				Children: []*Definition{},
+			},
+			{
+				Name:     "broadcast-ping",
+				Path:     []string{"firewall"},
+				Node:     rootNode.FindChild([]string{"firewall", "broadcast-ping"}),
+				Value:    "disable",
+				Children: []*Definition{},
+			},
+			{
+				Name: "group",
+				Path: []string{"firewall"},
+				Node: rootNode.FindChild([]string{"firewall", "group"}),
+				Children: []*Definition{
+					{
+						Name:    "address-group",
+						Value:   "admin",
+						Comment: "/* Reserved hosts for admin stuff */",
+						Path:    []string{"firewall", "group"},
+						Node: rootNode.FindChild([]string{
+							"firewall", "group", "address-group",
+						}),
+						Children: []*Definition{
+							{
+								Name: "description",
+								Path: []string{"firewall", "group", "address-group", "admin"},
+								Node: rootNode.FindChild([]string{
+									"firewall", "group", "address-group", "node.tag", "description",
+								}),
+								Value:    "admin",
+								Children: []*Definition{},
+							},
+							{
+								Name: "address",
+								Path: []string{"firewall", "group", "address-group", "admin"},
+								Node: rootNode.FindChild([]string{
+									"firewall", "group", "address-group", "node.tag", "address",
+								}),
+								Values: []any{
+									"192.168.0.1",
+									"192.168.0.2",
+									"192.168.1.1",
+								},
+								Children: []*Definition{},
+							},
+						},
+					},
+				},
+			},
+			{
+				Name:     "log-martians",
+				Path:     []string{"firewall"},
+				Node:     rootNode.FindChild([]string{"firewall", "log-martians"}),
+				Value:    "enable",
+				Children: []*Definition{},
+			},
+			{
+				Name:  "name",
+				Path:  []string{"firewall"},
+				Value: "WAN_IN",
+				Node:  rootNode.FindChild([]string{"firewall", "name"}),
+				Children: []*Definition{
+					{
+						Name:  "default-action",
+						Value: "drop",
+						Path:  []string{"firewall", "name", "WAN_IN"},
+						Node: rootNode.FindChild([]string{
+							"firewall", "name", "node.tag", "default-action",
+						}),
+						Children: []*Definition{},
+					},
+					{
+						Name:  "rule",
+						Value: "100",
+						Path:  []string{"firewall", "name", "WAN_IN"},
+						Node: rootNode.FindChild([]string{
+							"firewall", "name", "node.tag", "rule",
+						}),
+						Children: []*Definition{
+							{
+								Name:  "action",
+								Value: "accept",
+								Path:  []string{"firewall", "name", "WAN_IN", "rule", "100"},
+								Node: rootNode.FindChild([]string{
+									"firewall", "name", "node.tag", "rule", "node.tag", "action",
+								}),
+								Children: []*Definition{},
+							},
+							{
+								Name:  "description",
+								Value: "Allow 'IGMP'",
+								Path:  []string{"firewall", "name", "WAN_IN", "rule", "100"},
+								Node: rootNode.FindChild([]string{
+									"firewall", "name", "node.tag", "rule", "node.tag", "description",
+								}),
+								Children: []*Definition{},
+							},
+							{
+								Name:  "log",
+								Value: "disable",
+								Path:  []string{"firewall", "name", "WAN_IN", "rule", "100"},
+								Node: rootNode.FindChild([]string{
+									"firewall", "name", "node.tag", "rule", "node.tag", "log",
+								}),
+								Children: []*Definition{},
+							},
+							{
+								Name:  "protocol",
+								Value: "igmp",
+								Path:  []string{"firewall", "name", "WAN_IN", "rule", "100"},
+								Node: rootNode.FindChild([]string{
+									"firewall", "name", "node.tag", "rule", "node.tag", "protocol",
+								}),
+								Children: []*Definition{},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
 	t.Run("Firewall", func(t *testing.T) {
-		testFirewallBoot(t, rootNode)
+		testFirewallBoot(t, rootNode, &firewall)
 	})
 }
 
-func testFirewallBoot(t *testing.T, rootNode *Node) {
+func testFirewallBoot(t *testing.T, rootNode *Node, expected *Definition) {
 	file, err := os.Open("../vyos_test/firewall.boot")
 	if err != nil {
 		t.Errorf("Failed to read firewall boot data: %+v", err)
@@ -176,4 +308,14 @@ func testFirewallBoot(t *testing.T, rootNode *Node) {
 
 	definitions := initDefinitions()
 	ParseBootDefinitions(file, definitions, rootNode)
+
+	if len(definitions.Definitions) > 1 {
+		t.Errorf("Got %d root definitions, expected one", len(definitions.Definitions))
+		t.FailNow()
+	}
+
+	for _, mismatch := range expected.Diff(definitions.Definitions[0]) {
+		t.Error(mismatch)
+	}
+
 }
