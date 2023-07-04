@@ -2,6 +2,7 @@ package vyos
 
 import (
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -478,16 +479,28 @@ func TestParseBootDefinitions(t *testing.T) {
 		},
 	}
 
+	firewallBoot := "firewall.boot"
+	interfacesBoot := "interfaces.boot"
+	serviceSSHBoot := "service-ssh.boot"
 	t.Run("Firewall", func(t *testing.T) {
-		testSingleBoot(t, rootNode, "firewall.boot", &firewall)
+		testSingleBoot(t, rootNode, firewallBoot, &firewall)
 	})
 
 	t.Run("Interfaces", func(t *testing.T) {
-		testSingleBoot(t, rootNode, "interfaces.boot", &interfaces)
+		testSingleBoot(t, rootNode, interfacesBoot, &interfaces)
 	})
 
 	t.Run("serviceSSH", func(t *testing.T) {
-		testSingleBoot(t, rootNode, "service-ssh.boot", &serviceSSH)
+		testSingleBoot(t, rootNode, serviceSSHBoot, &serviceSSH)
+	})
+
+	t.Run("Combined", func(t *testing.T) {
+		testCombinedBoot(
+			t,
+			rootNode,
+			[]string{firewallBoot, interfacesBoot, serviceSSHBoot},
+			[]*Definition{&firewall, &interfaces, &serviceSSH},
+		)
 	})
 }
 
@@ -508,5 +521,35 @@ func testSingleBoot(t *testing.T, rootNode *Node, filename string, expected *Def
 
 	for _, mismatch := range expected.Diff(definitions.Definitions[0]) {
 		t.Error(mismatch)
+	}
+}
+
+func testCombinedBoot(t *testing.T, rootNode *Node, files []string, expected []*Definition) {
+	data := ""
+	for _, name := range files {
+		bootData, err := os.ReadFile("../vyos_test/" + name)
+		if err != nil {
+			t.Errorf("Failed to read boot data for %s: %+v", name, err)
+			t.FailNow()
+		}
+		data += string(bootData)
+	}
+
+	reader := strings.NewReader(data)
+
+	definitions := initDefinitions()
+	ParseBootDefinitions(reader, definitions, rootNode)
+
+	if len(expected) != len(definitions.Definitions) {
+		t.Errorf(
+			"Expected %d definitions but found %d",
+			len(expected),
+			len(definitions.Definitions),
+		)
+	}
+	for idx, def := range expected {
+		for _, mismatch := range def.Diff(definitions.Definitions[idx]) {
+			t.Error(mismatch)
+		}
 	}
 }
