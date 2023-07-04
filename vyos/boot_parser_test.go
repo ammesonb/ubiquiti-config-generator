@@ -9,7 +9,7 @@ func TestLineDetection(t *testing.T) {
 	comment := "   /* This is a comment */"
 	tagNodeOpen := "    name some-firewall {"
 	tagNodeClose := "    }"
-	normalNodeOpen := "services {"
+	normalNodeOpen := "service {"
 	value := "    port 8080"
 	quotedValue := `    description "Firewall rule {20}"`
 
@@ -437,36 +437,64 @@ func TestParseBootDefinitions(t *testing.T) {
 		},
 	}
 
+	serviceSSH := Definition{
+		Name: "service",
+		Path: []string{},
+		Node: rootNode.ChildNodes["service"],
+		Children: []*Definition{
+			{
+				Name: "ssh",
+				Path: []string{"service"},
+				Node: rootNode.FindChild([]string{"service", "ssh"}),
+				Children: []*Definition{
+					{
+						Name: "disable-password-authentication",
+						Path: []string{"service", "ssh"},
+						Node: rootNode.FindChild([]string{
+							"service", "ssh", "disable-password-authentication",
+						}),
+						Children: []*Definition{},
+					},
+					{
+						Name: "port",
+						Path: []string{"service", "ssh"},
+						Node: rootNode.FindChild([]string{
+							"service", "ssh", "port",
+						}),
+						Value:    "22",
+						Children: []*Definition{},
+					},
+					{
+						Name: "protocol-version",
+						Path: []string{"service", "ssh"},
+						Node: rootNode.FindChild([]string{
+							"service", "ssh", "protocol-version",
+						}),
+						Value:    "v2",
+						Children: []*Definition{},
+					},
+				},
+			},
+		},
+	}
+
 	t.Run("Firewall", func(t *testing.T) {
-		testFirewallBoot(t, rootNode, &firewall)
-		testInterfacesBoot(t, rootNode, &interfaces)
+		testSingleBoot(t, rootNode, "firewall.boot", &firewall)
+	})
+
+	t.Run("Interfaces", func(t *testing.T) {
+		testSingleBoot(t, rootNode, "interfaces.boot", &interfaces)
+	})
+
+	t.Run("serviceSSH", func(t *testing.T) {
+		testSingleBoot(t, rootNode, "service-ssh.boot", &serviceSSH)
 	})
 }
 
-func testFirewallBoot(t *testing.T, rootNode *Node, expected *Definition) {
-	file, err := os.Open("../vyos_test/firewall.boot")
+func testSingleBoot(t *testing.T, rootNode *Node, filename string, expected *Definition) {
+	file, err := os.Open("../vyos_test/" + filename)
 	if err != nil {
-		t.Errorf("Failed to read firewall boot data: %+v", err)
-		t.FailNow()
-	}
-
-	definitions := initDefinitions()
-	ParseBootDefinitions(file, definitions, rootNode)
-
-	if len(definitions.Definitions) > 1 {
-		t.Errorf("Got %d root definitions, expected one", len(definitions.Definitions))
-		t.FailNow()
-	}
-
-	for _, mismatch := range expected.Diff(definitions.Definitions[0]) {
-		t.Error(mismatch)
-	}
-}
-
-func testInterfacesBoot(t *testing.T, rootNode *Node, expected *Definition) {
-	file, err := os.Open("../vyos_test/interfaces.boot")
-	if err != nil {
-		t.Errorf("Failed to read InterfacES boot data: %+v", err)
+		t.Errorf("Failed to read boot data for %s: %+v", filename, err)
 		t.FailNow()
 	}
 
