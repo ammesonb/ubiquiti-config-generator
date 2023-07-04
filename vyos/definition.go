@@ -2,6 +2,7 @@ package vyos
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/ammesonb/ubiquiti-config-generator/logger"
@@ -10,13 +11,13 @@ import (
 // Definition contains the actual values for a given node
 // Also requires a path to ensure we know the actual value for tag nodes
 type Definition struct {
-	Name     string
-	Path     []string
-	Node     *Node
-	Comment  string
-	Value    any
-	Values   []any
-	Children []*Definition
+	Name     string        `yaml:"name"`
+	Path     []string      `yaml:"path"`
+	Node     *Node         `yaml:"node"`
+	Comment  string        `yaml:"comment"`
+	Value    any           `yaml:"value"`
+	Values   []any         `yaml:"values"`
+	Children []*Definition `yaml:"children"`
 }
 
 // ParentPath returns a slash-joined version of the path to the definition's parent
@@ -53,6 +54,140 @@ func (definition *Definition) FullPath() string {
 	}
 
 	return name
+}
+
+// Diff returns where another definition differs from this one
+func (definition *Definition) Diff(other *Definition) []string {
+	differences := []string{}
+	if definition.Name != other.Name {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: 'Name' should be '%s' but got '%s'",
+				definition.FullPath(),
+				definition.Name,
+				other.Name,
+			),
+		)
+	}
+	if !reflect.DeepEqual(definition.Path, other.Path) {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: 'Path' should be '%#v' but got '%#v'",
+				definition.FullPath(),
+				definition.Path,
+				other.Path,
+			),
+		)
+	}
+	if definition.Comment != other.Comment {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: 'Comment' should be '%s' but got '%s'",
+				definition.FullPath(),
+				definition.Comment,
+				other.Comment,
+			),
+		)
+	}
+	if definition.Value != other.Value {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: 'Value' should be '%#v' but got '%#v'",
+				definition.FullPath(),
+				definition.Value,
+				other.Value,
+			),
+		)
+	}
+	if !reflect.DeepEqual(definition.Values, other.Values) {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: 'Values' should be '%#v' but got '%#v'",
+				definition.FullPath(),
+				definition.Values,
+				other.Values,
+			),
+		)
+	}
+	if len(definition.Children) != len(other.Children) {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: Count of children be %d but got %d",
+				definition.FullPath(),
+				len(definition.Children),
+				len(other.Children),
+			),
+		)
+	}
+	// Skip node child check since that could be expensive {}
+	if definition.Node.Name != other.Node.Name {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: Node 'Name' should be '%s' but got '%s'",
+				definition.FullPath(),
+				definition.Node.Name,
+				other.Node.Name,
+			),
+		)
+	}
+	if definition.Node.Type != other.Node.Type {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: Node 'Type' should be '%s' but got '%s'",
+				definition.FullPath(),
+				definition.Node.Type,
+				other.Node.Type,
+			),
+		)
+	}
+	if definition.Node.IsTag != other.Node.IsTag {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: Node 'IsTag' should be '%t' but got '%t'",
+				definition.FullPath(),
+				definition.Node.IsTag,
+				other.Node.IsTag,
+			),
+		)
+	}
+	if definition.Node.Multi != other.Node.Multi {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: Node 'Multi' should be '%t' but got '%t'",
+				definition.FullPath(),
+				definition.Node.Multi,
+				other.Node.Multi,
+			),
+		)
+	}
+	if definition.Node.Path != other.Node.Path {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: Node 'Path' should be '%s' but got '%s'",
+				definition.FullPath(),
+				definition.Node.Path,
+				other.Node.Path,
+			),
+		)
+	}
+
+	for idx, child := range definition.Children {
+		otherChild := other.Children[idx]
+		differences = append(differences, child.Diff(otherChild)...)
+	}
+
+	return differences
 }
 
 // Definitions collects all user-defined node values, including methods of indexing them
