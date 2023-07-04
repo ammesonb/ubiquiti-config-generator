@@ -294,8 +294,152 @@ func TestParseBootDefinitions(t *testing.T) {
 		},
 	}
 
+	interfaces := Definition{
+		Name: "interfaces",
+		Path: []string{},
+		Node: rootNode.ChildNodes["interfaces"],
+		Children: []*Definition{
+			{
+				Name:  "ethernet",
+				Path:  []string{"interfaces"},
+				Node:  rootNode.FindChild([]string{"interfaces", "ethernet"}),
+				Value: "eth0",
+				Children: []*Definition{
+					{
+						Name: "address",
+						Path: []string{"interfaces", "ethernet", "eth0"},
+						Node: rootNode.FindChild([]string{
+							"interfaces", "ethernet", "node.tag", "address",
+						}),
+						Values:   []any{"dhcp"},
+						Children: []*Definition{},
+					},
+					{
+						Name: "description",
+						Path: []string{"interfaces", "ethernet", "eth0"},
+						Node: rootNode.FindChild([]string{
+							"interfaces", "ethernet", "node.tag", "description",
+						}),
+						Value:    "UPLINK",
+						Children: []*Definition{},
+					},
+					{
+						Name: "duplex",
+						Path: []string{"interfaces", "ethernet", "eth0"},
+						Node: rootNode.FindChild([]string{
+							"interfaces", "ethernet", "node.tag", "duplex",
+						}),
+						Value:    "auto",
+						Children: []*Definition{},
+					},
+					{
+						Name: "firewall",
+						Path: []string{"interfaces", "ethernet", "eth0"},
+						Node: rootNode.FindChild([]string{
+							"interfaces", "ethernet", "node.tag", "firewall",
+						}),
+						Children: []*Definition{
+							{
+								Name: "in",
+								Path: []string{"interfaces", "ethernet", "eth0", "firewall"},
+								Node: rootNode.FindChild([]string{
+									"interfaces", "ethernet", "node.tag", "firewall", "in",
+								}),
+								Children: []*Definition{
+									{
+										Name: "name",
+										Path: []string{"interfaces", "ethernet", "eth0", "firewall", "in"},
+										Node: rootNode.FindChild([]string{
+											"interfaces", "ethernet", "node.tag", "firewall", "in", "name",
+										}),
+										Value:    "WAN-IN",
+										Children: []*Definition{},
+									},
+								},
+							},
+						},
+					},
+					{
+						Name:     "speed",
+						Path:     []string{"interfaces", "ethernet", "eth0"},
+						Node:     rootNode.FindChild([]string{"interfaces", "ethernet", "node.tag", "speed"}),
+						Value:    "auto",
+						Children: []*Definition{},
+					},
+				},
+			},
+			{
+				Name:  "ethernet",
+				Path:  []string{"interfaces"},
+				Node:  rootNode.FindChild([]string{"interfaces", "ethernet"}),
+				Value: "eth1",
+				Children: []*Definition{
+					{
+						Name: "address",
+						Path: []string{"interfaces", "ethernet", "eth1"},
+						Node: rootNode.FindChild([]string{
+							"interfaces", "ethernet", "node.tag", "address",
+						}),
+						Values:   []any{"192.168.0.1/24"},
+						Children: []*Definition{},
+					},
+					{
+						Name: "description",
+						Path: []string{"interfaces", "ethernet", "eth1"},
+						Node: rootNode.FindChild([]string{
+							"interfaces", "ethernet", "node.tag", "description",
+						}),
+						Value:    "HOUSE",
+						Children: []*Definition{},
+					},
+					{
+						Name: "duplex",
+						Path: []string{"interfaces", "ethernet", "eth1"},
+						Node: rootNode.FindChild([]string{
+							"interfaces", "ethernet", "node.tag", "duplex",
+						}),
+						Value:    "auto",
+						Children: []*Definition{},
+					},
+					{
+						Name:     "speed",
+						Path:     []string{"interfaces", "ethernet", "eth1"},
+						Node:     rootNode.FindChild([]string{"interfaces", "ethernet", "node.tag", "speed"}),
+						Value:    "auto",
+						Children: []*Definition{},
+					},
+				},
+			},
+			{
+				Name:     "loopback",
+				Path:     []string{"interfaces"},
+				Node:     rootNode.FindChild([]string{"interfaces", "loopback"}),
+				Value:    "lo",
+				Children: []*Definition{},
+			},
+			{
+				Name:  "switch",
+				Path:  []string{"interfaces"},
+				Node:  rootNode.FindChild([]string{"interfaces", "switch"}),
+				Value: "switch0",
+				Children: []*Definition{
+					{
+						Name: "mtu",
+						Path: []string{"interfaces", "switch", "switch0"},
+						Node: rootNode.FindChild([]string{
+							"interfaces", "switch", "node.tag", "mtu",
+						}),
+						Value:    "1500",
+						Children: []*Definition{},
+					},
+				},
+			},
+		},
+	}
+
 	t.Run("Firewall", func(t *testing.T) {
 		testFirewallBoot(t, rootNode, &firewall)
+		testInterfacesBoot(t, rootNode, &interfaces)
 	})
 }
 
@@ -317,5 +461,24 @@ func testFirewallBoot(t *testing.T, rootNode *Node, expected *Definition) {
 	for _, mismatch := range expected.Diff(definitions.Definitions[0]) {
 		t.Error(mismatch)
 	}
+}
 
+func testInterfacesBoot(t *testing.T, rootNode *Node, expected *Definition) {
+	file, err := os.Open("../vyos_test/interfaces.boot")
+	if err != nil {
+		t.Errorf("Failed to read InterfacES boot data: %+v", err)
+		t.FailNow()
+	}
+
+	definitions := initDefinitions()
+	ParseBootDefinitions(file, definitions, rootNode)
+
+	if len(definitions.Definitions) > 1 {
+		t.Errorf("Got %d root definitions, expected one", len(definitions.Definitions))
+		t.FailNow()
+	}
+
+	for _, mismatch := range expected.Diff(definitions.Definitions[0]) {
+		t.Error(mismatch)
+	}
 }
