@@ -78,7 +78,8 @@ services:
     command: ["go", "test", "-v", "./..."]
 
   test-ci:
-    <<: [*lint, *ci, *test]
+    <<: *lint-ci
+    command: ["go", "test", "-v", "./..."]
 
   build: &build
     <<: *dev

@@ -57,8 +57,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = os.WriteFile("./generated-node-fixtures.yaml", res, 0644); err != nil {
-		logger.Fatal(err)
-		os.Exit(1)
-	}
+	//if err = os.WriteFile("./generated-node-fixtures.yaml", res, 0644); err != nil {
+	////logger.Fatal(err)
+	//os.Exit(1)
+	//}
 }
