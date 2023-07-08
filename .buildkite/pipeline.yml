@@ -1,0 +1,16 @@
+steps:
+  - label: :"hammer_and_wrench" Build
+    command: go build
+  - wait
+  - label: ":go: Tests"
+    command: go test ./...
+  - label: ":memo: Formatting"
+    command: gofmt -l
+  - label: ":inbox_tray: Imports"
+    command: goimports -l
+  - label: ":golangci-lint: Linting"
+    command: golint -set_exit_status ./...
+  - label: ":giraffe_face: Go vet"
+    command: go vet
+  - label: ":recycle: Gocyclo"
+    command: gocyclo -over 15 ./...
