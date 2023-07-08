@@ -1,6 +1,0 @@
----
-"firewall/all-ping": "enable"
-"firewall/broadcast-ping": "disable"
-"system/time-zone": "America/New_York"
-"system/host-name": "router"
-...
