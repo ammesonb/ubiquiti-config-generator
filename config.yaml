@@ -5,7 +5,8 @@
 # --no-skip-worktree to add things back
 
 templatesDir: "./templates"
-configFile: "config.boot"
+configFiles:
+  - "config.boot"
 
 router:
   address: 10.16.32.1

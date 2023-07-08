@@ -12,19 +12,19 @@ import (
 /*
 	 TODO:
 	 * Load config
-	   - allow for modular configs - config.boot always checked, plus
+	   - allow for modular configs - config.boot always checked, plu
 		   either interfaces.boot or maybe interfaces/<others>.boot?
 		 - With recursion support?
-		 - Lines for new paths end with {
-		 - Scopes always close with whitespace then }
-		 - Values are always on one line it seems
-		 - Comments start with /*
-		 - Tagged nodes will have the format "name <name>"
 	 * Convert custom YAML files into VyOS equivalents
-	 * Get existing configuration from router
-	 * Diff configs
-	 * Convert GitHub web hook stuff
+	 * Merge custom nodes into VyOS templates
+	 * Validation for custom YAML nodes
+	 * Validation for VyOS stuff
+	 * GitHub web hook app
+	 * GitHub check suite/validations
 	 * Run validation command scripts on router when PR checks run
+	 * Get existing configuration from router
+	 * Upload a diff of existing config vs generated config to branch for viewing
+	 * GitHub deployments
 	 * Perform load commands
 */
 func main() {
