@@ -1,16 +1,40 @@
+agents:
+  queue: default
+
 steps:
-  - label: :"hammer_and_wrench" Build
-    command: go build
+  - name: ":go: Imports"
+    plugins:
+      - docker-compose#v3.0.3:
+          run: imports
+
+  - name: ":go: :do_not_litter: Format"
+    plugins:
+      - docker-compose#v3.0.3:
+          run: format
+
+  - name: ":go: :lab_coat: Vet"
+    plugins:
+      - docker-compose#v3.0.3:
+          run: vet
+
+  - name: ":golangci-lint: GoLangCI"
+    plugins:
+      - docker-compose#v3.0.3:
+          run: ci-lint
+
+  - name: ":go: :judge: Critic"
+    plugins:
+      - docker-compose#v3.0.3:
+          run: critic
+
+  - name: ":go: :bicyclist: Cycles"
+    plugins:
+      - docker-compose#v3.0.3:
+          run: cycles
+
   - wait
-  - label: ":go: Tests"
-    command: go test ./...
-  - label: ":memo: Formatting"
-    command: gofmt -l
-  - label: ":inbox_tray: Imports"
-    command: goimports -l
-  - label: ":golangci-lint: Linting"
-    command: golint -set_exit_status ./...
-  - label: ":giraffe_face: Go vet"
-    command: go vet
-  - label: ":recycle: Gocyclo"
-    command: gocyclo -over 15 ./...
+
+  - name: ":go: :test_tube: Unit Tests"
+    plugins:
+      - docker-compose#v3.0.3:
+          run: test-ci

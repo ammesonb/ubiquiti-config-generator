@@ -1,0 +1,85 @@
+services:
+  dev: &dev
+    build: .
+    volumes:
+      - "${BUILDKITE_BUILD_CHECKOUT_PATH:-./}:/go/src/github.com/ammesonb/ubiquiti-config-generator"
+    environment:
+      - GOPATH=/go/
+    working_dir: /go/src/github.com/ammesonb/ubiquiti-config-generator
+
+
+  ci: &ci
+    build: .
+    # This will overwrite the dev volumes, so include both
+    # NOTE: for docker-in-docker, this references the HOST file system, not the bk agent
+    # so /buildkite/builds ($BUILDKITE_BUILD_PATH) is synced from host -> agent, so it can
+    # be available for the pipeline builds
+    volumes:
+        - "/usr/bin/buildkite-agent:/usr/bin/buildkite-agent"
+    environment:
+      - BUILDKITE_AGENT_ACCESS_TOKEN
+      - BUILDKITE_JOB_ID
+      - BUILDKITE_BUILD_ID
+      - BUILDKITE_BUILD_NUMBER
+      - GOPATH=/go/
+    working_dir: /go/src/github.com/ammesonb/ubiquiti-config-generator
+
+
+  lint: &lint
+    <<: *dev
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "Checking imports..."
+        goimports -l -w .
+        echo "Checking formatting..."
+        gofmt -l -w .
+        echo "Vetting..."
+        go vet
+        echo "Linting..."
+        golint
+        echo "CI Linting..."
+        golangci-lint run
+        echo "Critiquing..."
+        gocritic check
+        echo "Cyclomatic check..."
+        gocyclo -over 15 .
+
+  lint-ci: &lint-ci
+    <<: [*lint, *ci]
+
+  imports:
+    <<: *lint-ci
+    command: ["goimports", "-l", "."]
+
+  format:
+    <<: *lint-ci
+    command: ["gofmt", "-l", "."]
+
+  vet:
+    <<: *lint-ci
+    command: ["go", "vet", "."]
+
+  ci-lint:
+    <<: *lint-ci
+    command: ["golangci-lint", "run", "."]
+
+  critic:
+    <<: *lint-ci
+    command: ["gocritic", "check", "."]
+
+  cycles:
+    <<: *lint-ci
+    command: ["gocyclo", "-over", "15", "."]
+
+  test: &test
+    <<: *dev
+    command: ["go", "test", "-v", "./..."]
+
+  test-ci:
+    <<: [*lint, *ci, *test]
+
+  build: &build
+    <<: *dev
+    command: ["go", "build"]
