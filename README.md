@@ -1,4 +1,6 @@
 # ubiquiti-config-generator
+[![Build status](https://badge.buildkite.com/414a8fa236b1a14336069d992187bf10ebd11f4f579c0f210a.svg)](https://buildkite.com/ammesonb/ubiquiti-config-generator)
+
 This application will analyze, generate, validate, and deploy configuration changes for Ubiquiti routers based on local configurations.
 The idea behind this is to minimize the possiblity of IP address conflicts, repetitive data entry, and provide visibility into the router configuration history via PRs and deployments.
 Each change will generate a full config.boot file and auto-add it to your PR so you can see a full diff of changes to ensure that the output is what you expect, and will be preserved as `.config.boot` in the repository for reference.
