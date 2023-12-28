@@ -6,14 +6,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ammesonb/ubiquiti-config-generator/logger"
 	"github.com/charmbracelet/log"
+
+	"github.com/ammesonb/ubiquiti-config-generator/logger"
 )
 
 /*
-	- allow for modular configs - config.boot always checked, plus
-		either interfaces.boot or maybe interfaces/<others>.boot?
-	- With recursion support?
 	- Lines for new paths end with {
 	- Scopes always close with whitespace then }
 	- Values are always on one line it seems
@@ -203,7 +201,6 @@ func handleUnknown(
 		// keep the definition
 		definitions.add(&definition)
 	}
-
 }
 
 func makeNewDefinition(nodes []*Node, parentDefinition *Definition, name string) Definition {

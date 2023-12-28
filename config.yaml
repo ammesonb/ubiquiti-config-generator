@@ -4,34 +4,36 @@
 # git update-index --skip-worktree deploy.yaml to remove any future changes, with
 # --no-skip-worktree to add things back
 
-templatesDir: "./templates"
-configFiles:
-  - "config.boot"
+routers:
+  primary-router:
+    address: 10.16.32.1
+    port: 12244
+    user: $UBQ_USER
+    # Either password or keyfile may be specified - keyfile is preferred
+    # If both are provided, the password will be used as the passphrase to the keyfile
+    password: $UBQ_PASS
+    keyfile: $UBQ_KEYFILE
 
-router:
-  address: 10.16.32.1
-  port: 12244
-  user: $UBQ_USER
-  # Either password or keyfile may be specified - keyfile is preferred
-  # If both are provided, the password will be used as the passphrase to the keyfile
-  password: $UBQ_PASS
-  keyfile: $UBQ_KEYFILE
-  # The path to store the command files in, will be something like:
-  # rev1..rev2-000.sh, rev1..rev2-001.sh, etc for ordered execution
-  command-file-path: /tmp
+    templatesDir: "./templates"
+    configFiles:
+      - "config.boot"
 
-# Immediately revert failed changes
-auto-rollback-on-failure: True
-# Schedule reboot after N minutes, to ensure you don't accidentally lose access to the router
-# Can be canceled with `shutdown -c`
-reboot-after-minutes: 5
-# Save config after commit
-# NOT RECOMMENDED - manually validate the config after deploying to ensure there are no flaws
-# This could lock you out of the router!!!
-save-after-commit: False
-# The path to vyatta-cfg-cmd-wrapper
-# Typically in /opt/vyatta/[s]bin
-script-cfg-path: /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper
+    # The path to store the command files in, will be something like:
+    # rev1..rev2-000.sh, rev1..rev2-001.sh, etc for ordered execution
+    command-file-path: /tmp
+    # The path to vyatta-cfg-cmd-wrapper
+    # Typically in /opt/vyatta/[s]bin
+    configure-script-path: /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper
+
+    # Immediately revert failed changes
+    auto-rollback-on-failure: True
+    # Schedule reboot after N minutes, to ensure you don't accidentally lose access to the router
+    # Can be canceled with `shutdown -c`
+    reboot-after-minutes: 5
+    # Save config after commit
+    # NOT RECOMMENDED - manually validate the config after deploying to ensure there are no flaws
+    # This could lock you out of the router!!!
+    save-after-commit: False
 
 # Interface settings
 logging:
@@ -51,8 +53,3 @@ git:
   webhook-port: 54321
   # The secret to use with GitHub webhooks
   webhook-secret: $UBQ_GITHUB_WEBHOOK_SECRET
-  # where to clone the repo - need both to ensure a consistent configuration is applied
-  # A node may be deleted from the previous config, which simply applying the updated one
-  # will not always catch
-  config-folder: /tmp/router_config
-  diff-config-folder: /tmp/previous_router_config

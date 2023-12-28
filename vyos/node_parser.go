@@ -11,8 +11,9 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/ammesonb/ubiquiti-config-generator/logger"
 	"github.com/charmbracelet/log"
+
+	"github.com/ammesonb/ubiquiti-config-generator/logger"
 )
 
 /** Config notes:
@@ -93,7 +94,7 @@ func parseDefinition(reader io.Reader, logger *log.Logger, node *Node) error {
 
 	scope := ""
 	value := ""
-	helpValues := []string{}
+	var helpValues []string
 	allowed := ""
 	expression := ""
 	for scanner.Scan() {
@@ -152,6 +153,7 @@ func parseConstraints(node *Node, logger *log.Logger, expression string) bool {
 	parts := helpSplit.Split(expression, 2)
 	expr := strings.TrimSpace(parts[0])
 	help := ""
+
 	if len(parts) > 1 {
 		help = stripCommand(parts[1])
 	}
@@ -228,8 +230,8 @@ func checkRange(expression string, help string, node *Node) bool {
 		(VAR>=min)&&(VAR<=max)
 		Also sometimes only a min or max value is present, so check for them individually instead of combined
 	*/
-	min := checkMinBound(expression, node)
-	max := checkMaxBound(expression, node)
+	min := checkMinBound(expression)
+	max := checkMaxBound(expression)
 
 	if min == nil && max == nil {
 		return false
@@ -246,34 +248,58 @@ func checkRange(expression string, help string, node *Node) bool {
 	return true
 }
 
-func checkMinBound(expression string, node *Node) *int {
+func checkMinBound(expression string) *int {
 	boundsExpr := regexp.MustCompile(`\(?\$VAR\(@\) ?(>=?) ?([0-9]+)\)?`)
+	gtBoundsExpr := regexp.MustCompile(`\(?\$VAR\(@\) ?-g([et]) ?\\?"?([0-9]+)\\?"?\)?`)
 	result := boundsExpr.FindStringSubmatch(expression)
-	if len(result) < 2 {
+	gtResult := gtBoundsExpr.FindStringSubmatch(expression)
+	if len(result) < 2 && len(gtResult) < 2 {
 		return nil
 	}
 
-	// Since regex match will always only contain numbers, can assume no errors
-	min, _ := strconv.Atoi(result[2])
-	if result[1] == ">" {
-		min++
+	var strictlyGreater bool
+	var bound string
+	if len(gtResult) < 2 {
+		strictlyGreater = result[1] == ">"
+		bound = result[2]
+	} else {
+		strictlyGreater = gtResult[1] == "t"
+		bound = gtResult[2]
 	}
-	return &min
+
+	// Since regex match will always only contain numbers, can assume no errors
+	minBound, _ := strconv.Atoi(bound)
+	if strictlyGreater {
+		minBound++
+	}
+	return &minBound
 }
 
-func checkMaxBound(expression string, node *Node) *int {
+func checkMaxBound(expression string) *int {
 	boundsExpr := regexp.MustCompile(`\(?\$VAR\(@\) ?(<=?) ?([0-9]+)\)?`)
+	ltBoundsExpr := regexp.MustCompile(`\(?\$VAR\(@\) ?-l([et]) ?\\?"?([0-9]+)\\?"?\)?`)
 	result := boundsExpr.FindStringSubmatch(expression)
-	if len(result) < 2 {
+	ltResult := ltBoundsExpr.FindStringSubmatch(expression)
+	if len(result) < 2 && len(ltResult) < 2 {
 		return nil
 	}
 
-	// Since regex match will always only contain numbers, can assume no errors
-	max, _ := strconv.Atoi(result[2])
-	if result[1] == "<" {
-		max--
+	var strictlyLess bool
+	var bound string
+	if len(ltResult) < 2 {
+		strictlyLess = result[1] == "<"
+		bound = result[2]
+	} else {
+		strictlyLess = ltResult[1] == "t"
+		bound = ltResult[2]
 	}
-	return &max
+
+	// Since regex match will always only contain numbers, can assume no errors
+	maxBound, _ := strconv.Atoi(bound)
+	if strictlyLess {
+		maxBound--
+	}
+	return &maxBound
 }
 
 func addPattern(expression string, help string, node *Node) bool {

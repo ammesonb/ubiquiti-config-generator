@@ -322,7 +322,6 @@ func TestSimpleDefinition(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -334,13 +333,13 @@ func TestSimpleDefinition(t *testing.T) {
 	if len(node.Constraints) > 0 {
 		t.Error("No constraints expected")
 	}
-
 }
 
 func TestConstraints(t *testing.T) {
 	t.Run("Expression Bounds", testExprBounds)
 	t.Run("Minimum Bound", testMinBound)
 	t.Run("Maximum Bound", testMaxBound)
+	t.Run("Min/max gt/lt Bounds", testMinMaxBound)
 	t.Run("Pattern", testPattern)
 	t.Run("Negated Pattern", testNegatedPattern)
 	t.Run("Validate", testSimpleValidateCommand)
@@ -370,7 +369,6 @@ func testExprBounds(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -410,7 +408,6 @@ func testMinBound(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -442,7 +439,6 @@ func testMaxBound(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -457,6 +453,53 @@ func testMaxBound(t *testing.T) {
 		"Maximum bound",
 		MaxBound,
 		65535,
+		reason,
+	)
+}
+
+func testMinMaxBound(t *testing.T) {
+	// See templates/firewall/modify/node.tag/rule/node.tag/modify/tcp-mss/node.def
+	ntype := "txt"
+	help := "TCP Maximum Segment Size"
+	// Unfortunately the echo text is really hard to parse here, so will have to fall back to the generic help texts
+	reason := ``
+	expr := `exec "
+        if [[   ( $VAR(@) =~ ^[[:digit:]]*$ ) &&                \
+                ( $VAR(@) -ge \"500\" ) &&                      \
+                ( $VAR(@) -le \"1460\" ) ]]; then               \
+                exit 0;                                         \
+        fi;                                                     \
+echo Value must be a number between 500 and 1460; \
+exit 1"`
+	node, err := createTestTagNode(
+		&ntype,
+		&help,
+		[]string{},
+		nil,
+		&expr,
+	)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	for _, err := range validateTagNode(node, ntype, help) {
+		t.Error(err)
+	}
+
+	validateConstraint(
+		t,
+		node,
+		"Minimum bound",
+		MinBound,
+		500,
+		reason,
+	)
+	validateConstraint(
+		t,
+		node,
+		"Maximum bound",
+		MaxBound,
+		1460,
 		reason,
 	)
 }
@@ -476,7 +519,6 @@ func testPattern(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -511,7 +553,6 @@ func testNegatedPattern(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -545,7 +586,6 @@ func testSimpleValidateCommand(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -586,7 +626,6 @@ func testIfBlockValidateCommand(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -622,7 +661,6 @@ func testNewlineExec(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -662,7 +700,6 @@ func testExprList(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -704,7 +741,6 @@ func testNegatedExprList(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -738,7 +774,6 @@ func testAllowedCliShell(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -772,7 +807,6 @@ func testAllowedEcho(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -806,7 +840,6 @@ func testAllowedExecutable(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -848,7 +881,6 @@ func testAllowedArrayVar(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -885,7 +917,6 @@ func testAllowedBashCommand(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -926,7 +957,6 @@ func testInfinityOrNumber(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -951,7 +981,6 @@ func testInfinityOrNumber(t *testing.T) {
 		pattern,
 		reason,
 	)
-
 }
 
 func testMultiOptionList(t *testing.T) {
@@ -972,7 +1001,6 @@ func testMultiOptionList(t *testing.T) {
 		nil,
 		&expr,
 	)
-
 	if err != nil {
 		t.Error(err.Error())
 	}
