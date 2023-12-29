@@ -94,7 +94,6 @@ func parseDefinition(reader io.Reader, logger *log.Logger, node *Node) error {
 
 	scope := ""
 	value := ""
-	var helpValues []string
 	allowed := ""
 	expression := ""
 	for scanner.Scan() {
@@ -105,14 +104,14 @@ func parseDefinition(reader io.Reader, logger *log.Logger, node *Node) error {
 
 		if len(line) == 0 {
 			// Blank lines end scope
-			addOption(scope, value, &helpValues, &allowed, &expression, node)
+			addOption(scope, value, &allowed, &expression, node)
 			scope = ""
 			value = ""
 		} else if !unicode.IsSpace(rune(line[0])) && strings.Contains(line, ":") {
 			// If a character starts the line and the line contains a colon, this is a new option
 			// Close out the old scope if set, since this one will override it
 			if scope != "" {
-				addOption(scope, value, &helpValues, &allowed, &expression, node)
+				addOption(scope, value, &allowed, &expression, node)
 			}
 
 			scope = strings.Split(line, ":")[0]
@@ -124,7 +123,7 @@ func parseDefinition(reader io.Reader, logger *log.Logger, node *Node) error {
 	}
 
 	if len(value) > 0 {
-		addOption(scope, value, &helpValues, &allowed, &expression, node)
+		addOption(scope, value, &allowed, &expression, node)
 	}
 
 	if !parseConstraints(node, logger, expression) {
@@ -154,8 +153,11 @@ func parseConstraints(node *Node, logger *log.Logger, expression string) bool {
 	expr := strings.TrimSpace(parts[0])
 	help := ""
 
-	if len(parts) > 1 {
+	if len(parts) > 1 && stripCommand(parts[1]) != "" {
 		help = stripCommand(parts[1])
+	} else if len(node.ValuesHelp) > 0 {
+		// If help is empty or missing, try using the values help instead
+		help = strings.Join(node.ValuesHelp, "\n")
 	}
 
 	done := checkRange(expr, help, node)
@@ -174,7 +176,6 @@ func parseConstraints(node *Node, logger *log.Logger, expression string) bool {
 func addOption(
 	scope string,
 	value string,
-	helpValues *[]string,
 	allowed *string,
 	expression *string,
 	node *Node,
@@ -191,9 +192,9 @@ func addOption(
 	case "help":
 		node.Help = strings.TrimSpace(value)
 	case "val_help":
-		*helpValues = append(
+		node.ValuesHelp = append(
 			// For val_help, strip the description after the semi colon
-			*helpValues, strings.TrimSpace(value),
+			node.ValuesHelp, strings.TrimSpace(value),
 		)
 	case "allowed":
 		*allowed = value

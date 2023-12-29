@@ -4,7 +4,7 @@
 # git update-index --skip-worktree deploy.yaml to remove any future changes, with
 # --no-skip-worktree to add things back
 
-routers:
+devices:
   primary-router:
     address: 10.16.32.1
     port: 12244

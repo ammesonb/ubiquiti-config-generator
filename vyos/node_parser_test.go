@@ -21,52 +21,51 @@ func TestAddOption(t *testing.T) {
 		ChildNodes:  map[string]*Node{},
 		Constraints: []NodeConstraint{},
 	}
-	helpValues := &[]string{}
 	allowed := ""
 	expression := ""
 
 	t.Run("tag", func(t *testing.T) {
-		addOption("tag", "tag:", helpValues, &allowed, &expression, n)
+		addOption("tag", "tag:", &allowed, &expression, n)
 		if !n.IsTag {
 			t.Errorf("Tag flag not set on node")
 		}
 	})
 	t.Run("multi", func(t *testing.T) {
-		addOption("multi", "multi:", helpValues, &allowed, &expression, n)
+		addOption("multi", "multi:", &allowed, &expression, n)
 		if !n.Multi {
 			t.Errorf("Multi flag not set on node")
 		}
 	})
 	t.Run("type", func(t *testing.T) {
-		addOption("type", "type: txt", helpValues, &allowed, &expression, n)
+		addOption("type", "type: txt", &allowed, &expression, n)
 		if n.Type != "txt" {
 			t.Errorf("Expected node type to be txt, got '%s'", n.Type)
 		}
 	})
 	t.Run("help", func(t *testing.T) {
-		addOption("help", "help: some description", helpValues, &allowed, &expression, n)
+		addOption("help", "help: some description", &allowed, &expression, n)
 		if n.Help != "some description" {
 			t.Errorf("Got unexpected node description: '%s'", n.Type)
 		}
 	})
 	t.Run("val_help", func(t *testing.T) {
-		addOption("val_help", "val_help: u32", helpValues, &allowed, &expression, n)
-		if len(*helpValues) == 0 {
+		addOption("val_help", "val_help: u32", &allowed, &expression, n)
+		if len(n.ValuesHelp) == 0 {
 			t.Errorf("No value added to help descriptions")
-		} else if len(*helpValues) > 1 {
-			t.Errorf("Too many values added to help descriptions: %#v", *helpValues)
-		} else if (*helpValues)[0] != "u32" {
-			t.Errorf("Got unexpected help value: %s", (*helpValues)[0])
+		} else if len(n.ValuesHelp) > 1 {
+			t.Errorf("Too many values added to help descriptions: %#v", n.ValuesHelp)
+		} else if (n.ValuesHelp)[0] != "u32" {
+			t.Errorf("Got unexpected help value: %s", n.ValuesHelp[0])
 		}
 	})
 	t.Run("allowed", func(t *testing.T) {
-		addOption("allowed", "allowed: cli-shell-api", helpValues, &allowed, &expression, n)
+		addOption("allowed", "allowed: cli-shell-api", &allowed, &expression, n)
 		if allowed != "cli-shell-api" {
 			t.Errorf("Got unexpected allowed value: '%s'", allowed)
 		}
 	})
 	t.Run("syntax", func(t *testing.T) {
-		addOption("syntax", "syntax:expression: pattern $VAR(@)", helpValues, &allowed, &expression, n)
+		addOption("syntax", "syntax:expression: pattern $VAR(@)", &allowed, &expression, n)
 		if expression != "pattern $VAR(@)" {
 			t.Errorf("Got unexpected expression value: '%s'", expression)
 		}

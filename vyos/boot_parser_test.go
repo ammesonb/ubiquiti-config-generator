@@ -60,7 +60,6 @@ func TestLineDetection(t *testing.T) {
 
 	t.Run("Quoted value", func(t *testing.T) {
 		verifyLine(t, quotedValue, false, false, false, true)
-
 	})
 }
 

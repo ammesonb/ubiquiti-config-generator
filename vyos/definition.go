@@ -44,16 +44,17 @@ func (definition *Definition) JoinedPath() string {
 
 // FullPath returns the entire configuration path to this node, including itself
 func (definition *Definition) FullPath() string {
-	name := definition.Name
-	// For a tag, the path to use is actually the value
-	if definition.Node != nil && definition.Node.IsTag {
-		name = definition.Value.(string)
-	}
-	if len(definition.Path) > 0 {
-		return fmt.Sprintf("%s/%s", definition.JoinedPath(), name)
+	if len(definition.Path) == 0 {
+		return definition.Name
 	}
 
-	return name
+	var name any = definition.Name
+	// For a tag, the path to use is actually the value
+	if definition.Node != nil && definition.Node.IsTag {
+		name = definition.Value
+	}
+
+	return fmt.Sprintf("%s/%v", definition.JoinedPath(), name)
 }
 
 // Diff returns where another definition differs from this one
@@ -226,6 +227,16 @@ func (definition *Definition) diffNode(other *Definition) []string {
 	return differences
 }
 
+func (definition *Definition) hasChild(other *Definition) bool {
+	for _, child := range definition.Children {
+		if len(child.diffDefinition(other)) == 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Definitions collects all user-defined node values, including methods of indexing them
 // Used to merge in generic vyos configurations with custom YAML-based abstractions
 type Definitions struct {
@@ -234,6 +245,57 @@ type Definitions struct {
 	// the values will be arrays so only one definition per path still
 	NodeByPath       map[string]*Node
 	DefinitionByPath map[string]*Definition
+}
+
+// FindChild recursively delves into this node's children along the given path
+func (definitions *Definitions) FindChild(path []any) *Definition {
+	var children []*Definition
+
+	top, ok := definitions.DefinitionByPath[path[0].(string)]
+	children = append(children, top)
+	if !ok {
+		logger.DefaultLogger().Debugf(
+			"Could not find node for step '%s' of path '%v'",
+			path[0],
+			path,
+		)
+		return nil
+	}
+
+	foundTag := false
+	for idx, step := range path[1:] {
+		found := false
+		// Tags will skip a step in the path, so reset flag and continue
+		if foundTag {
+			foundTag = false
+			continue
+
+		}
+
+		for _, child := range children[len(children)-1].Children {
+			// Child matches if the name matches the step and either
+			// - the node is not a tag
+			// - the node IS a tag, and its value matches the next step of the path (+2 since starting from index 1 on path)
+			if child.Name == step && (!child.Node.IsTag || (child.Node.IsTag && child.Value == path[idx+2])) {
+				foundTag = child.Node.IsTag
+
+				children = append(children, child)
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			logger.DefaultLogger().Debugf(
+				"Could not find node for step '%s' of path '%v'",
+				step,
+				path,
+			)
+			return nil
+		}
+	}
+
+	return children[len(children)-1]
 }
 
 func (definitions *Definitions) add(definition *Definition) {
@@ -269,10 +331,60 @@ func (definitions *Definitions) add(definition *Definition) {
 			definition.ParentPath(),
 		)
 		// Add this definition to its parent
-		definitions.DefinitionByPath[definition.ParentPath()].Children = append(
-			definitions.DefinitionByPath[definition.ParentPath()].Children, definition,
+		parent := definitions.DefinitionByPath[definition.ParentPath()]
+		if !parent.hasChild(definition) {
+			parent.Children = append(
+				parent.Children, definition,
+			)
+		}
+	}
+
+	for _, child := range definition.Children {
+		definitions.add(child)
+	}
+}
+
+func (definitions *Definitions) merge(other *Definitions) error {
+	// Check top-level definitions
+	for _, definition := range other.Definitions {
+		// If not present already, then add it
+		if _, ok := definitions.DefinitionByPath[definition.FullPath()]; !ok {
+			definitions.add(definition)
+		} else {
+			// Otherwise, recurse into the definition to merge them
+			if err := definitions.DefinitionByPath[definition.FullPath()].merge(definitions, definition); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (definition *Definition) merge(definitions *Definitions, other *Definition) error {
+	diffs := definition.diffDefinition(other)
+	// Make sure the attributes on the definition are the same, otherwise they are not compatible
+	if len(diffs) > 0 {
+		return fmt.Errorf(
+			"got %d differences between nodes at path %s: %s",
+			len(diffs),
+			definition.FullPath(),
+			strings.Join(diffs, "\n"),
 		)
 	}
+
+	for _, child := range other.Children {
+		// For each child, if not present then we can simply add it to this definition
+		// Otherwise, try merging it in recursively
+		if _, ok := definitions.DefinitionByPath[child.FullPath()]; !ok {
+			definitions.add(child)
+		} else {
+			if err := definitions.DefinitionByPath[child.FullPath()].merge(definitions, child); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func initDefinitions() *Definitions {

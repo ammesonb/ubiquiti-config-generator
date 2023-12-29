@@ -45,7 +45,10 @@ type Node struct {
 	// Can be omitted, like for services/ssh/disable-password-authentication,
 	// where it is used as a boolean - present is true, omitted is false
 	Type string `yaml:"Type"`
+	// Describes the node's purpose
 	Help string `yaml:"Help"`
+	// Describes help for the various possible node values
+	ValuesHelp []string `yaml:"ValHelp"`
 	// If the node is a tag, e.g. allows multiple named entries like firewalls
 	// or rule numbers
 	IsTag bool `yaml:"IsTag"`

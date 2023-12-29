@@ -9,9 +9,15 @@ import (
 )
 
 // Config contains the runtime settings needed to analyze and deploy configurations
-type Config map[string]RouterConfig
+type Config struct {
+	Devices map[string]DeviceConfig `yaml:"devices"`
 
-type RouterConfig struct {
+	Logging LoggingConfig `yaml:"logging"`
+
+	Git GitConfig `yaml:"git"`
+}
+
+type DeviceConfig struct {
 	Address  string `yaml:"address"`
 	Port     int32  `yaml:"port"`
 	User     string `yaml:"user"`
@@ -27,10 +33,6 @@ type RouterConfig struct {
 	AutoRollBack       bool  `yaml:"auto-rollback-on-failure"`
 	RebootAfterMinutes int32 `yaml:"reboot-after-minutes"`
 	SaveAfterCommit    bool  `yaml:"save-after-commit"`
-
-	Logging LoggingConfig `yaml:"logging"`
-
-	Git GitConfig `yaml:"git"`
 }
 
 type LoggingConfig struct {
@@ -59,9 +61,7 @@ func LoadConfig(config []byte) (*Config, error) {
 		return nil, fmt.Errorf("failed loading config: %+v", err)
 	}
 
-	for _, router := range *conf {
-		convertEnv(&router)
-	}
+	convertEnv(conf)
 
 	return conf, nil
 }
@@ -74,35 +74,38 @@ func trimYamlEnv(name string) string {
 	return strings.TrimLeft(name, "$")
 }
 
-func convertEnv(router *RouterConfig) {
-	if shouldGetEnv(router.Address) {
-		router.Address = os.Getenv(trimYamlEnv(router.Address))
+func convertEnv(config *Config) {
+	for _, device := range config.Devices {
+
+		if shouldGetEnv(device.Address) {
+			device.Address = os.Getenv(trimYamlEnv(device.Address))
+		}
+		if shouldGetEnv(device.User) {
+			device.User = os.Getenv(trimYamlEnv(device.User))
+		}
+		if shouldGetEnv(device.Password) {
+			device.Password = os.Getenv(trimYamlEnv(device.Password))
+		}
+		if shouldGetEnv(device.Keyfile) {
+			device.Keyfile = os.Getenv(trimYamlEnv(device.Keyfile))
+		}
 	}
-	if shouldGetEnv(router.User) {
-		router.User = os.Getenv(trimYamlEnv(router.User))
+	if shouldGetEnv(config.Logging.User) {
+		config.Logging.User = os.Getenv(trimYamlEnv(config.Logging.User))
 	}
-	if shouldGetEnv(router.Password) {
-		router.Password = os.Getenv(trimYamlEnv(router.Password))
+	if shouldGetEnv(config.Logging.Password) {
+		config.Logging.Password = os.Getenv(trimYamlEnv(config.Logging.Password))
 	}
-	if shouldGetEnv(router.Keyfile) {
-		router.Keyfile = os.Getenv(trimYamlEnv(router.Keyfile))
+	if shouldGetEnv(config.Git.PrivateKeyPath) {
+		config.Git.PrivateKeyPath = os.Getenv(trimYamlEnv(config.Git.PrivateKeyPath))
 	}
-	if shouldGetEnv(router.Logging.User) {
-		router.Keyfile = os.Getenv(trimYamlEnv(router.Logging.User))
+	if shouldGetEnv(config.Git.WebhookURL) {
+		config.Git.WebhookURL = os.Getenv(trimYamlEnv(config.Git.WebhookURL))
 	}
-	if shouldGetEnv(router.Logging.Password) {
-		router.Keyfile = os.Getenv(trimYamlEnv(router.Logging.Password))
+	if shouldGetEnv(config.Git.WebhookPort) {
+		config.Git.WebhookPort = os.Getenv(trimYamlEnv(config.Git.WebhookPort))
 	}
-	if shouldGetEnv(router.Git.PrivateKeyPath) {
-		router.Keyfile = os.Getenv(trimYamlEnv(router.Git.PrivateKeyPath))
-	}
-	if shouldGetEnv(router.Git.WebhookURL) {
-		router.Keyfile = os.Getenv(trimYamlEnv(router.Git.WebhookURL))
-	}
-	if shouldGetEnv(router.Git.WebhookPort) {
-		router.Keyfile = os.Getenv(trimYamlEnv(router.Git.WebhookPort))
-	}
-	if shouldGetEnv(router.Git.WebhookSecret) {
-		router.Keyfile = os.Getenv(trimYamlEnv(router.Git.WebhookSecret))
+	if shouldGetEnv(config.Git.WebhookSecret) {
+		config.Git.WebhookSecret = os.Getenv(trimYamlEnv(config.Git.WebhookSecret))
 	}
 }
