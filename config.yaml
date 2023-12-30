@@ -47,6 +47,8 @@ git:
   primary-branch: main
 
   private-key-path: ./ubiquiti-config.pem
+  # The address for the webserver to listen on
+  listen-ip: 0.0.0.0
   # The external URL of the webhook, should match the GitHub app configuration
   webhook-url: https://git.bammeson.com
   # The port to listen on for GitHub webhook stuff

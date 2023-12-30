@@ -2,10 +2,13 @@ package main
 
 import (
 	"os"
+	"os/signal"
 
 	"github.com/charmbracelet/log"
 
+	config2 "github.com/ammesonb/ubiquiti-config-generator/config"
 	"github.com/ammesonb/ubiquiti-config-generator/logger"
+	"github.com/ammesonb/ubiquiti-config-generator/web"
 )
 
 /*
@@ -19,6 +22,7 @@ import (
 
 TODO:
 * Check router connectivity
+* Move device YAML into repo with configurations
 
 * ParseBootDefinitions never called in actual code - will be called when config retrieved from routers
 * Convert custom YAML files into VyOS equivalents
@@ -38,19 +42,26 @@ func main() {
 	logger := logger.DefaultLogger()
 
 	logger.Debug("Reading settings")
-	configData, err := ReadConfig("./config.yaml")
+	configData, err := config2.ReadConfig("./config.yaml")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
 
-	config, err := LoadConfig(configData)
+	config, err := config2.LoadConfig(configData)
 	if err != nil {
 		logger.Fatal(err)
 		os.Exit(1)
 	}
 
 	logger.Debugf("Settings read, found %d configured routers", len(config.Devices))
+
+	shutdownChannel := make(chan os.Signal, 1)
+	// We'll accept graceful shutdowns when quit via SIGINT (Ctrl+C)
+	// SIGKILL, SIGQUIT or SIGTERM (Ctrl+/) will not be caught.
+	signal.Notify(shutdownChannel, os.Interrupt)
+
+	web.StartWebhookServer(config, shutdownChannel)
 
 	/*
 		log.Debugf("Parsing templates from %s", config.TemplatesDir)

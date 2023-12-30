@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"fmt"
@@ -45,7 +45,8 @@ type GitConfig struct {
 	PrimaryBranch  string `yaml:"primary-branch"`
 	PrivateKeyPath string `yaml:"private-key-path"`
 	WebhookURL     string `yaml:"webhook-url"`
-	WebhookPort    string `yaml:"webhook-port"`
+	ListenIP       string `yaml:"listen-ip"`
+	WebhookPort    int32  `yaml:"webhook-port"`
 	WebhookSecret  string `yaml:"webhook-secret"`
 }
 
@@ -102,8 +103,8 @@ func convertEnv(config *Config) {
 	if shouldGetEnv(config.Git.WebhookURL) {
 		config.Git.WebhookURL = os.Getenv(trimYamlEnv(config.Git.WebhookURL))
 	}
-	if shouldGetEnv(config.Git.WebhookPort) {
-		config.Git.WebhookPort = os.Getenv(trimYamlEnv(config.Git.WebhookPort))
+	if shouldGetEnv(config.Git.ListenIP) {
+		config.Git.ListenIP = os.Getenv(trimYamlEnv(config.Git.ListenIP))
 	}
 	if shouldGetEnv(config.Git.WebhookSecret) {
 		config.Git.WebhookSecret = os.Getenv(trimYamlEnv(config.Git.WebhookSecret))
