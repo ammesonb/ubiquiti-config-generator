@@ -36,6 +36,7 @@ type DeviceConfig struct {
 }
 
 type LoggingConfig struct {
+	DBName   string `yaml:"dbConnection"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
 }

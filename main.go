@@ -13,16 +13,24 @@ import (
 
 /*
 * This app will be called when a PR is created for ANOTHER repo
-* So then will need to compare the new definitions of that against the existing configuration, which will need to be dumped
-* from the router's current config
-* Cannot cache it since it could change during the lifetime of a branch, which would result in stale diffs
-
-* Nodes are the result of parsing templates, which define the hierarchy the validations for the schema
-* Definitions are the values contained in an actual configuration, which will be tested against nodes
+* When a GitHub webhook check suite request is received, this program will do the following:
+* - Create a new check run that:
+*   - Parses the configuration and abstractions and merges the VyOS equivalents
+*   - Validates the new configuration
+*   - Gets the live config for affected production routers and diffs it against the new one
+*   - Posts a PR comment with the validation results and diff
+* - On branch merge/push to the main branch:
+*   - Creates a new deployment
+*   - Loads the new configuration
+*
+* There is a small configurable web server set up that reports the status of checks and deployments as well, with logs
+* of actions and results.
+*
+* VyOS Terminology:
+* - Nodes are the result of parsing templates, which define the hierarchy the validations for the schema
+* - Definitions are the values contained in an actual configuration, which will be tested against node specifications
 
 TODO:
-* Check router connectivity
-* Move device YAML into repo with configurations
 
 * ParseBootDefinitions never called in actual code - will be called when config retrieved from routers
 * Convert custom YAML files into VyOS equivalents
@@ -61,7 +69,7 @@ func main() {
 	// SIGKILL, SIGQUIT or SIGTERM (Ctrl+/) will not be caught.
 	signal.Notify(shutdownChannel, os.Interrupt)
 
-	web.StartWebhookServer(config, shutdownChannel)
+	web.StartWebhookServer(logger, config, shutdownChannel)
 
 	/*
 		log.Debugf("Parsing templates from %s", config.TemplatesDir)

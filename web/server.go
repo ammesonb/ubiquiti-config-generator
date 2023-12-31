@@ -4,15 +4,20 @@ import (
 	"context"
 	"crypto/subtle"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/charmbracelet/log"
+
+	rcontext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 
 	"github.com/ammesonb/ubiquiti-config-generator/config"
+	"github.com/ammesonb/ubiquiti-config-generator/db"
 )
+
+var GIT_ACCESS_TOKEN_CONTEXT = "git_access_token"
 
 func basicAuthMiddleware(next http.Handler, username, password string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -30,19 +35,59 @@ func basicAuthMiddleware(next http.Handler, username, password string) http.Hand
 	})
 }
 
+func githubAccessTokenMiddleware(next http.Handler, logger *log.Logger, cfg *config.Config) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		client := &http.Client{}
+		jwt, err := makeJWT(cfg)
+		if err != nil {
+			logger.Errorf("Failed making JWT: %v", err)
+			return
+		}
+
+		accessToken, err := getAccessToken(client, cfg.Git.AppId, jwt)
+		if err != nil {
+			logger.Errorf("Failed getting access token: %v", err)
+			return
+		}
+
+		rcontext.Set(r, GIT_ACCESS_TOKEN_CONTEXT, accessToken)
+		next.ServeHTTP(w, r)
+	})
+}
+
 // StartWebhookServer spins up a new server that responds to GitHub webhooks and also provides check/deployment status logs
-func StartWebhookServer(cfg *config.Config, shutdownChannel chan os.Signal) {
+func StartWebhookServer(logger *log.Logger, cfg *config.Config, shutdownChannel chan os.Signal) {
+	logDB, err := db.OpenDB(cfg.Logging.DBName)
+	if err != nil {
+		logger.Fatalf("Failed to open DB connection: %v", err)
+		return
+	}
+
+	logger.Debug("Initializing web server")
+
 	r := mux.NewRouter()
-	r.PathPrefix("/static/").
+	staticRouter := r.PathPrefix("/static/").Subrouter()
+	staticRouter.PathPrefix("/").
 		Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static")))).
 		Methods("GET")
 
-	// Also need check_run, push, and deployment
-	r.Path("/").
-		Methods("POST").
+	// TODO: Also need check_run, push, and deployment
+	gitRouter := r.Path("/").
+		Methods("POST").Subrouter()
+
+	gitRouter.Use(
+		func(next http.Handler) http.Handler {
+			return githubAccessTokenMiddleware(next, logger, cfg)
+		},
+	)
+
+	gitRouter.
+		Path("/").
 		HeadersRegexp("X-Hub-Signature-256", "^sha256=[a-fA-F0-9]{32}$").
 		Headers("X-GitHub-Event", "check_suite").
-		HandlerFunc(func(w http.ResponseWriter, r *http.Request) { ProcessGitCheckSuite(w, r, cfg) })
+		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ProcessGitCheckSuite(w, r, &http.Client{}, logDB, cfg, rcontext.Get(r, GIT_ACCESS_TOKEN_CONTEXT).(string))
+		})
 
 	srv := &http.Server{
 		Handler: r,
@@ -55,7 +100,7 @@ func StartWebhookServer(cfg *config.Config, shutdownChannel chan os.Signal) {
 	// Run our server in a goroutine so that it doesn't block.
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Println(err)
+			logger.Fatalf("Error from web server listen/serve: %v", err)
 		}
 	}()
 
@@ -72,6 +117,6 @@ func StartWebhookServer(cfg *config.Config, shutdownChannel chan os.Signal) {
 	// Optionally, you could run srv.Shutdown in a goroutine and block on
 	// <-ctx.Done() if your application should wait for other services
 	// to finalize based on context cancellation.
-	log.Println("shutting down")
+	log.Warn("shutting down")
 	os.Exit(0)
 }

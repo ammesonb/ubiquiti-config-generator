@@ -2,10 +2,11 @@
 [![Build status](https://badge.buildkite.com/414a8fa236b1a14336069d992187bf10ebd11f4f579c0f210a.svg)](https://buildkite.com/ammesonb/ubiquiti-config-generator)
 
 This application will analyze, generate, validate, and deploy configuration changes for Ubiquiti routers based on local configurations.
-The idea behind this is to minimize the possiblity of IP address conflicts, repetitive data entry, and provide visibility into the router configuration history via PRs and deployments.
-Each change will generate a full config.boot file and auto-add it to your PR so you can see a full diff of changes to ensure that the output is what you expect, and will be preserved as `.config.boot` in the repository for reference.
+The idea behind this is to minimize the possibility of IP address conflicts, repetitive data entry, and provide visibility into the router configuration history via PRs and deployments.
 
-While there are "smart" features provided via a network-firewall-host abstraction, this program can also read from the node.def VyOS configuration files, so anything that can be represented in that structure can also be used here, just without the abstractions.
+To that end, it supports some abstractions plus modular boot files for compositional definitions by converting and merging the abstraction layer into native VyOS equivalents.
+These configurations can be applied to as many devices as applicable.
+The program is also capable of running some VyOS validations as part of the pre-deploy checks, to catch issues prior to attempting to deploy them.
 
 ----
 
@@ -19,9 +20,6 @@ Settings and runtime configurations are found in `config.yaml`.
 2. Then, provide a list of *.boot files (can be modular) that will analyze general configurations
 3. If you wish, you may then create the networks folder containing a list of DHCP services, which have any number of firewalls and hosts
     - A network is the parent node, which defines a subnet and interface (and any other dhcp server options).
-        - Currently only ONE subnet per network is supported, but it should be fairly trivial to extend the YAML to allow for subnets to be a list
-        - Also limits DHCP ranges to ONE per network, e.g. 200-254, NOT 100-150 + 200-250
-        - Interface details are rolled up to be include in the network, including VIF
     - Firewalls belong to the network, and have directions, default actions, and how much of a gap to leave when creating rule numbers (e.g. 10, 20, 30, ...)
         - Firewall rules will be automatically created based on host configurations, but can be explicitly defined as well
         - Auto-incrementing numbering will skip any which are defined manually
@@ -29,11 +27,9 @@ Settings and runtime configurations are found in `config.yaml`.
         - Hosts are more complex, so will be better-documented in the next section
 
 ## Hosts
-The host is the a principal item in this configuration.
+The host is the principal structure in this configuration.
 
-You must:
-- For dynamic firewall configuration, specify either an address group and/or IP address belonging to the host
-- Provide numeric ports, or names of port groups
+A host must have an address group or IP must be provided for dynamic firewall configuration.
 
 You can:
 - Provide ports to forward (NAT)
@@ -42,7 +38,9 @@ You can:
     - These should be lists of address/port combinations
 
 ## Validations
-This program is capable of numerous validations, but broadly falls into two categories: ones from VyOS, and "smart" checks based off of the network/host abstractions to minimize chances of runtime problems like duplicate IP addresses.
+This program is capable of numerous validations, but broadly falls into two categories:
+* VyOS native checks
+* "smart" checks based off of the network/host abstractions, to minimize chances of runtime problems like duplicate IP addresses
 
 The VyOS checks roughly consist of these validations:
 - Inside numeric range
@@ -53,20 +51,18 @@ The VyOS checks roughly consist of these validations:
 The "smart" checks for configuration consistency are as follows:
 - Since file names have to be unique, you cannot have two of the same network, interface, firewall, etc
 - Address and port group names must actually exist to be used
-- Reduction of human error in typing, since only one instance of any given data point
-    - Device name or address, port (group) definitions, etc
+- Reduction of human error in typing, since host IPs and similar are defined once and the other references are generated
 - The same address cannot be used by multiple hosts
 - The same address range cannot be shared across networks
-- enable/disable keywords can be checked before commit/save called
 
 ## Modifying the Ubiquiti Configs
 ### Validating Changes
 When you create a PR, on every change the post-push hook will execute using the details in your YAML config.
-The hook will then load your boot configs and merge the abstractions into them, then validate using the template files' and abstraction's rules.
+The hook will then load your boot configurations and merge the abstractions into them, then validate using the template files' and abstraction's rules.
 Results of the validations will be posted on the output and to a comment on the PR.
 Note some are warnings, some will be blocking errors and must be resolved prior to merging.
 
-You should also check the generated `.config.boot` file to ensure it matches your expectations.
+The program will also connect to the devices affected by the configuration change and load their live configurations and show a diff against it, so you can see the effect of your changes.
 
 ### Deploying
 After validations are successful, you can merge the PR.
@@ -77,10 +73,11 @@ If the configuration fails to apply, a rollback will be performed automatically 
 
 ## Getting started
 ### Configuring this repository
-First, fork or clone this repository.
-You will likely want to move this to a self-hosted or at the very least private repository as it will contain references to your router configuration and details about connecting to your router.
-Fully fill out the deploy configuration in `config.yaml`, as it contains necessary details for connecting to your router and deploy configurations, such as auto-restart times if you do not confirm changes!
-Note that credentials must be set via environment variables.
+First, clone this repository, configure it, and deploy it somewhere.
+
+Make a new repo that you will host configurations out of.
+Fully fill out the devices configuration per the [example spec in `config.yaml`](TODO), as it contains necessary details for connecting to your router and deploy configurations.
+Credentials should be set via environment variables.
 
 Next, we will set up your router configurations.
 
@@ -90,14 +87,14 @@ These files MUST be stored in a separate repository, which can be cloned indepen
 
 The file structure is as follows:
 1. Add a `templates` directory containing your Ubiquiti product's settings to the repo, and provide that path in `templatesDir` in the `config.yaml` settings.
-    - Typically this is something like `/opt/vyatta/share/vyatta-cfg/templates/`
-2. Add any `*.boot` files wherever you like in the repo, but ensure the paths are added to `configFiles` in the settings.
+    - Typically this is found at `/opt/vyatta/share/vyatta-cfg/templates/` on the ubiquiti devices, but **MUST** be added locally to validate your settings.
+2. Add any `*.boot` files wherever you like in the repo, but ensure the paths are added to `configFiles` in the settings for the appropriate devices.
 3. For each network:
     1. Add a new folder under `networks` with the desired network name
     2. Create a `config.yaml` file
         - The contents will be key-value pairs that should map to Ubiquiti key names
         - Any mis-typed keys will simply be ignored by the parser
-    3. Optionally, add a `firewalls` folder for each of the `IN`/`OUT`/`LOCAL`, as desired
+    3. Optionally, add a `firewalls` folder for each of the `IN`/`OUT`/`LOCAL` zones, as desired
         - For each, add a folder with the firewall's name, and a `config.yaml` file under it
         - If any omitted, placeholders will be created with a generic default of `accept`
         - Since network hosts may want to add firewall rules, these will be generated automatically if necessary
@@ -108,7 +105,7 @@ The file structure is as follows:
 1. Go to the [new app page](https://github.com/settings/apps/new).
 2. Add a title and/or description that makes sense to you
 3. Ensure a webhook URL is present, and active is ticked
-    1. Provide a secret (recommended)
+    1. Provide a secret 
 4. Set **repository** permissions to the following
     1. Checks: read/write
         1. To ensure that configuration is valid, automatically, for PRs
@@ -144,4 +141,4 @@ The file structure is as follows:
 2. Go to the app's settings page, and generate a new private key.
   - This should be placed somewhere code in this repo can read it, and stored in the environment variable from the settings.
 3. Set the folders to clone configs into as desired - THEY MUST BE DIFFERENT LOCATIONS
-4. Note the webhook port defaults to 54321 - this should be configured as desired, with a reverse proxy forwarded to that port
+4. Note the webhook port defaults to 54321 - this should be configured as desired
