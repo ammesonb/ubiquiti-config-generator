@@ -4,8 +4,6 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/charmbracelet/log"
-
 	config2 "github.com/ammesonb/ubiquiti-config-generator/config"
 	"github.com/ammesonb/ubiquiti-config-generator/logger"
 	"github.com/ammesonb/ubiquiti-config-generator/web"
@@ -31,25 +29,33 @@ import (
 * - Definitions are the values contained in an actual configuration, which will be tested against node specifications
 
 TODO:
-
-* ParseBootDefinitions never called in actual code - will be called when config retrieved from routers
 * Convert custom YAML files into VyOS equivalents
-* Merge custom nodes into VyOS templates
+* Load abstractions
+* Merge abstractions into VyOS boot configs
+
+* Web pages for checks and deployments
+
+* GitHub check run/validations
 * val_help from node_parser does not get surfaced anywhere
-* Validation for custom YAML nodes
 * Validation for VyOS stuff
-* GitHub web hook app
-* GitHub check suite/validations
+* Validation for custom YAML nodes
+  - address for host in subnet
+  - subnets have addresses matching interfaces
+  - firewalls referenced in network interfaces actually exist
+  - others?
+
 * Run validation command scripts on router when PR checks run
+
 * Get existing configuration from router
 * Upload a diff of existing config vs generated config to branch for viewing
+
 * GitHub deployments
 * Perform load commands
 */
 func main() {
-	logger := logger.DefaultLogger()
+	log := logger.DefaultLogger()
 
-	logger.Debug("Reading settings")
+	log.Debug("Reading settings")
 	configData, err := config2.ReadConfig("./config.yaml")
 	if err != nil {
 		log.Fatal(err)
@@ -58,36 +64,16 @@ func main() {
 
 	config, err := config2.LoadConfig(configData)
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(err)
 		os.Exit(1)
 	}
 
-	logger.Debugf("Settings read, found %d configured routers", len(config.Devices))
+	log.Debugf("Settings read, found %d configured routers", len(config.Devices))
 
 	shutdownChannel := make(chan os.Signal, 1)
 	// We'll accept graceful shutdowns when quit via SIGINT (Ctrl+C)
 	// SIGKILL, SIGQUIT or SIGTERM (Ctrl+/) will not be caught.
 	signal.Notify(shutdownChannel, os.Interrupt)
 
-	web.StartWebhookServer(logger, config, shutdownChannel)
-
-	/*
-		log.Debugf("Parsing templates from %s", config.TemplatesDir)
-		node, err := vyos.Parse(config.TemplatesDir)
-		if err != nil {
-			logger.Fatal(err)
-			os.Exit(1)
-		}
-
-		// This is just to generate for testing
-		res, err := yaml.Marshal(node)
-		if err != nil {
-			logger.Fatal(err)
-			os.Exit(1)
-		}
-
-		if err = os.WriteFile("./generated-node-fixtures.yaml", res, 0644); err != nil {
-			logger.Fatal(err)
-			os.Exit(1)
-		}*/
+	web.StartWebhookServer(log, config, shutdownChannel)
 }

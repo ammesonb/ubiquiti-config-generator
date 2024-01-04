@@ -1,6 +1,7 @@
 package abstraction
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +27,7 @@ func TestLoadPortGroups(t *testing.T) {
 		Ports:       []int{80, 443},
 	}
 
-	if !serverPorts.Equals(&groups[0]) {
+	if !reflect.DeepEqual(serverPorts, groups[0]) {
 		t.Errorf(
 			"Group 0 did not match server ports, got %#v, expected %#v",
 			groups[0],
@@ -34,7 +35,7 @@ func TestLoadPortGroups(t *testing.T) {
 		)
 	}
 
-	if !webPorts.Equals(&groups[1]) {
+	if !reflect.DeepEqual(webPorts, groups[1]) {
 		t.Errorf(
 			"Group 1 did not match web ports, got %#v, expected %#v",
 			groups[1],

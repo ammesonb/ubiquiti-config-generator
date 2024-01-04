@@ -105,17 +105,12 @@ func makeGitRequest(client *http.Client, what string, jwt string, accessToken st
 }
 
 func makeJWT(cfg *config.Config) (string, error) {
-	keyfile, err := os.Open(cfg.Git.PrivateKeyPath)
+	keyfile, err := os.ReadFile(cfg.Git.PrivateKeyPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to open keyfile: %v", err)
+		return "", fmt.Errorf("failed to open/read keyfile: %v", err)
 	}
 
-	encoded, err := io.ReadAll(keyfile)
-	if err != nil {
-		return "", fmt.Errorf("unable to read from keyfile: %v", err)
-	}
-
-	block, _ := pem.Decode(encoded)
+	block, _ := pem.Decode(keyfile)
 	x509Encoded := block.Bytes
 	privateKey, _ := x509.ParseECPrivateKey(x509Encoded)
 
