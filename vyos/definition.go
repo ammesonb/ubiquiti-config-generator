@@ -394,3 +394,28 @@ func initDefinitions() *Definitions {
 		DefinitionByPath: make(map[string]*Definition),
 	}
 }
+
+func generateDefinitionTree(nodes *Node, path []string) *Definition {
+	var steps []string
+	definition := &Definition{
+		Name:     path[0],
+		Path:     []string{},
+		Node:     nodes.FindChild([]string{path[0]}),
+		Children: []*Definition{},
+	}
+
+	for _, step := range path[1:] {
+		definition.Children = []*Definition{
+			{
+				Name:     step,
+				Path:     steps,
+				Node:     nodes.FindChild(append(steps, step)),
+				Children: []*Definition{},
+			},
+		}
+
+		steps = append(steps, step)
+	}
+
+	return definition
+}

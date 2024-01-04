@@ -36,10 +36,17 @@ func LoadNetworks(networksPath string) ([]Network, error) {
 
 func loadNetwork(networkPath string) (*Network, error) {
 	config, err := os.ReadFile(path.Join(networkPath, "config.yaml"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read network %s/config.yaml: %v", networkPath, err)
+	}
 	var network Network
 
 	if err = yaml.Unmarshal(config, &network); err != nil {
 		return nil, fmt.Errorf("failed to parse network config at %s: %v", networkPath, err)
+	}
+
+	if err = loadHosts(&network, networkPath); err != nil {
+		return nil, err
 	}
 
 	return &network, nil

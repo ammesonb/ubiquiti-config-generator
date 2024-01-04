@@ -114,8 +114,7 @@ func makeJWT(cfg *config.Config) (string, error) {
 	x509Encoded := block.Bytes
 	privateKey, _ := x509.ParseECPrivateKey(x509Encoded)
 
-	t := jwt.New(jwt.SigningMethodRS256)
-	t = jwt.NewWithClaims(jwt.SigningMethodRS256,
+	t := jwt.NewWithClaims(jwt.SigningMethodRS256,
 		jwt.MapClaims{
 			"iat": time.Now().Unix(),
 			"exp": time.Now().Unix() + 600,
@@ -279,7 +278,9 @@ func updateCheck(
 
 	body, err := io.ReadAll(response.Body)
 
-	if response.StatusCode != 200 {
+	if err != nil {
+		return fmt.Errorf("failed to read check update response body: %v", err)
+	} else if response.StatusCode != 200 {
 		return fmt.Errorf("failed to update check %d with status code %d: %s", request.ID, response.StatusCode, string(body))
 	}
 
@@ -337,7 +338,9 @@ func setCommitStatus(
 
 	body, err := io.ReadAll(response.Body)
 
-	if response.StatusCode != 201 {
+	if err != nil {
+		return fmt.Errorf("failed to read commit status response body: %v", err)
+	} else if response.StatusCode != 201 {
 		return fmt.Errorf("failed to update commit %s to state %s, got HTTP %d: %s", revision, status, response.StatusCode, string(body))
 	}
 
