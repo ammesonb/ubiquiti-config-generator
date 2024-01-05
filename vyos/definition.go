@@ -395,17 +395,20 @@ func initDefinitions() *Definitions {
 	}
 }
 
-func generateDefinitionTree(nodes *Node, path []string) *Definition {
-	var steps []string
+func generateSparseDefinitionTree(nodes *Node, path []string) *Definition {
+	steps := make([]string, 0)
 	definition := &Definition{
 		Name:     path[0],
-		Path:     []string{},
+		Path:     steps,
 		Node:     nodes.FindChild([]string{path[0]}),
 		Children: []*Definition{},
 	}
 
+	steps = append(steps, path[0])
+
+	def := definition
 	for _, step := range path[1:] {
-		definition.Children = []*Definition{
+		def.Children = []*Definition{
 			{
 				Name:     step,
 				Path:     steps,
@@ -415,7 +418,49 @@ func generateDefinitionTree(nodes *Node, path []string) *Definition {
 		}
 
 		steps = append(steps, step)
+
+		// Reassign the pointer to the newly-created child so we recurse
+		def = def.Children[0]
 	}
 
 	return definition
+}
+
+type BasicDefinition struct {
+	Name     string
+	Comment  string
+	Value    any
+	Values   []any
+	Children []BasicDefinition
+}
+
+func generatePopulatedDefinitionTree(nodes *Node, definition BasicDefinition, path []string, nodePath []string) *Definition {
+	def := &Definition{
+		Name:     definition.Name,
+		Path:     path,
+		Node:     nodes.FindChild(append(nodePath, definition.Name)),
+		Comment:  definition.Comment,
+		Value:    definition.Values,
+		Values:   definition.Values,
+		Children: make([]*Definition, 0),
+	}
+
+	for _, child := range definition.Children {
+		pathSuffix := definition.Name
+		if pathSuffix == "node.tag" {
+			pathSuffix = definition.Value.(string)
+		}
+		// Recurse into each child and add the generated definition
+		def.Children = append(
+			def.Children,
+			generatePopulatedDefinitionTree(
+				nodes,
+				child,
+				append(path, pathSuffix),
+				append(nodePath, definition.Name),
+			),
+		)
+	}
+
+	return def
 }

@@ -337,7 +337,6 @@ func setCommitStatus(
 	}
 
 	body, err := io.ReadAll(response.Body)
-
 	if err != nil {
 		return fmt.Errorf("failed to read commit status response body: %v", err)
 	} else if response.StatusCode != 201 {

@@ -1,6 +1,7 @@
 package vyos
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -466,4 +467,39 @@ func TestMergeConflictingDefinition(t *testing.T) {
 
 	err = definitions.merge(others)
 	assert.ErrorContainsf(t, err, "differences between nodes at path firewall/all-ping", "Expected all-ping to have conflicting value")
+}
+
+func TestGenerateDefinitionTree(t *testing.T) {
+	nodes, err := GetGeneratedNodes()
+	if err != nil {
+		t.Errorf("Failed to generate fixtures: %v", err)
+	}
+
+	generated := generateSparseDefinitionTree(nodes, []string{"firewall", "group", "port-group"})
+
+	expected := &Definition{
+		Name: "firewall",
+		Path: []string{},
+		Node: nodes.FindChild([]string{"firewall"}),
+		Children: []*Definition{
+			{
+				Name: "group",
+				Path: []string{"firewall"},
+				Node: nodes.FindChild([]string{"firewall", "group"}),
+				Children: []*Definition{
+					{
+						Name:     "port-group",
+						Path:     []string{"firewall", "group"},
+						Node:     nodes.FindChild([]string{"firewall", "group", "port-group"}),
+						Children: []*Definition{},
+					},
+				},
+			},
+		},
+	}
+
+	diffs := expected.Diff(generated)
+	if len(diffs) > 0 {
+		t.Errorf("Generated tree did not match expected: %s", strings.Join(diffs, ", "))
+	}
 }

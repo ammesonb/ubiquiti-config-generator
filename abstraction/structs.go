@@ -9,8 +9,9 @@ type PortGroup struct {
 
 // Network represents a set of subnets with hosts, and can optionally specify interface attributes
 type Network struct {
-	Name      string
-	Interface struct {
+	Name        string
+	Description string `yaml:"description"`
+	Interface   struct {
 		Name        string `yaml:"name"`
 		Description string `yaml:"description"`
 		Address     string `yaml:"address"`
