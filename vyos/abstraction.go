@@ -1,6 +1,11 @@
 package vyos
 
-import "github.com/ammesonb/ubiquiti-config-generator/abstraction"
+import (
+	"reflect"
+
+	"github.com/ammesonb/ubiquiti-config-generator/abstraction"
+	"github.com/ammesonb/ubiquiti-config-generator/config"
+)
 
 func FromNetworkAbstraction(nodes *Node, network *abstraction.Network) *Definitions {
 	definitions := initDefinitions()
@@ -17,6 +22,10 @@ func FromNetworkAbstraction(nodes *Node, network *abstraction.Network) *Definiti
 				Name:  "node.tag",
 				Value: network.Name,
 				Children: []BasicDefinition{
+					{
+						Name:  "authoritative",
+						Value: network.Authoritative,
+					},
 					{
 						Name:  "description",
 						Value: network.Description,
@@ -36,17 +45,79 @@ func FromNetworkAbstraction(nodes *Node, network *abstraction.Network) *Definiti
 			generatePopulatedDefinitionTree(
 				nodes,
 				BasicDefinition{
-					Name:     "description",
-					Value:    network.Description,
-					Values:   nil,
-					Children: nil,
+					Name: "start",
+					Children: []BasicDefinition{
+						{
+							Name:  "node.tag",
+							Value: subnet.DHCPStart,
+							Children: []BasicDefinition{
+								{
+									Name: "stop",
+									Children: []BasicDefinition{
+										{
+											Name:  "node.tag",
+											Value: subnet.DHCPEnd,
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 				subnetPath,
 				subnetNodePath,
 			),
 		)
+
+		definitions.add(&Definition{
+			Name:  "lease",
+			Path:  subnetPath,
+			Node:  nodes.FindChild(append(subnetNodePath, "lease")),
+			Value: subnet.DHCPLease,
+		})
+
+		definitions.add(&Definition{
+			Name:   "dns-server",
+			Path:   subnetPath,
+			Node:   nodes.FindChild(append(subnetNodePath, "dns-server")),
+			Values: config.SliceStrToAny(subnet.DNSServers),
+		})
+
+		definitions.add(&Definition{
+			Name:  "domain-name",
+			Path:  subnetPath,
+			Node:  nodes.FindChild(append(subnetNodePath, "domain-name")),
+			Value: subnet.DomainName,
+		})
+
+		definitions.add(&Definition{
+			Name:  "default-router",
+			Path:  subnetPath,
+			Node:  nodes.FindChild(append(subnetNodePath, "default-router")),
+			Value: subnet.DefaultRouter,
+		})
+
+		for key, val := range subnet.Extra {
+			valType := reflect.TypeOf(val).Kind()
+			if valType == reflect.Slice || valType == reflect.Array {
+				definitions.add(&Definition{
+					Name:   key,
+					Path:   subnetPath,
+					Node:   nodes.FindChild(append(subnetNodePath, key)),
+					Values: val.([]any),
+				})
+			} else {
+				definitions.add(&Definition{
+					Name:  key,
+					Path:  subnetPath,
+					Node:  nodes.FindChild(append(subnetNodePath, key)),
+					Value: val,
+				})
+			}
+
+		}
 	}
-	// TODO: rest of DHCP definition
+
 	// TODO: static host mappings
 	// TODO: interface, if set
 	// TODO: firewall names
@@ -59,11 +130,6 @@ func FromNetworkAbstraction(nodes *Node, network *abstraction.Network) *Definiti
 
 func FromPortGroupAbstraction(nodes *Node, group abstraction.PortGroup) *Definitions {
 	// Have to explicitly add each port to a new slice, cannot convert/assert any other way :(
-	var ports []any
-	for _, port := range group.Ports {
-		ports = append(ports, port)
-	}
-
 	definitions := initDefinitions()
 	startingPath := []string{"firewall", "group", "port-group"}
 	groupDefinition := generateSparseDefinitionTree(nodes, startingPath)
@@ -80,7 +146,7 @@ func FromPortGroupAbstraction(nodes *Node, group abstraction.PortGroup) *Definit
 			Name:     "port",
 			Path:     []string{"firewall", "group", "port-group", group.Name},
 			Node:     nodes.FindChild(append(startingPath, "node.tag", "port")),
-			Values:   ports,
+			Values:   config.SliceIntToAny(group.Ports),
 			Children: []*Definition{},
 		},
 	}
