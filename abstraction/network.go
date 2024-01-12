@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"regexp"
 
 	"gopkg.in/yaml.v3"
 
@@ -45,11 +46,27 @@ func loadNetwork(networkPath string) (*Network, error) {
 		return nil, fmt.Errorf("failed to parse network config at %s: %v", networkPath, err)
 	}
 
+	if network.Interface != nil {
+		setupFirewallRuleCounters(network)
+	}
+
 	if err = loadHosts(&network, networkPath); err != nil {
 		return nil, err
 	}
 
 	return &network, nil
+}
+
+func setupFirewallRuleCounters(network Network) {
+	for _, firewall := range []string{
+		network.Interface.InboundFirewall,
+		network.Interface.OutboundFirewall,
+		network.Interface.LocalFirewall,
+	} {
+		if exists := HasCounter(firewall); !exists {
+			MakeCounter(firewall, network.FirewallRuleNumberStart, network.FirewallRuleNumberStep)
+		}
+	}
 }
 
 func loadHosts(network *Network, networkPath string) error {
@@ -74,7 +91,11 @@ func loadHosts(network *Network, networkPath string) error {
 			return fmt.Errorf("failed to read host %s: %v", hostPath, err)
 		}
 
-		var host Host
+		nameExtract := regexp.MustCompile(`^(.*)\.ya?ml$`)
+		host := Host{
+			Name: nameExtract.FindStringSubmatch(hostFile.Name())[1],
+		}
+
 		if err = yaml.Unmarshal(hostYAML, &host); err != nil {
 			return fmt.Errorf("failed to parse host %s: %v", hostPath, err)
 		}
@@ -84,7 +105,7 @@ func loadHosts(network *Network, networkPath string) error {
 			if err != nil {
 				return fmt.Errorf("failed checking host %s subnet: %v", hostPath, err)
 			} else if inSubnet {
-				subnet.Hosts = append(subnet.Hosts, host)
+				subnet.Hosts = append(subnet.Hosts, &host)
 				break
 			}
 		}

@@ -36,12 +36,14 @@ TODO:
 * Web pages for checks and deployments
 
 * GitHub check run/validations
+* When loading device config/diffs, set up NAT firewall counters
 * val_help from node_parser does not get surfaced anywhere
 * Validation for VyOS stuff
 * Validation for custom YAML nodes
   - address for host in subnet
   - subnets have addresses matching interfaces
   - firewalls referenced in network interfaces actually exist
+  - port only forwarded to one host
   - others?
 
 * Run validation command scripts on router when PR checks run

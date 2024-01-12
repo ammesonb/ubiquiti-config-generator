@@ -10,24 +10,33 @@ type PortGroup struct {
 // Network represents a set of subnets with hosts, and can optionally specify interface attributes
 type Network struct {
 	Name        string
-	Description string `yaml:"description"`
-	Interface   struct {
-		Name        string `yaml:"name"`
-		Description string `yaml:"description"`
-		Address     string `yaml:"address"`
-		Vif         int32  `yaml:"vif"`
-		Speed       string `yaml:"speed"`
-		Duplex      string `yaml:"duplex"`
-
-		InboundFirewall  string `yaml:"inbound-firewall"`
-		OutboundFirewall string `yaml:"outbound-firewall"`
-		LocalFirewall    string `yaml:"local-firewall"`
-
-		Extra map[string]any `yaml:"extra"`
-	} `yaml:"interface"`
+	Description string     `yaml:"description"`
+	Interface   *Interface `yaml:"interface"`
 
 	Authoritative string   `yaml:"authoritative"`
 	Subnets       []Subnet `yaml:"subnets"`
+
+	// Needed for dNAT forwarding rules
+	InboundInterface string `yaml:"inbound-interface"`
+	// For generated firewall rules, what number to start with and steps between them
+	FirewallRuleNumberStart int `yaml:"firewall-rule-number-start"`
+	FirewallRuleNumberStep  int `yaml:"firewall-rule-number-step"`
+}
+
+// Interface represents some general attributes on a network interface
+type Interface struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+	Address     string `yaml:"address"`
+	Vif         *int32 `yaml:"vif"`
+	Speed       string `yaml:"speed"`
+	Duplex      string `yaml:"duplex"`
+
+	InboundFirewall  string `yaml:"inbound-firewall"`
+	OutboundFirewall string `yaml:"outbound-firewall"`
+	LocalFirewall    string `yaml:"local-firewall"`
+
+	Extra map[string]any `yaml:"extra"`
 }
 
 // Subnet represents a DHCP-served range of addresses, with some static reservations
@@ -43,15 +52,16 @@ type Subnet struct {
 	Extra map[string]any `yaml:"extra"`
 
 	// These will be determined from other files in the directory using the CIDR
-	Hosts []Host
+	Hosts []*Host
 }
 
 // Host contains details about a specific host and firewall connections to allow or deny
 type Host struct {
-	Address       string   `yaml:"address"`
-	MAC           string   `yaml:"mac"`
-	AddressGroups []string `yaml:"address-groups"`
-	ForwardPorts  []int32  `yaml:"forward-ports"`
+	Name          string
+	Address       string          `yaml:"address"`
+	MAC           string          `yaml:"mac"`
+	AddressGroups []string        `yaml:"address-groups"`
+	ForwardPorts  map[int32]int32 `yaml:"forward-ports"`
 	// TODO: hairpin ports?
 	Connections []FirewallConnection `yaml:"connections"`
 }

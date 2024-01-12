@@ -199,7 +199,7 @@ func TestParseBootDefinitions(t *testing.T) {
 								Name: "description",
 								Path: []string{"firewall", "group", "address-group", "admin"},
 								Node: rootNode.FindChild([]string{
-									"firewall", "group", "address-group", "node.tag", "description",
+									"firewall", "group", "address-group", DYNAMIC_NODE, "description",
 								}),
 								Value:    "admin",
 								Children: []*Definition{},
@@ -208,7 +208,7 @@ func TestParseBootDefinitions(t *testing.T) {
 								Name: "address",
 								Path: []string{"firewall", "group", "address-group", "admin"},
 								Node: rootNode.FindChild([]string{
-									"firewall", "group", "address-group", "node.tag", "address",
+									"firewall", "group", "address-group", DYNAMIC_NODE, "address",
 								}),
 								Values: []any{
 									"192.168.0.1",
@@ -239,7 +239,7 @@ func TestParseBootDefinitions(t *testing.T) {
 						Value: "drop",
 						Path:  []string{"firewall", "name", "WAN_IN"},
 						Node: rootNode.FindChild([]string{
-							"firewall", "name", "node.tag", "default-action",
+							"firewall", "name", DYNAMIC_NODE, "default-action",
 						}),
 						Children: []*Definition{},
 					},
@@ -248,7 +248,7 @@ func TestParseBootDefinitions(t *testing.T) {
 						Value: "100",
 						Path:  []string{"firewall", "name", "WAN_IN"},
 						Node: rootNode.FindChild([]string{
-							"firewall", "name", "node.tag", "rule",
+							"firewall", "name", DYNAMIC_NODE, "rule",
 						}),
 						Children: []*Definition{
 							{
@@ -256,7 +256,7 @@ func TestParseBootDefinitions(t *testing.T) {
 								Value: "accept",
 								Path:  []string{"firewall", "name", "WAN_IN", "rule", "100"},
 								Node: rootNode.FindChild([]string{
-									"firewall", "name", "node.tag", "rule", "node.tag", "action",
+									"firewall", "name", DYNAMIC_NODE, "rule", DYNAMIC_NODE, "action",
 								}),
 								Children: []*Definition{},
 							},
@@ -265,7 +265,7 @@ func TestParseBootDefinitions(t *testing.T) {
 								Value: "Allow 'IGMP'",
 								Path:  []string{"firewall", "name", "WAN_IN", "rule", "100"},
 								Node: rootNode.FindChild([]string{
-									"firewall", "name", "node.tag", "rule", "node.tag", "description",
+									"firewall", "name", DYNAMIC_NODE, "rule", DYNAMIC_NODE, "description",
 								}),
 								Children: []*Definition{},
 							},
@@ -274,7 +274,7 @@ func TestParseBootDefinitions(t *testing.T) {
 								Value: "disable",
 								Path:  []string{"firewall", "name", "WAN_IN", "rule", "100"},
 								Node: rootNode.FindChild([]string{
-									"firewall", "name", "node.tag", "rule", "node.tag", "log",
+									"firewall", "name", DYNAMIC_NODE, "rule", DYNAMIC_NODE, "log",
 								}),
 								Children: []*Definition{},
 							},
@@ -283,7 +283,7 @@ func TestParseBootDefinitions(t *testing.T) {
 								Value: "igmp",
 								Path:  []string{"firewall", "name", "WAN_IN", "rule", "100"},
 								Node: rootNode.FindChild([]string{
-									"firewall", "name", "node.tag", "rule", "node.tag", "protocol",
+									"firewall", "name", DYNAMIC_NODE, "rule", DYNAMIC_NODE, "protocol",
 								}),
 								Children: []*Definition{},
 							},
@@ -309,7 +309,7 @@ func TestParseBootDefinitions(t *testing.T) {
 						Name: "address",
 						Path: []string{"interfaces", "ethernet", "eth0"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "ethernet", "node.tag", "address",
+							"interfaces", "ethernet", DYNAMIC_NODE, "address",
 						}),
 						Values:   []any{"dhcp"},
 						Children: []*Definition{},
@@ -318,7 +318,7 @@ func TestParseBootDefinitions(t *testing.T) {
 						Name: "description",
 						Path: []string{"interfaces", "ethernet", "eth0"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "ethernet", "node.tag", "description",
+							"interfaces", "ethernet", DYNAMIC_NODE, "description",
 						}),
 						Value:    "UPLINK",
 						Children: []*Definition{},
@@ -327,7 +327,7 @@ func TestParseBootDefinitions(t *testing.T) {
 						Name: "duplex",
 						Path: []string{"interfaces", "ethernet", "eth0"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "ethernet", "node.tag", "duplex",
+							"interfaces", "ethernet", DYNAMIC_NODE, "duplex",
 						}),
 						Value:    "auto",
 						Children: []*Definition{},
@@ -336,21 +336,21 @@ func TestParseBootDefinitions(t *testing.T) {
 						Name: "firewall",
 						Path: []string{"interfaces", "ethernet", "eth0"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "ethernet", "node.tag", "firewall",
+							"interfaces", "ethernet", DYNAMIC_NODE, "firewall",
 						}),
 						Children: []*Definition{
 							{
 								Name: "in",
 								Path: []string{"interfaces", "ethernet", "eth0", "firewall"},
 								Node: rootNode.FindChild([]string{
-									"interfaces", "ethernet", "node.tag", "firewall", "in",
+									"interfaces", "ethernet", DYNAMIC_NODE, "firewall", "in",
 								}),
 								Children: []*Definition{
 									{
 										Name: "name",
 										Path: []string{"interfaces", "ethernet", "eth0", "firewall", "in"},
 										Node: rootNode.FindChild([]string{
-											"interfaces", "ethernet", "node.tag", "firewall", "in", "name",
+											"interfaces", "ethernet", DYNAMIC_NODE, "firewall", "in", "name",
 										}),
 										Value:    "WAN-IN",
 										Children: []*Definition{},
@@ -362,7 +362,7 @@ func TestParseBootDefinitions(t *testing.T) {
 					{
 						Name:     "speed",
 						Path:     []string{"interfaces", "ethernet", "eth0"},
-						Node:     rootNode.FindChild([]string{"interfaces", "ethernet", "node.tag", "speed"}),
+						Node:     rootNode.FindChild([]string{"interfaces", "ethernet", DYNAMIC_NODE, "speed"}),
 						Value:    "auto",
 						Children: []*Definition{},
 					},
@@ -378,7 +378,7 @@ func TestParseBootDefinitions(t *testing.T) {
 						Name: "address",
 						Path: []string{"interfaces", "ethernet", "eth1"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "ethernet", "node.tag", "address",
+							"interfaces", "ethernet", DYNAMIC_NODE, "address",
 						}),
 						Values:   []any{"192.168.0.1/24"},
 						Children: []*Definition{},
@@ -387,7 +387,7 @@ func TestParseBootDefinitions(t *testing.T) {
 						Name: "description",
 						Path: []string{"interfaces", "ethernet", "eth1"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "ethernet", "node.tag", "description",
+							"interfaces", "ethernet", DYNAMIC_NODE, "description",
 						}),
 						Value:    "HOUSE",
 						Children: []*Definition{},
@@ -396,7 +396,7 @@ func TestParseBootDefinitions(t *testing.T) {
 						Name: "duplex",
 						Path: []string{"interfaces", "ethernet", "eth1"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "ethernet", "node.tag", "duplex",
+							"interfaces", "ethernet", DYNAMIC_NODE, "duplex",
 						}),
 						Value:    "auto",
 						Children: []*Definition{},
@@ -404,7 +404,7 @@ func TestParseBootDefinitions(t *testing.T) {
 					{
 						Name:     "speed",
 						Path:     []string{"interfaces", "ethernet", "eth1"},
-						Node:     rootNode.FindChild([]string{"interfaces", "ethernet", "node.tag", "speed"}),
+						Node:     rootNode.FindChild([]string{"interfaces", "ethernet", DYNAMIC_NODE, "speed"}),
 						Value:    "auto",
 						Children: []*Definition{},
 					},
@@ -427,7 +427,7 @@ func TestParseBootDefinitions(t *testing.T) {
 						Name: "mtu",
 						Path: []string{"interfaces", "switch", "switch0"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "switch", "node.tag", "mtu",
+							"interfaces", "switch", DYNAMIC_NODE, "mtu",
 						}),
 						Value:    "1500",
 						Children: []*Definition{},

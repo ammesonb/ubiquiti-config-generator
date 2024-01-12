@@ -28,6 +28,9 @@ import (
 	* $VAR(@) needs to be replaced for both commands/expressions/etc and help text
 */
 
+// DYNAMIC_NODE represents the node path name that will be replaced by a "value", e.g. firewall names, interfaces, subnets
+var DYNAMIC_NODE = "node.tag"
+
 // Node represents a configurable path or entry in the VyOS template directory
 type Node struct {
 	Name string `yaml:"Name"`

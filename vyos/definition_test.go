@@ -10,7 +10,7 @@ import (
 func TestDiffNode(t *testing.T) {
 	def := Definition{
 		Path:  []string{"foo"},
-		Name:  "node.tag",
+		Name:  DYNAMIC_NODE,
 		Value: "node1",
 		Node: &Node{
 			Name:  "node1",
@@ -38,7 +38,7 @@ func TestDiffNode(t *testing.T) {
 
 func TestDiffDefinition(t *testing.T) {
 	def := Definition{
-		Name:    "node.tag",
+		Name:    DYNAMIC_NODE,
 		Path:    []string{"foo"},
 		Comment: "foo",
 		Value:   "node1",
@@ -124,7 +124,7 @@ func TestMerge(t *testing.T) {
 	definitions.add(&Definition{
 		Name:     "description",
 		Path:     []string{"firewall", "group", "port-group", "test-port-group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", "node.tag", "description"}),
+		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", DYNAMIC_NODE, "description"}),
 		Comment:  "",
 		Value:    "a test port group",
 		Values:   nil,
@@ -133,7 +133,7 @@ func TestMerge(t *testing.T) {
 	definitions.add(&Definition{
 		Name:     "port",
 		Path:     []string{"firewall", "group", "port-group", "test-port-group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", "node.tag", "port"}),
+		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", DYNAMIC_NODE, "port"}),
 		Comment:  "",
 		Value:    nil,
 		Values:   []any{53, 123},
@@ -183,7 +183,7 @@ func TestMerge(t *testing.T) {
 	others.add(&Definition{
 		Name:     "address",
 		Path:     []string{"interfaces", "ethernet", "eth0"},
-		Node:     nodes.FindChild([]string{"interfaces", "ethernet", "node.tag", "address"}),
+		Node:     nodes.FindChild([]string{"interfaces", "ethernet", DYNAMIC_NODE, "address"}),
 		Comment:  "",
 		Value:    "192.168.0.1",
 		Values:   nil,
@@ -192,7 +192,7 @@ func TestMerge(t *testing.T) {
 	others.add(&Definition{
 		Name:     "vif",
 		Path:     []string{"interfaces", "ethernet", "eth0"},
-		Node:     nodes.FindChild([]string{"interfaces", "ethernet", "node.tag", "vif"}),
+		Node:     nodes.FindChild([]string{"interfaces", "ethernet", DYNAMIC_NODE, "vif"}),
 		Comment:  "",
 		Value:    99,
 		Values:   nil,
@@ -247,7 +247,7 @@ func TestMerge(t *testing.T) {
 	others.add(&Definition{
 		Name:     "port",
 		Path:     []string{"firewall", "group", "port-group", "test-port-group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", "node.tag", "port"}),
+		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", DYNAMIC_NODE, "port"}),
 		Comment:  "",
 		Value:    nil,
 		Values:   []any{53, 123},
@@ -265,7 +265,7 @@ func TestMerge(t *testing.T) {
 	others.add(&Definition{
 		Name:     "description",
 		Path:     []string{"firewall", "group", "port-group", "http-port-group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", "node.tag", "description"}),
+		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", DYNAMIC_NODE, "description"}),
 		Comment:  "",
 		Value:    "HTTP ports",
 		Values:   nil,
@@ -274,7 +274,7 @@ func TestMerge(t *testing.T) {
 	others.add(&Definition{
 		Name:     "port",
 		Path:     []string{"firewall", "group", "port-group", "http-port-group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", "node.tag", "port"}),
+		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", DYNAMIC_NODE, "port"}),
 		Comment:  "",
 		Value:    nil,
 		Values:   []any{80, 443},
@@ -408,7 +408,7 @@ func TestMergeConflictingDefinition(t *testing.T) {
 	definitions.add(&Definition{
 		Name:     "description",
 		Path:     []string{"firewall", "group", "port-group", "test-port-group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", "node.tag", "description"}),
+		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", DYNAMIC_NODE, "description"}),
 		Comment:  "",
 		Value:    "a test port group",
 		Values:   nil,
@@ -417,7 +417,7 @@ func TestMergeConflictingDefinition(t *testing.T) {
 	definitions.add(&Definition{
 		Name:     "port",
 		Path:     []string{"firewall", "group", "port-group", "test-port-group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", "node.tag", "port"}),
+		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", DYNAMIC_NODE, "port"}),
 		Comment:  "",
 		Value:    nil,
 		Values:   []any{53, 123},

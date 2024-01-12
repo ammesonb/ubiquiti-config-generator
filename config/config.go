@@ -33,6 +33,10 @@ type DeviceConfig struct {
 	AutoRollBack       bool  `yaml:"auto-rollback-on-failure"`
 	RebootAfterMinutes int32 `yaml:"reboot-after-minutes"`
 	SaveAfterCommit    bool  `yaml:"save-after-commit"`
+
+	// For generated NAT rules, what number to start with and steps between them
+	NatRuleNumberStart int `yaml:"nat-rule-number-start"`
+	NatRuleNumberStep  int `yaml:"nat-rule-number-step"`
 }
 
 type LoggingConfig struct {

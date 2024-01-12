@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/ammesonb/ubiquiti-config-generator/config"
 	"github.com/ammesonb/ubiquiti-config-generator/logger"
 )
 
@@ -344,6 +345,33 @@ func (definitions *Definitions) add(definition *Definition) {
 	}
 }
 
+func (definitions *Definitions) addValue(nodes *Node, path []string, nodePath []string, keyName string, value any) {
+	definitions.add(&Definition{
+		Name:  keyName,
+		Node:  nodes.FindChild(append(nodePath, keyName)),
+		Path:  path,
+		Value: value,
+	})
+}
+
+func (definitions *Definitions) addListValue(nodes *Node, path []string, nodePath []string, keyName string, value []any) {
+	definitions.add(&Definition{
+		Name:   keyName,
+		Node:   nodes.FindChild(append(nodePath, keyName)),
+		Path:   path,
+		Values: value,
+	})
+}
+
+func (definitions *Definitions) appendToListValue(nodes *Node, path []string, nodePath []string, keyName string, value any) {
+	node := definitions.FindChild(config.SliceStrToAny(append(path, keyName)))
+	if node == nil {
+		definitions.addListValue(nodes, path, nodePath, keyName, []any{value})
+	} else {
+		node.Values = append(node.Values, value)
+	}
+}
+
 func (definitions *Definitions) merge(other *Definitions) error {
 	// Check top-level definitions
 	for _, definition := range other.Definitions {
@@ -447,7 +475,7 @@ func generatePopulatedDefinitionTree(nodes *Node, definition BasicDefinition, pa
 
 	for _, child := range definition.Children {
 		pathSuffix := definition.Name
-		if pathSuffix == "node.tag" {
+		if pathSuffix == DYNAMIC_NODE {
 			pathSuffix = definition.Value.(string)
 		}
 		// Recurse into each child and add the generated definition
