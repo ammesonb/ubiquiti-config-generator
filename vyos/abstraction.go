@@ -1,14 +1,16 @@
 package vyos
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 
 	"github.com/ammesonb/ubiquiti-config-generator/abstraction"
 	"github.com/ammesonb/ubiquiti-config-generator/config"
+	"github.com/ammesonb/ubiquiti-config-generator/validation"
 )
 
-func FromNetworkAbstraction(nodes *Node, network *abstraction.Network, deviceConfig *config.DeviceConfig) *Definitions {
+func FromNetworkAbstraction(nodes *Node, network *abstraction.Network, deviceConfig *config.DeviceConfig) (*Definitions, []error) {
 	definitions := initDefinitions()
 
 	dhcpPath := []string{"service", "dhcp-server", "shared-network-name"}
@@ -47,6 +49,7 @@ func FromNetworkAbstraction(nodes *Node, network *abstraction.Network, deviceCon
 		)
 	}
 
+	errors := make([]error, 0)
 	subnetNodePath := append(dhcpPath, DYNAMIC_NODE, "subnet", DYNAMIC_NODE)
 	for _, subnet := range network.Subnets {
 		subnetPath := append(dhcpPath, network.Name, "subnet", subnet.CIDR)
@@ -55,11 +58,13 @@ func FromNetworkAbstraction(nodes *Node, network *abstraction.Network, deviceCon
 		for _, host := range subnet.Hosts {
 			addHostToSubnet(nodes, definitions, host, subnetPath, subnetNodePath)
 			addHostToAddressGroups(nodes, definitions, host)
-			addFirewallRules(nodes, definitions, network, host)
+			if err := addFirewallRules(nodes, definitions, network, subnet, host); err != nil {
+				errors = append(errors, err...)
+			}
 		}
 	}
 
-	return definitions
+	return definitions, errors
 }
 
 // configureNetworkInterface sets properties of an interface including address, firewalls, etc
@@ -96,7 +101,7 @@ func configureNetworkInterface(nodes *Node, definitions *Definitions, iface *abs
 }
 
 // addSubnetNetworkValues configures the given subnet definitions using the provided nodes and paths
-func addSubnetNetworkValues(nodes *Node, definitions *Definitions, subnet abstraction.Subnet, path []string, nodePath []string) {
+func addSubnetNetworkValues(nodes *Node, definitions *Definitions, subnet *abstraction.Subnet, path []string, nodePath []string) {
 	definitions.add(
 		generatePopulatedDefinitionTree(
 			nodes,
@@ -142,6 +147,17 @@ func addHostToSubnet(nodes *Node, definitions *Definitions, host *abstraction.Ho
 	definitions.addValue(nodes, path, nodePath, "mac-address", host.MAC)
 }
 
+func addExtraValues(nodes *Node, definitions *Definitions, path []string, nodePath []string, extra map[string]any) {
+	for key, val := range extra {
+		valType := reflect.TypeOf(val).Kind()
+		if valType == reflect.Slice || valType == reflect.Array {
+			definitions.addListValue(nodes, path, nodePath, key, val.([]any))
+		} else {
+			definitions.addValue(nodes, path, nodePath, key, val)
+		}
+	}
+}
+
 // addHostToAddressGroups will add the address of the host to any specified groups it should have
 func addHostToAddressGroups(nodes *Node, definitions *Definitions, host *abstraction.Host) {
 	if host.AddressGroups == nil {
@@ -155,12 +171,29 @@ func addHostToAddressGroups(nodes *Node, definitions *Definitions, host *abstrac
 	}
 }
 
-func addFirewallRules(nodes *Node, definitions *Definitions, network *abstraction.Network, host *abstraction.Host) {
+func addFirewallRules(nodes *Node, definitions *Definitions, network *abstraction.Network, subnet *abstraction.Subnet, host *abstraction.Host) []error {
 	for fromPort, toPort := range host.ForwardPorts {
 		addForwardPort(nodes, definitions, host, network.InboundInterface, fromPort, toPort)
 	}
 
-	// TODO: connections
+	if len(host.Connections) > 0 && network.Interface == nil {
+		return []error{fmt.Errorf("network %s must have interface defined in order to set firewall rules on host %s", network.Name, host.Name)}
+	}
+
+	errors := make([]error, 0)
+	for _, connection := range host.Connections {
+		if err := addConnection(
+			nodes,
+			definitions,
+			network,
+			getConnectionFirewall(network, subnet, host, connection),
+			connection,
+		); err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	return errors
 }
 
 func addForwardPort(nodes *Node, definitions *Definitions, host *abstraction.Host, inboundInterface string, from int32, to int32) {
@@ -180,13 +213,133 @@ func addForwardPort(nodes *Node, definitions *Definitions, host *abstraction.Hos
 	definitions.addValue(nodes, path, nodePath, "port", to)
 }
 
-func addExtraValues(nodes *Node, definitions *Definitions, path []string, nodePath []string, extra map[string]any) {
-	for key, val := range extra {
-		valType := reflect.TypeOf(val).Kind()
-		if valType == reflect.Slice || valType == reflect.Array {
-			definitions.addListValue(nodes, path, nodePath, key, val.([]any))
-		} else {
-			definitions.addValue(nodes, path, nodePath, key, val)
+func addConnection(
+	nodes *Node,
+	definitions *Definitions,
+	network *abstraction.Network,
+	firewall string,
+	connection abstraction.FirewallConnection,
+) error {
+	if firewall == "" {
+		return fmt.Errorf(
+			"unable to determine firewall direction for connection %s in network %s, no local address detected in connections",
+			network.Name,
+			connection.Description,
+		)
+	}
+
+	rule := abstraction.GetCounter(firewall).Next()
+
+	rulePath := []string{
+		"firewall", "name", firewall, "rule", strconv.Itoa(rule),
+	}
+	ruleNodePath := []string{
+		"firewall", "name", DYNAMIC_NODE, "rule", DYNAMIC_NODE,
+	}
+
+	var action, log string
+	if connection.Allow {
+		action = "accept"
+	} else {
+		action = "reject"
+	}
+
+	if connection.Log {
+		log = "enable"
+	} else {
+		log = "disable"
+	}
+
+	definitions.addValue(nodes, rulePath, ruleNodePath, "action", action)
+	definitions.addValue(nodes, rulePath, ruleNodePath, "description", connection.Description)
+	definitions.addValue(nodes, rulePath, ruleNodePath, "protocol", connection.Protocol)
+	definitions.addValue(nodes, rulePath, ruleNodePath, "log", log)
+
+	addConnectionDetail(
+		definitions,
+		nodes,
+		append(rulePath, "source"),
+		append(ruleNodePath, "source"),
+		connection.Source,
+	)
+	addConnectionDetail(
+		definitions,
+		nodes,
+		append(rulePath, "destination"),
+		append(ruleNodePath, "destination"),
+		connection.Destination,
+	)
+
+	return nil
+}
+
+func getConnectionFirewall(network *abstraction.Network, subnet *abstraction.Subnet, host *abstraction.Host, connection abstraction.FirewallConnection) string {
+	var sourceLocal, destLocal bool
+	// Must define an address for source to be local
+	sourceValid := connection.Source != nil && connection.Source.Address != nil
+	if !sourceValid {
+		sourceLocal = false
+	} else {
+		// since address may be an address group, ignore errors about invalid IPs
+		sourceLocal, _ = validation.IsAddressInSubnet(*connection.Source.Address, subnet.CIDR)
+		sourceLocal = config.InSlice(connection.Source.Address, config.SliceStrToAny(host.AddressGroups)) || sourceLocal
+	}
+
+	// Must define an address for destination to be local
+	destValid := connection.Destination != nil && connection.Destination.Address != nil
+	if !destValid {
+		// since address may be an address group, ignore errors about invalid IPs
+		destLocal, _ = validation.IsAddressInSubnet(*connection.Destination.Address, subnet.CIDR)
+		destLocal = config.InSlice(connection.Destination.Address, config.SliceStrToAny(host.AddressGroups)) || destLocal
+	}
+
+	if sourceLocal && destLocal {
+		// local if both source and destination addresses are in the network subnet
+		return network.Interface.LocalFirewall
+	} else if sourceLocal {
+		// inbound if source matches host or address group of host, since traffic is _inbound_ to the router port
+		return network.Interface.InboundFirewall
+	} else if destLocal {
+		// outbound if destination matches host or address group of host, since traffic is _outbound_ from the router port
+		return network.Interface.OutboundFirewall
+	}
+
+	return ""
+}
+
+func addConnectionDetail(definitions *Definitions, nodes *Node, path []string, nodePath []string, connection *abstraction.ConnectionDetail) {
+	if connection != nil {
+		if connection.Address != nil {
+			if validation.IsValidAddress(*connection.Address) {
+				// For valid IP address, just add it directly
+				definitions.addValue(nodes, path, nodePath, "address", connection.Address)
+			} else if connection.Address != nil {
+				// Group needs to nest further
+				definitions.addValue(
+					nodes,
+					append(path, "group"),
+					append(nodePath, "group"),
+					"address-group",
+					connection.Address,
+				)
+			}
+		}
+
+		if connection.Port != nil {
+			port, err := strconv.Atoi(*connection.Port)
+			if err == nil {
+				definitions.addValue(nodes, path, nodePath, "port", port)
+			} else {
+				// Group needs to nest further
+				definitions.addValue(
+					nodes,
+					append(path, "group"),
+					append(nodePath, "group"),
+					"port-group",
+					connection.Port,
+				)
+			}
+
 		}
 	}
 }

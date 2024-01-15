@@ -13,8 +13,8 @@ type Network struct {
 	Description string     `yaml:"description"`
 	Interface   *Interface `yaml:"interface"`
 
-	Authoritative string   `yaml:"authoritative"`
-	Subnets       []Subnet `yaml:"subnets"`
+	Authoritative string    `yaml:"authoritative"`
+	Subnets       []*Subnet `yaml:"subnets"`
 
 	// Needed for dNAT forwarding rules
 	InboundInterface string `yaml:"inbound-interface"`
@@ -71,13 +71,14 @@ type FirewallConnection struct {
 	Description string `yaml:"description"`
 	Allow       bool   `yaml:"allow"`
 	Protocol    string `yaml:"protocol"`
+	Log         bool   `yaml:"log"`
 
-	Source      ConnectionDetail `yaml:"source"`
-	Destination ConnectionDetail `yaml:"destination"`
+	Source      *ConnectionDetail `yaml:"source"`
+	Destination *ConnectionDetail `yaml:"destination"`
 }
 
 // ConnectionDetail provides an address and/or port (or group) to allow or block a connection to or from
 type ConnectionDetail struct {
-	Address string `yaml:"address"`
-	Port    string `yaml:"port"`
+	Address *string `yaml:"address"`
+	Port    *string `yaml:"port"`
 }
