@@ -11,50 +11,52 @@ import (
 	"github.com/ammesonb/ubiquiti-config-generator/validation"
 )
 
-func LoadNetworks(networksPath string) ([]Network, error) {
+var errReadNetworkDir = "failed to read networks dir"
+
+func LoadNetworks(networksPath string) ([]Network, []error) {
 	var networks []Network
 
 	entries, err := os.ReadDir(networksPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read networks dir %s: %v", networksPath, err)
+		return nil, []error{fmt.Errorf("%s %s: %v", errReadNetworkDir, networksPath, err)}
 	}
 
+	var errors []error
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
 		}
 
-		network, err := loadNetwork(path.Join(networksPath, entry.Name()))
-		if err != nil {
-			return nil, err
+		network, errs := loadNetwork(path.Join(networksPath, entry.Name()))
+		errors = append(errors, errs...)
+		if len(errs) == 0 {
+			networks = append(networks, *network)
 		}
-
-		networks = append(networks, *network)
 	}
 
-	return networks, nil
+	return networks, []error{}
 }
 
-func loadNetwork(networkPath string) (*Network, error) {
+func loadNetwork(networkPath string) (*Network, []error) {
 	config, err := os.ReadFile(path.Join(networkPath, "config.yaml"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to read network %s/config.yaml: %v", networkPath, err)
+		return nil, []error{fmt.Errorf("failed to read network %s/config.yaml: %v", networkPath, err)}
 	}
 	var network Network
 
 	if err = yaml.Unmarshal(config, &network); err != nil {
-		return nil, fmt.Errorf("failed to parse network config at %s: %v", networkPath, err)
+		return nil, []error{fmt.Errorf("failed to parse network config at %s: %v", networkPath, err)}
 	}
 
 	if network.Interface != nil {
 		setupFirewallRuleCounters(network)
 	}
 
-	if err = loadHosts(&network, networkPath); err != nil {
-		return nil, err
+	if errs := loadHosts(&network, networkPath); len(errs) > 0 {
+		return nil, errs
 	}
 
-	return &network, nil
+	return &network, []error{}
 }
 
 func setupFirewallRuleCounters(network Network) {
@@ -69,7 +71,14 @@ func setupFirewallRuleCounters(network Network) {
 	}
 }
 
-func loadHosts(network *Network, networkPath string) error {
+var (
+	errFailedReadHostDirectory = "failed to read hosts directory for network"
+	errFailedReadHost          = "failed to read host"
+	errFailedParseHost         = "failed to parse host"
+	errCheckHostSubnet         = "failed checking host subnet"
+)
+
+func loadHosts(network *Network, networkPath string) []error {
 	// if the hosts directory does not exist, then simply skip loading
 	if _, err := os.Stat(path.Join(networkPath, "hosts")); os.IsNotExist(err) {
 		return nil
@@ -77,9 +86,10 @@ func loadHosts(network *Network, networkPath string) error {
 
 	hostFiles, err := os.ReadDir(path.Join(networkPath, "hosts"))
 	if err != nil {
-		return fmt.Errorf("failed to read hosts directory for network: %v", err)
+		return []error{fmt.Errorf("%s: %v", errFailedReadHostDirectory, err)}
 	}
 
+	errors := make([]error, 0)
 	for _, hostFile := range hostFiles {
 		if hostFile.IsDir() {
 			continue
@@ -88,7 +98,8 @@ func loadHosts(network *Network, networkPath string) error {
 		hostPath := path.Join(networkPath, "hosts", hostFile.Name())
 		hostYAML, err := os.ReadFile(hostPath)
 		if err != nil {
-			return fmt.Errorf("failed to read host %s: %v", hostPath, err)
+			errors = append(errors, fmt.Errorf("%s %s: %v", errFailedReadHost, hostPath, err))
+			continue
 		}
 
 		nameExtract := regexp.MustCompile(`^(.*)\.ya?ml$`)
@@ -97,13 +108,14 @@ func loadHosts(network *Network, networkPath string) error {
 		}
 
 		if err = yaml.Unmarshal(hostYAML, &host); err != nil {
-			return fmt.Errorf("failed to parse host %s: %v", hostPath, err)
+			errors = append(errors, fmt.Errorf("%s %s: %v", errFailedParseHost, hostPath, err))
+			continue
 		}
 
 		for _, subnet := range network.Subnets {
 			inSubnet, err := validation.IsAddressInSubnet(host.Address, subnet.CIDR)
 			if err != nil {
-				return fmt.Errorf("failed checking host %s subnet: %v", hostPath, err)
+				errors = append(errors, fmt.Errorf("%s %s: %v", errCheckHostSubnet, hostPath, err))
 			} else if inSubnet {
 				subnet.Hosts = append(subnet.Hosts, &host)
 				break
@@ -111,5 +123,5 @@ func loadHosts(network *Network, networkPath string) error {
 		}
 	}
 
-	return nil
+	return errors
 }

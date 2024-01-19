@@ -82,7 +82,6 @@ func trimYamlEnv(name string) string {
 
 func convertEnv(config *Config) {
 	for _, device := range config.Devices {
-
 		if shouldGetEnv(device.Address) {
 			device.Address = os.Getenv(trimYamlEnv(device.Address))
 		}

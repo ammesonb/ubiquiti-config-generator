@@ -1,0 +1,8 @@
+---
+address: 10.16.0.50
+mac: "ab:cd:ef:01:23:46"
+address-groups:
+  - forwarded-ports
+forward-ports:
+  53: 53
+...

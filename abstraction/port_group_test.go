@@ -8,11 +8,10 @@ import (
 )
 
 func TestLoadPortGroups(t *testing.T) {
-	groups, err := LoadPortGroups("../sample_router_config/port-groups")
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
+	groups, errs := LoadPortGroups("./test-files/port-groups")
+	assert.Len(t, errs, 2, "Should have two errors")
+	assert.ErrorContains(t, errs[0], ErrPortGroupEmpty+" blank", "Blank port group should throw error")
+	assert.ErrorContains(t, errs[1], ErrParsePortYAML, "Invalid yaml should throw error")
 
 	assert.Len(t, groups, 2, "Expected 2 port groups loaded")
 
@@ -45,8 +44,8 @@ func TestLoadPortGroups(t *testing.T) {
 }
 
 func TestNonexistentPath(t *testing.T) {
-	groups, err := LoadPortGroups("/nonexistent")
+	groups, errs := LoadPortGroups("/nonexistent")
 
 	assert.Len(t, groups, 0, "Nonexistent path should not find groups")
-	assert.NotNil(t, err, "Error should have been returned")
+	assert.Len(t, errs, 1, "Single error should have been returned")
 }

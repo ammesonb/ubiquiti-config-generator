@@ -7,19 +7,24 @@ import (
 	"regexp"
 
 	"gopkg.in/yaml.v3"
+)
 
-	"github.com/ammesonb/ubiquiti-config-generator/logger"
+var (
+	ErrPortGroupEmpty = "no ports specified for port group"
+	ErrParsePortYAML  = "failed to parse port group in"
 )
 
 // LoadPortGroups will look at all yaml files in the given path and return a list of port groups
-func LoadPortGroups(portGroupsPath string) ([]PortGroup, error) {
+func LoadPortGroups(portGroupsPath string) ([]PortGroup, []error) {
 	var portGroups []PortGroup
+	errors := make([]error, 0)
 
 	entries, err := os.ReadDir(portGroupsPath)
 	if err != nil {
-		return portGroups, fmt.Errorf(
-			"failed to read port group path '%s': %v", portGroupsPath, err,
-		)
+		return portGroups,
+			[]error{fmt.Errorf(
+				"failed to read port group path '%s': %v", portGroupsPath, err,
+			)}
 	}
 
 	for _, entry := range entries {
@@ -34,16 +39,16 @@ func LoadPortGroups(portGroupsPath string) ([]PortGroup, error) {
 
 			group, err := makePortGroup(path.Join(portGroupsPath, entry.Name()), groupName)
 			if err != nil {
-				return []PortGroup{}, err
+				errors = append(errors, err)
 			} else if len(group.Ports) > 0 {
 				portGroups = append(portGroups, *group)
 			} else {
-				logger.DefaultLogger().Warnf("no ports detected for port group '%s'", groupName)
+				errors = append(errors, fmt.Errorf("%s %s", ErrPortGroupEmpty, groupName))
 			}
 		}
 	}
 
-	return portGroups, nil
+	return portGroups, errors
 }
 
 func makePortGroup(filepath string, groupName string) (*PortGroup, error) {
@@ -56,7 +61,7 @@ func makePortGroup(filepath string, groupName string) (*PortGroup, error) {
 	group := PortGroup{Name: groupName}
 	if err = yaml.Unmarshal(groupData, &group); err != nil {
 		return nil, fmt.Errorf(
-			"failed to parse port group in '%s': %v", filepath, err,
+			"%s '%s': %v", ErrParsePortYAML, filepath, err,
 		)
 	}
 

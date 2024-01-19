@@ -40,8 +40,12 @@ TODO:
 * val_help from node_parser does not get surfaced anywhere
 * Validation for VyOS stuff
 * Validation for custom YAML nodes
-  - address for host in subnet
+  - address for host in a subnet's CIDR
+  - mac addresses are valid
+  - no duplicate MACs per network
+  - no duplicate IP addresses per network
   - subnets have addresses matching interfaces
+  - subnets do not overlap
   - firewalls referenced in network interfaces actually exist
   - port only forwarded to one host
   - others?

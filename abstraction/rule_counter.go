@@ -12,7 +12,7 @@ type RuleCounter struct {
 	lock   *sync.Mutex
 }
 
-func (counter RuleCounter) Next() int {
+func (counter *RuleCounter) Next() int {
 	counter.lock.Lock()
 	defer counter.lock.Unlock()
 	defer func() { counter.number += counter.step }()
@@ -20,10 +20,10 @@ func (counter RuleCounter) Next() int {
 	return counter.number
 }
 
-var counters map[string]RuleCounter
+var counters = make(map[string]*RuleCounter)
 
-func MakeCounter(name string, ruleStart int, ruleStep int) RuleCounter {
-	counters[name] = RuleCounter{
+func MakeCounter(name string, ruleStart int, ruleStep int) *RuleCounter {
+	counters[name] = &RuleCounter{
 		number: ruleStart,
 		step:   ruleStep,
 		lock:   &sync.Mutex{},
@@ -38,6 +38,10 @@ func HasCounter(name string) bool {
 }
 
 // GetCounter will return a rule counter, or create one if not existing
-func GetCounter(name string) RuleCounter {
+func GetCounter(name string) *RuleCounter {
 	return counters[name]
+}
+
+func resetCounters() {
+	counters = make(map[string]*RuleCounter)
 }

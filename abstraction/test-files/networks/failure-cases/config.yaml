@@ -1,0 +1,40 @@
+---
+description: Network with some non-blocking errors
+interface:
+  name: eth1
+  description: eth1
+  address: 10.0.0.1
+  vif: 123
+  speed: auto
+  duplex: auto
+  inbound-firewall: eth1-in
+  outbound-firewall: eth1-out
+  local-firewall: eth1-local
+  extra:
+    mac: "12:34:56:78:90:ab"
+
+subnets:
+  - cidr: 10.0.0.0/24
+    default-router: 10.0.0.1
+    domain-name: lan.home
+    dns-servers:
+      - 8.8.8.8
+      - 8.8.4.4
+    dhcp-lease: 86400
+    dhcp-start: 10.0.0.100
+    dhcp-end: 10.0.0.255
+    extra:
+      time-offset: 14400
+
+  - cidr: 10.16.0.0/24
+    default-router: 10.0.0.1
+    domain-name: lan.home
+    dns-servers:
+      - 8.8.8.8
+      - 8.8.4.4
+    dhcp-lease: 86400
+    dhcp-start: 10.16.0.100
+    dhcp-end: 10.16.0.255
+    extra:
+      time-offset: 14400
+...
