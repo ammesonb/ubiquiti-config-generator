@@ -51,11 +51,13 @@ func LoadPortGroups(portGroupsPath string) ([]PortGroup, []error) {
 	return portGroups, errors
 }
 
+var errFailedReadPortGroup = "failed to read the port group at path"
+
 func makePortGroup(filepath string, groupName string) (*PortGroup, error) {
 	groupData, err := os.ReadFile(filepath)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"failed to read port group path '%s': %v", filepath, err,
+			"%s '%s': %v", errFailedReadPortGroup, filepath, err,
 		)
 	}
 	group := PortGroup{Name: groupName}

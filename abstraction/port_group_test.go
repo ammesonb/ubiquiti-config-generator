@@ -48,4 +48,8 @@ func TestNonexistentPath(t *testing.T) {
 
 	assert.Len(t, groups, 0, "Nonexistent path should not find groups")
 	assert.Len(t, errs, 1, "Single error should have been returned")
+
+	group, err := makePortGroup("/nonexistent", "group")
+	assert.Nil(t, group, "Group should be null if file does not exist")
+	assert.ErrorContains(t, err, errFailedReadPortGroup)
 }

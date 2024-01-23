@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GoORMHelperCache">
+    <option name="scannedPathMapping">
+      <map>
+        <entry key="file://$PROJECT_DIR$/abstraction/network.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1706033775207" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/abstraction/network_test.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1706033949767" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/abstraction/port_group.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705960751475" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/abstraction/port_group_test.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705960751479" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/abstraction/test-files/networks/network-file.yaml.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1706033088057" />
+            </ScannedPath>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="lastTimeChecked" value="1705950188081" />
+  </component>
+</project>

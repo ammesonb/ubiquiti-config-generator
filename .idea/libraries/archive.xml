@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="archive">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/tests/unit/test_yaml/archive.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

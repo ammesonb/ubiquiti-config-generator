@@ -29,31 +29,34 @@ func LoadNetworks(networksPath string) ([]Network, []error) {
 
 		network, errs := loadNetwork(path.Join(networksPath, entry.Name()))
 		errors = append(errors, errs...)
-		if len(errs) == 0 {
+		if len(errs) == 0 && network != nil {
 			networks = append(networks, *network)
 		}
 	}
 
-	return networks, []error{}
+	return networks, errors
 }
+
+var errReadNetworkConfig = "failed to read network config"
+var errParseNetworkConfig = "failed to parse network config at"
 
 func loadNetwork(networkPath string) (*Network, []error) {
 	config, err := os.ReadFile(path.Join(networkPath, "config.yaml"))
 	if err != nil {
-		return nil, []error{fmt.Errorf("failed to read network %s/config.yaml: %v", networkPath, err)}
+		return nil, []error{fmt.Errorf("%s: %s/config.yaml: %v", errReadNetworkConfig, networkPath, err)}
 	}
 	var network Network
 
 	if err = yaml.Unmarshal(config, &network); err != nil {
-		return nil, []error{fmt.Errorf("failed to parse network config at %s: %v", networkPath, err)}
-	}
-
-	if network.Interface != nil {
-		setupFirewallRuleCounters(network)
+		return nil, []error{fmt.Errorf("%s %s: %v", errParseNetworkConfig, networkPath, err)}
 	}
 
 	if errs := loadHosts(&network, networkPath); len(errs) > 0 {
 		return nil, errs
+	}
+
+	if network.Interface != nil {
+		setupFirewallRuleCounters(network)
 	}
 
 	return &network, []error{}
@@ -91,37 +94,50 @@ func loadHosts(network *Network, networkPath string) []error {
 
 	errors := make([]error, 0)
 	for _, hostFile := range hostFiles {
-		if hostFile.IsDir() {
+		if !hostFile.Type().IsRegular() {
 			continue
 		}
 
-		hostPath := path.Join(networkPath, "hosts", hostFile.Name())
-		hostYAML, err := os.ReadFile(hostPath)
-		if err != nil {
-			errors = append(errors, fmt.Errorf("%s %s: %v", errFailedReadHost, hostPath, err))
-			continue
-		}
-
-		nameExtract := regexp.MustCompile(`^(.*)\.ya?ml$`)
-		host := Host{
-			Name: nameExtract.FindStringSubmatch(hostFile.Name())[1],
-		}
-
-		if err = yaml.Unmarshal(hostYAML, &host); err != nil {
-			errors = append(errors, fmt.Errorf("%s %s: %v", errFailedParseHost, hostPath, err))
-			continue
-		}
-
-		for _, subnet := range network.Subnets {
-			inSubnet, err := validation.IsAddressInSubnet(host.Address, subnet.CIDR)
-			if err != nil {
-				errors = append(errors, fmt.Errorf("%s %s: %v", errCheckHostSubnet, hostPath, err))
-			} else if inSubnet {
-				subnet.Hosts = append(subnet.Hosts, &host)
-				break
-			}
+		if err = loadHost(
+			path.Join(networkPath, "hosts", hostFile.Name()),
+			network,
+		); err != nil {
+			errors = append(errors, err)
 		}
 	}
 
 	return errors
+}
+
+func loadHost(hostPath string, network *Network) error {
+	hostYAML, err := os.ReadFile(hostPath)
+	if err != nil {
+		return fmt.Errorf("%s %s: %v", errFailedReadHost, hostPath, err)
+	}
+
+	nameExtract := regexp.MustCompile(`^.*/(.*)\.ya?ml$`)
+	matches := nameExtract.FindStringSubmatch(hostPath)
+	// If not a YAML file, skip it
+	if len(matches) == 0 {
+		return nil
+	}
+
+	host := Host{
+		Name: matches[1],
+	}
+
+	if err = yaml.Unmarshal(hostYAML, &host); err != nil {
+		return fmt.Errorf("%s %s: %v", errFailedParseHost, hostPath, err)
+	}
+
+	for _, subnet := range network.Subnets {
+		inSubnet, err := validation.IsAddressInSubnet(host.Address, subnet.CIDR)
+		if err != nil {
+			return fmt.Errorf("%s %s: %v", errCheckHostSubnet, hostPath, err)
+		} else if inSubnet {
+			subnet.Hosts = append(subnet.Hosts, &host)
+		}
+	}
+
+	return nil
 }

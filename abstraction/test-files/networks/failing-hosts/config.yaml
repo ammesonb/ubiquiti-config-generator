@@ -1,5 +1,7 @@
 ---
 description: Network with some non-blocking errors
+firewall-rule-number-start: 1000
+firewall-rule-number-step: 10
 interface:
   name: eth1
   description: eth1
