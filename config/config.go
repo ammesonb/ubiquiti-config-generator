@@ -10,7 +10,7 @@ import (
 
 // Config contains the runtime settings needed to analyze and deploy configurations
 type Config struct {
-	Devices map[string]DeviceConfig `yaml:"devices"`
+	Devices map[string]*DeviceConfig `yaml:"devices"`
 
 	Logging LoggingConfig `yaml:"logging"`
 
@@ -60,11 +60,13 @@ func ReadConfig(path string) ([]byte, error) {
 	return os.ReadFile(path)
 }
 
+var errFailParseConfig = "failed parsing config"
+
 // LoadConfig takes YAML config data and loads it into the struct
 func LoadConfig(config []byte) (*Config, error) {
 	conf := &Config{}
 	if err := yaml.Unmarshal(config, conf); err != nil {
-		return nil, fmt.Errorf("failed loading config: %+v", err)
+		return nil, fmt.Errorf("%s: %+v", errFailParseConfig, err)
 	}
 
 	convertEnv(conf)
@@ -94,6 +96,9 @@ func convertEnv(config *Config) {
 		if shouldGetEnv(device.Keyfile) {
 			device.Keyfile = os.Getenv(trimYamlEnv(device.Keyfile))
 		}
+	}
+	if shouldGetEnv(config.Logging.DBName) {
+		config.Logging.DBName = os.Getenv(trimYamlEnv(config.Logging.DBName))
 	}
 	if shouldGetEnv(config.Logging.User) {
 		config.Logging.User = os.Getenv(trimYamlEnv(config.Logging.User))

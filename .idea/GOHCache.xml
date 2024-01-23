@@ -1,6 +1,220 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="GoORMHelperCache">
+    <option name="schemaMapping">
+      <map>
+        <entry key="BasicDefinition">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/definition.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="CheckLog">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/db/models.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="CommitCheck">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/db/models.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="Config">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/config/config.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ConnectionDetail">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/structs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="Definition">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/definition.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="Definitions">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/definition.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="Deployment">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/db/models.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="DeploymentLog">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/db/models.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="DeviceConfig">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/config/config.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="FirewallConnection">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/structs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="GitConfig">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/config/config.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="Host">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/structs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="Interface">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/structs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="LoggingConfig">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/config/config.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="Network">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/structs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="Node">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/node.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="NodeConstraint">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/node.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="PortGroup">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/structs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="RuleCounter">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/rule_counter.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="Subnet">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/structs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="accessTokenResponse">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/web/git_api.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="checkRun">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/web/structs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="checkRunRequest">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/web/structs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="checkSuite">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/web/structs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="checkSuiteRequest">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/web/structs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="deployment">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/web/structs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="installation">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/web/git_api.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="installationsResponse">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/web/git_api.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="repository">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/web/structs.go" />
+            </set>
+          </value>
+        </entry>
+      </map>
+    </option>
     <option name="scannedPathMapping">
       <map>
         <entry key="file://$PROJECT_DIR$/abstraction/network.go">
@@ -31,15 +245,327 @@
             </ScannedPath>
           </value>
         </entry>
-        <entry key="file://$PROJECT_DIR$/abstraction/test-files/networks/network-file.yaml.go">
+        <entry key="file://$PROJECT_DIR$/abstraction/rule_counter.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706033088057" />
+              <option name="lastModified" value="1705950557896" />
+              <option name="schema">
+                <list>
+                  <option value="RuleCounter" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/abstraction/rule_counter_test.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557896" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/abstraction/structs.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557896" />
+              <option name="schema">
+                <list>
+                  <option value="PortGroup" />
+                  <option value="Network" />
+                  <option value="Interface" />
+                  <option value="Subnet" />
+                  <option value="Host" />
+                  <option value="FirewallConnection" />
+                  <option value="ConnectionDetail" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/config/config.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1706049767058" />
+              <option name="schema">
+                <list>
+                  <option value="Config" />
+                  <option value="DeviceConfig" />
+                  <option value="LoggingConfig" />
+                  <option value="GitConfig" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/config/config_test.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1706049847295" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/config/utility.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557899" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/config/utility_test.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557899" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/db/connection.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557900" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/db/models.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557900" />
+              <option name="schema">
+                <list>
+                  <option value="CommitCheck" />
+                  <option value="CheckLog" />
+                  <option value="Deployment" />
+                  <option value="DeploymentLog" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/logger/default.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557900" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/main.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557900" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/validation/ip_address.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557925" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/validation/ip_address_test.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557925" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/vyos/abstraction.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557925" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/vyos/boot_parser.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557925" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/vyos/boot_parser_test.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557926" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/vyos/definition.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557926" />
+              <option name="schema">
+                <list>
+                  <option value="Definition" />
+                  <option value="Definitions" />
+                  <option value="BasicDefinition" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/vyos/definition_test.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557926" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/vyos/fixtures.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557926" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/vyos/node.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557927" />
+              <option name="schema">
+                <list>
+                  <option value="Node" />
+                  <option value="NodeConstraint" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/vyos/node_parser.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557927" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/vyos/node_parser_test.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557927" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/vyos/parser.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557927" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/web/checkrun.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557942" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/web/checksuite.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557943" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/web/git_api.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557943" />
+              <option name="schema">
+                <list>
+                  <option value="installationsResponse" />
+                  <option value="installation" />
+                  <option value="accessTokenResponse" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/web/git_fs.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557943" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/web/load_configs.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557943" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/web/parse_configs.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557943" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/web/server.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557943" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/web/structs.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557943" />
+              <option name="schema">
+                <list>
+                  <option value="checkSuite" />
+                  <option value="checkRun" />
+                  <option value="repository" />
+                  <option value="deployment" />
+                  <option value="checkSuiteRequest" />
+                  <option value="checkRunRequest" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/web/utility.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1705950557944" />
             </ScannedPath>
           </value>
         </entry>
       </map>
     </option>
-    <option name="lastTimeChecked" value="1705950188081" />
+    <option name="tableStructMapping">
+      <map>
+        <entry key="access_token_response" value="accessTokenResponse" />
+        <entry key="basic_definition" value="BasicDefinition" />
+        <entry key="check_log" value="CheckLog" />
+        <entry key="check_run" value="checkRun" />
+        <entry key="check_run_request" value="checkRunRequest" />
+        <entry key="check_suite" value="checkSuite" />
+        <entry key="check_suite_request" value="checkSuiteRequest" />
+        <entry key="commit_check" value="CommitCheck" />
+        <entry key="config" value="Config" />
+        <entry key="connection_detail" value="ConnectionDetail" />
+        <entry key="definition" value="Definition" />
+        <entry key="definitions" value="Definitions" />
+        <entry key="deployment" value="deployment" />
+        <entry key="deployment_log" value="DeploymentLog" />
+        <entry key="device_config" value="DeviceConfig" />
+        <entry key="firewall_connection" value="FirewallConnection" />
+        <entry key="git_config" value="GitConfig" />
+        <entry key="host" value="Host" />
+        <entry key="installation" value="installation" />
+        <entry key="installations_response" value="installationsResponse" />
+        <entry key="interface" value="Interface" />
+        <entry key="logging_config" value="LoggingConfig" />
+        <entry key="network" value="Network" />
+        <entry key="node" value="Node" />
+        <entry key="node_constraint" value="NodeConstraint" />
+        <entry key="port_group" value="PortGroup" />
+        <entry key="repository" value="repository" />
+        <entry key="rule_counter" value="RuleCounter" />
+        <entry key="subnet" value="Subnet" />
+      </map>
+    </option>
+    <option name="lastTimeChecked" value="1706049512191" />
   </component>
 </project>
