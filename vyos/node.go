@@ -171,6 +171,9 @@ const (
 	MaxBound ConstraintKey = "MaxBound"
 )
 
+var UnsetMinBound = -123456789
+var UnsetMaxBound = 123456789
+
 // GetProperty Dynamically looks up the value of a particular constraint value by its key
 func (n *NodeConstraint) GetProperty(field ConstraintKey) interface{} {
 	switch field {
@@ -192,14 +195,14 @@ func (n *NodeConstraint) GetProperty(field ConstraintKey) interface{} {
 		if n.MinBound == nil {
 			// Random value, should only be used for testing anyways
 			logger.DefaultLogger().Warn("Requested unset minimum bound")
-			return -12345
+			return UnsetMinBound
 		}
 		return *n.MinBound
 	case MaxBound:
 		if n.MaxBound == nil {
 			// Random value, should only be used for testing anyways
 			logger.DefaultLogger().Warn("Requested unset maximum bound")
-			return 123456789
+			return UnsetMaxBound
 		}
 		return *n.MaxBound
 	}

@@ -87,7 +87,7 @@ func (definition *Definition) Diff(other *Definition) []string {
 }
 
 func (definition *Definition) diffDefinition(other *Definition) []string {
-	differences := []string{}
+	var differences []string
 	if definition.Name != other.Name {
 		differences = append(
 			differences,
@@ -230,7 +230,8 @@ func (definition *Definition) diffNode(other *Definition) []string {
 
 func (definition *Definition) hasChild(other *Definition) bool {
 	for _, child := range definition.Children {
-		if len(child.diffDefinition(other)) == 0 {
+		if (!child.Node.IsTag && child.Name == other.Name) ||
+			(child.Node.IsTag && other.Node.IsTag && child.Value == other.Value) {
 			return true
 		}
 	}
@@ -463,29 +464,36 @@ type BasicDefinition struct {
 }
 
 func generatePopulatedDefinitionTree(nodes *Node, definition BasicDefinition, path []string, nodePath []string) *Definition {
+	node := nodes.FindChild(append(nodePath, definition.Name))
+
 	def := &Definition{
 		Name:     definition.Name,
 		Path:     path,
-		Node:     nodes.FindChild(append(nodePath, definition.Name)),
+		Node:     node,
 		Comment:  definition.Comment,
-		Value:    definition.Values,
+		Value:    definition.Value,
 		Values:   definition.Values,
 		Children: make([]*Definition, 0),
 	}
 
 	for _, child := range definition.Children {
-		pathSuffix := definition.Name
-		if pathSuffix == DYNAMIC_NODE {
-			pathSuffix = definition.Value.(string)
+		var childPath, childNodePath []string
+		if node.IsTag {
+			childPath = append(path, definition.Name, definition.Value.(string))
+			childNodePath = append(path, definition.Name, DYNAMIC_NODE)
+		} else {
+			childPath = append(path, definition.Name)
+			childNodePath = append(nodePath, definition.Name)
 		}
+
 		// Recurse into each child and add the generated definition
 		def.Children = append(
 			def.Children,
 			generatePopulatedDefinitionTree(
 				nodes,
 				child,
-				append(path, pathSuffix),
-				append(nodePath, definition.Name),
+				childPath,
+				childNodePath,
 			),
 		)
 	}

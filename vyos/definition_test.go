@@ -1,11 +1,49 @@
 package vyos
 
 import (
+	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
+
+func TestDefinition_Diff(t *testing.T) {
+	def := Definition{
+		Path:  []string{},
+		Name:  DYNAMIC_NODE,
+		Value: "foo",
+		Node: &Node{
+			Name:  "node1",
+			Type:  "txt",
+			IsTag: true,
+			Multi: true,
+			Path:  "",
+		},
+		Children: []*Definition{
+			{
+				Name: "bar",
+				Path: []string{"foo"},
+			},
+		},
+	}
+
+	diffs := def.Diff(&Definition{
+		Path:  []string{},
+		Name:  DYNAMIC_NODE,
+		Value: "bar",
+		Node: &Node{
+			Name:  "node1",
+			Type:  "txt",
+			IsTag: true,
+			Multi: true,
+			Path:  "",
+		},
+		Children: []*Definition{},
+	})
+
+	assert.Len(t, diffs, 2, "Value mismatch and children mismatch")
+	assert.Contains(t, diffs[0], "'Value' should be")
+	assert.Contains(t, diffs[1], "Should have 1 children but got 0")
+}
 
 func TestDiffNode(t *testing.T) {
 	def := Definition{
@@ -502,4 +540,132 @@ func TestGenerateDefinitionTree(t *testing.T) {
 	if len(diffs) > 0 {
 		t.Errorf("Generated tree did not match expected: %s", strings.Join(diffs, ", "))
 	}
+}
+
+func TestGeneratePopulatedDefinitionTree(t *testing.T) {
+	nodes, err := GetGeneratedNodes()
+	assert.NoError(t, err, "Generating nodes should not fail")
+
+	expected := &Definition{
+		Name: "firewall",
+		Path: []string{},
+		Node: nodes.FindChild([]string{"firewall"}),
+		Children: []*Definition{
+			{
+				Name:  "name",
+				Path:  []string{"firewall"},
+				Node:  nodes.FindChild([]string{"firewall", "name"}),
+				Value: "foo",
+				Children: []*Definition{
+					{
+						Name:     "default-action",
+						Path:     []string{"firewall", "name", "foo"},
+						Node:     nodes.FindChild([]string{"firewall", "name", DYNAMIC_NODE, "default-action"}),
+						Value:    "drop",
+						Children: []*Definition{},
+					},
+				},
+			},
+			{
+				Name:  "name",
+				Path:  []string{"firewall"},
+				Node:  nodes.FindChild([]string{"firewall", "name"}),
+				Value: "bar",
+				Children: []*Definition{
+					{
+						Name:     "default-action",
+						Path:     []string{"firewall", "name", "bar"},
+						Node:     nodes.FindChild([]string{"firewall", "name", DYNAMIC_NODE, "default-action"}),
+						Value:    "accept",
+						Children: []*Definition{},
+					},
+				},
+			},
+		},
+	}
+
+	generated := generatePopulatedDefinitionTree(
+		nodes,
+		BasicDefinition{
+			Name: "firewall",
+			Children: []BasicDefinition{
+				{
+					Name:  "name",
+					Value: "foo",
+					Children: []BasicDefinition{
+						{
+							Name:  "default-action",
+							Value: "drop",
+						},
+					},
+				},
+				{
+					Name:  "name",
+					Value: "bar",
+					Children: []BasicDefinition{
+						{
+							Name:  "default-action",
+							Value: "accept",
+						},
+					},
+				},
+			},
+		},
+		[]string{},
+		[]string{},
+	)
+
+	assert.Empty(t, expected.Diff(generated), "Definitions should generate as expected")
+}
+
+func TestDefinitions_FindChild(t *testing.T) {
+	nodes, err := GetGeneratedNodes()
+	assert.NoError(t, err, "Generating nodes should not fail")
+
+	defs := initDefinitions()
+	defs.add(
+		generatePopulatedDefinitionTree(
+			nodes,
+			BasicDefinition{
+				Name: "firewall",
+				Children: []BasicDefinition{
+					{
+						Name:  "name",
+						Value: "foo",
+						Children: []BasicDefinition{
+							{
+								Name:  "default-action",
+								Value: "drop",
+							},
+						},
+					},
+					{
+						Name:  "name",
+						Value: "bar",
+						Children: []BasicDefinition{
+							{
+								Name:  "default-action",
+								Value: "accept",
+							},
+						},
+					},
+				},
+			},
+			[]string{},
+			[]string{},
+		),
+	)
+
+	assert.Nil(t, defs.FindChild([]any{"interface"}), "Missing root element is nil")
+	foo := defs.FindChild([]any{"firewall", "name", "foo"})
+	assert.Equal(t, foo.Name, "name")
+	assert.Equal(t, foo.Value, "foo")
+	assert.Len(t, foo.Children, 1, "Foo firewall has one child")
+	assert.Equal(t, foo.Children[0].Value, "drop")
+
+	barAction := defs.FindChild([]any{"firewall", "name", "bar", "default-action"})
+	assert.Equal(t, barAction.Name, "default-action")
+	assert.Equal(t, barAction.Value, "accept")
+
+	assert.Nil(t, defs.FindChild([]any{"firewall", "name", "nonexistent", "default-action"}))
 }

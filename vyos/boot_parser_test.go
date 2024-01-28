@@ -532,6 +532,7 @@ func testCombinedBoot(t *testing.T, rootNode *Node, files []string, expected []*
 			t.FailNow()
 		}
 		data += string(bootData)
+		data += "\n"
 	}
 
 	reader := strings.NewReader(data)
