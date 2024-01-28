@@ -343,7 +343,14 @@
         <entry key="file://$PROJECT_DIR$/logger/default.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706466679129" />
+              <option name="lastModified" value="1706468664645" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/logger/default_test.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1706468778837" />
             </ScannedPath>
           </value>
         </entry>
@@ -392,7 +399,7 @@
         <entry key="file://$PROJECT_DIR$/vyos/definition.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706465775017" />
+              <option name="lastModified" value="1706467118933" />
               <option name="schema">
                 <list>
                   <option value="Definition" />
@@ -406,7 +413,7 @@
         <entry key="file://$PROJECT_DIR$/vyos/definition_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706466407507" />
+              <option name="lastModified" value="1706468416641" />
             </ScannedPath>
           </value>
         </entry>

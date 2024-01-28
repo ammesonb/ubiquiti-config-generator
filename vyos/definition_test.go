@@ -1,6 +1,7 @@
 package vyos
 
 import (
+	"github.com/ammesonb/ubiquiti-config-generator/config"
 	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
@@ -668,4 +669,83 @@ func TestDefinitions_FindChild(t *testing.T) {
 	assert.Equal(t, barAction.Value, "accept")
 
 	assert.Nil(t, defs.FindChild([]any{"firewall", "name", "nonexistent", "default-action"}))
+}
+
+func TestAddValue(t *testing.T) {
+	nodes, err := GetGeneratedNodes()
+	assert.NoError(t, err, "Generating nodes should not fail")
+
+	defs := initDefinitions()
+
+	defs.add(
+		generatePopulatedDefinitionTree(
+			nodes,
+			BasicDefinition{
+				Name: "firewall",
+				Children: []BasicDefinition{
+					{
+						Name: "group",
+						Children: []BasicDefinition{
+							{
+								Name:     "port-group",
+								Value:    "web-ports",
+								Children: []BasicDefinition{},
+							},
+						},
+					},
+				},
+			},
+			[]string{},
+			[]string{},
+		),
+	)
+
+	path := []string{"firewall", "group", "port-group", "web-ports"}
+	nodePath := []string{"firewall", "group", "port-group", DYNAMIC_NODE}
+
+	description := "Ports used by web servers"
+	defs.addValue(nodes, path, nodePath, "description", description)
+	defs.appendToListValue(nodes, path, nodePath, "port", 80)
+	defs.appendToListValue(nodes, path, nodePath, "port", 443)
+
+	descriptionDef := defs.FindChild(config.SliceStrToAny(append(path, "description")))
+	assert.NotNil(t, descriptionDef)
+	assert.Equal(t, descriptionDef.Value, description)
+	assert.Nil(t, descriptionDef.Values)
+
+	portsDef := defs.FindChild(config.SliceStrToAny(append(path, "port")))
+	assert.NotNil(t, portsDef)
+	assert.Len(t, portsDef.Values, 2, "Port 80 and 443 added")
+	assert.Equal(t, portsDef.Values, []any{80, 443})
+	assert.Nil(t, portsDef.Value)
+}
+
+func TestAddExisting(t *testing.T) {
+	nodes, err := GetGeneratedNodes()
+	assert.NoError(t, err, "Generating nodes should not fail")
+
+	defs := initDefinitions()
+	definition := generatePopulatedDefinitionTree(
+		nodes,
+		BasicDefinition{
+			Name: "firewall",
+			Children: []BasicDefinition{
+				{
+					Name:  "all-ping",
+					Value: true,
+				},
+			},
+		},
+		[]string{},
+		[]string{},
+	)
+
+	defs.add(definition)
+	pingPath := []any{"firewall", "all-ping"}
+	assert.True(t, defs.FindChild(pingPath).Value.(bool))
+
+	definition.Children[0].Value = false
+
+	defs.add(definition)
+	assert.False(t, defs.FindChild(pingPath).Value.(bool), "Existing path value should be overridden")
 }
