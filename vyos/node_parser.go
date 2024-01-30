@@ -3,6 +3,7 @@ package vyos
 import (
 	"bufio"
 	"fmt"
+	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 	"io"
 	"os"
 	"path/filepath"
@@ -12,8 +13,6 @@ import (
 	"unicode"
 
 	"github.com/charmbracelet/log"
-
-	"github.com/ammesonb/ubiquiti-config-generator/logger"
 )
 
 /** Config notes:
@@ -35,14 +34,17 @@ import (
       e.g. interfaces/switch/node.tag/switch-port/interface/node.def
 */
 
+var errFailedReadDir = "failed to read files in"
+var errReadDef = "failed opening node.def"
+
 // ParseNodeDef takes a template path and converts it into a list of nodes for analysis/validation
 func ParseNodeDef(templatesPath string) (*Node, error) {
 	// ReadDir returns relative paths, so /etc will return hosts, passwd, shadow, etc
 	// Not including the parent `/etc/` prefix
 	entries, err := os.ReadDir(templatesPath)
-	logger := logger.DefaultLogger()
+	logger := console_logger.DefaultLogger()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read files in %s: %+v", templatesPath, err)
+		return nil, fmt.Errorf("%s %s: %+v", errFailedReadDir, templatesPath, err)
 	}
 
 	node := &Node{
@@ -58,21 +60,27 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 	// If node.def in entries, update node from this path
 	// For directories, recurse and extend nodes
 	for _, entry := range entries {
-		if entry.Name() == "node.def" {
+		if entry.Name() == "node.def" && !entry.IsDir() {
+			// Parse node definition files only
 			reader, err := openDefinitionFile(filepath.Join(templatesPath, entry.Name()))
 			if err != nil {
-				return nil, fmt.Errorf("Failed opening node.def: %+v", err)
+				return nil, fmt.Errorf("%s: %+v", errReadDef, err)
 			}
 
-			if err = parseDefinition(reader, logger, node); err != nil {
+			if err := parseDefinition(reader, logger, node); err != nil {
 				return nil, err
 			}
-			reader.Close()
+
+			if err := reader.Close(); err != nil {
+				return nil, fmt.Errorf("failed to close %s/%s file: %v", templatesPath, entry.Name(), err)
+			}
 			continue
 		} else if !entry.IsDir() {
+			// skip other files in the directory
 			continue
 		}
 
+		// For other directories, continuing recursing
 		childNode, err := ParseNodeDef(filepath.Join(templatesPath, entry.Name()))
 		if err != nil {
 			return nil, err
@@ -144,7 +152,7 @@ func parseConstraints(node *Node, logger *log.Logger, expression string) bool {
 		return true
 	}
 
-	helpSplit := regexp.MustCompile(` ?; ?\\?[[:space:]]*"`)
+	helpSplit := regexp.MustCompile(`[[:space:]]?;[[:space:]]*\\?[[:space:]]*"`)
 	if len(helpSplit.FindAllStringIndex(expression, -1)) > 1 {
 		logger.Warn("Got extra semicolons in expression", "expression", expression)
 	}
@@ -193,7 +201,7 @@ func addOption(
 		node.Help = strings.TrimSpace(value)
 	case "val_help":
 		node.ValuesHelp = append(
-			// For val_help, strip the description after the semi colon
+			// For val_help, strip the description after the semicolon
 			node.ValuesHelp, strings.TrimSpace(value),
 		)
 	case "allowed":

@@ -3,7 +3,7 @@ package vyos
 import (
 	"strings"
 
-	"github.com/ammesonb/ubiquiti-config-generator/logger"
+	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 )
 
 /** Config notes:
@@ -85,7 +85,7 @@ func (node *Node) FindChild(path []string) *Node {
 	for _, step := range path {
 		child, ok := children[len(children)-1].ChildNodes[step]
 		if !ok {
-			logger.DefaultLogger().Debugf(
+			console_logger.DefaultLogger().Debugf(
 				"Could not find node for step '%s' of path '%s'",
 				step,
 				strings.Join(path, "/"),
@@ -194,14 +194,14 @@ func (n *NodeConstraint) GetProperty(field ConstraintKey) interface{} {
 	case MinBound:
 		if n.MinBound == nil {
 			// Random value, should only be used for testing anyways
-			logger.DefaultLogger().Warn("Requested unset minimum bound")
+			console_logger.DefaultLogger().Warn("Requested unset minimum bound")
 			return UnsetMinBound
 		}
 		return *n.MinBound
 	case MaxBound:
 		if n.MaxBound == nil {
 			// Random value, should only be used for testing anyways
-			logger.DefaultLogger().Warn("Requested unset maximum bound")
+			console_logger.DefaultLogger().Warn("Requested unset maximum bound")
 			return UnsetMaxBound
 		}
 		return *n.MaxBound

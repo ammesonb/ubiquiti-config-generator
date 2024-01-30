@@ -5,7 +5,7 @@ import (
 	"os/signal"
 
 	config2 "github.com/ammesonb/ubiquiti-config-generator/config"
-	"github.com/ammesonb/ubiquiti-config-generator/logger"
+	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 	"github.com/ammesonb/ubiquiti-config-generator/web"
 )
 
@@ -59,7 +59,7 @@ TODO:
 * Perform load commands
 */
 func main() {
-	log := logger.DefaultLogger()
+	log := console_logger.DefaultLogger()
 
 	log.Debug("Reading settings")
 	configData, err := config2.ReadConfig("./config.yaml")

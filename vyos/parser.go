@@ -6,19 +6,24 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ammesonb/ubiquiti-config-generator/logger"
+	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 )
 
-func isNodeDef(templatesPath string) (bool, error) {
+var errUnsupportedType = "unsupported templates directory type"
+var errFailedStat = "failed to stat firewall node info"
+
+type tStatFunc func(string) (os.FileInfo, error)
+
+func isNodeDef(templatesPath string, statFunc tStatFunc) (bool, error) {
 	// Uses arbitrary firewall node.def file to determine if running using nodes or XML
-	info, err := os.Stat(filepath.Join(templatesPath, "firewall", "node.def"))
+	info, err := statFunc(filepath.Join(templatesPath, "firewall", "node.def"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return false, nil
 		}
 
 		return false,
-			fmt.Errorf("Failed to stat firewall node info: %+v", err)
+			fmt.Errorf("%s: %v", errFailedStat, err)
 	}
 
 	return !info.IsDir(), nil
@@ -26,13 +31,13 @@ func isNodeDef(templatesPath string) (bool, error) {
 
 // Parse converts the provided templates path into an analyzable list of nodes
 func Parse(templatesPath string) (*Node, error) {
-	isNode, err := isNodeDef(templatesPath)
+	isNode, err := isNodeDef(templatesPath, os.Stat)
 	if err != nil {
 		return nil, err
 	} else if isNode {
-		logger.DefaultLogger().Info("Detected node templates definitions")
+		console_logger.DefaultLogger().Info("Detected node templates definitions")
 		return ParseNodeDef(templatesPath)
 	}
 
-	return nil, fmt.Errorf("unsupported templates directory type")
+	return nil, fmt.Errorf(errUnsupportedType)
 }

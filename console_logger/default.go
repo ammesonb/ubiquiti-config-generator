@@ -1,4 +1,4 @@
-package logger
+package console_logger
 
 import (
 	"os"
@@ -31,7 +31,7 @@ func getEnvLogLevel() log.Level {
 	return logLevel
 }
 
-// DefaultLogger returns a default logger
+// DefaultLogger returns a default console_logger
 func DefaultLogger() *log.Logger {
 	if logger == nil {
 		logger = log.New(os.Stderr)

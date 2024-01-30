@@ -136,3 +136,5 @@ ubiquiti_config_generator/messages/messages.db
 
 ubiquiti-config-generator
 config.json
+
+templates/**

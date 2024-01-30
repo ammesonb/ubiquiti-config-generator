@@ -1,4 +1,4 @@
-package logger
+package console_logger
 
 import (
 	"github.com/charmbracelet/log"

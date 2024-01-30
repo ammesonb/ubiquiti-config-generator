@@ -9,8 +9,8 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/ammesonb/ubiquiti-config-generator/config"
+	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 	"github.com/ammesonb/ubiquiti-config-generator/db"
-	"github.com/ammesonb/ubiquiti-config-generator/logger"
 )
 
 // ProcessGitCheckSuite will create new check runs and update their statuses as appropriate
@@ -22,7 +22,7 @@ func ProcessGitCheckSuite(
 	cfg *config.Config,
 	accessToken string,
 ) {
-	log := logger.DefaultLogger()
+	log := console_logger.DefaultLogger()
 	var body []byte
 	if _, err := r.Body.Read(body); err != nil {
 		internalServerError(w, log, "Failed to read check suite request body", err)

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/ammesonb/ubiquiti-config-generator/config"
-	"github.com/ammesonb/ubiquiti-config-generator/logger"
+	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 )
 
 // Definition contains the actual values for a given node
@@ -256,7 +256,7 @@ func (definitions *Definitions) FindChild(path []any) *Definition {
 	top, ok := definitions.DefinitionByPath[path[0].(string)]
 	children = append(children, top)
 	if !ok {
-		logger.DefaultLogger().Debugf(
+		console_logger.DefaultLogger().Debugf(
 			"Could not find node for step '%s' of path '%v'",
 			path[0],
 			path,
@@ -288,7 +288,7 @@ func (definitions *Definitions) FindChild(path []any) *Definition {
 		}
 
 		if !found {
-			logger.DefaultLogger().Debugf(
+			console_logger.DefaultLogger().Debugf(
 				"Could not find node for step '%s' of path '%v'",
 				step,
 				path,
@@ -301,7 +301,7 @@ func (definitions *Definitions) FindChild(path []any) *Definition {
 }
 
 func (definitions *Definitions) add(definition *Definition) {
-	logger := logger.DefaultLogger()
+	logger := console_logger.DefaultLogger()
 	if _, ok := definitions.NodeByPath[definition.FullPath()]; ok {
 		logger.Warnf(
 			"Already has node '%s' (%s) defined for path '%s'",

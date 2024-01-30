@@ -10,8 +10,8 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/ammesonb/ubiquiti-config-generator/config"
+	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 	"github.com/ammesonb/ubiquiti-config-generator/db"
-	"github.com/ammesonb/ubiquiti-config-generator/logger"
 )
 
 // ProcessGitCheckRun will handle a requested check run and validate the new configuration
@@ -23,7 +23,7 @@ func ProcessGitCheckRun(
 	cfg *config.Config,
 	accessToken string,
 ) {
-	log := logger.DefaultLogger()
+	log := console_logger.DefaultLogger()
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		internalServerError(w, log, "Failed to read check run request body", err)

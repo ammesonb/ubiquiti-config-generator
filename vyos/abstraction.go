@@ -371,10 +371,3 @@ func FromPortGroupAbstraction(nodes *Node, group abstraction.PortGroup) *Definit
 
 	return definitions
 }
-
-/*
-Name:     "group",
-Path:     []string{"firewall"},
-Node:     nodes.FindChild([]string{"firewall", "group"}),
-Children: []*Definition{},
-*/

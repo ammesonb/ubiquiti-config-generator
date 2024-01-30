@@ -3,13 +3,14 @@ package vyos
 import (
 	"bytes"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"math/rand"
 	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/ammesonb/ubiquiti-config-generator/logger"
+	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 )
 
 // TestAddOption uses basic configuration stubs to verify variables are set properly
@@ -137,7 +138,7 @@ func createTestNode(
 
 		err := parseDefinition(
 			io.NopCloser(&buffer),
-			logger.DefaultLogger(),
+			console_logger.DefaultLogger(),
 			node,
 		)
 		if err != nil {
@@ -283,6 +284,7 @@ func validateConstraint(
 	value interface{},
 	failureReason string,
 ) {
+	t.Helper()
 	if len(node.Constraints) != 1 {
 		t.Errorf("Single constraint should be added for %s, got %d", description, len(node.Constraints))
 		t.FailNow()
@@ -1016,4 +1018,149 @@ func testMultiOptionList(t *testing.T) {
 		options,
 		reason,
 	)
+}
+
+func checkEmptyConstraint(t *testing.T, node *Node, ntype string, help string, err error) {
+	t.Helper()
+
+	assert.NoError(t, err)
+	assert.Empty(t, node.Constraints, "No constraints added")
+	assert.Equal(t, ntype, node.Type)
+	assert.Equal(t, help, node.Help)
+}
+func TestInvalidConstraint(t *testing.T) {
+	// invalid unrecognized expression
+	ntype := "txt"
+	help := "Time in seconds the prefix will remain valid"
+	expr := fmt.Sprintf(
+		`a, b, c`,
+	)
+
+	definition := constructDefinition(
+		&ntype,
+		&help,
+		false,
+		false,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	var buffer bytes.Buffer
+	buffer.Truncate(0)
+	buffer.WriteString(definition)
+
+	node := &Node{}
+	err := parseDefinition(
+		io.NopCloser(&buffer),
+		console_logger.DefaultLogger(),
+		node,
+	)
+
+	checkEmptyConstraint(t, node, ntype, help, err)
+
+	// extraneous help comments
+	expr = `$VAR in "enable", "disable"; "option is enable or disable" ; "option enabled or disabled"`
+	definition = constructDefinition(
+		&ntype,
+		&help,
+		false,
+		false,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	buffer.Truncate(0)
+	buffer.WriteString(definition)
+
+	node = &Node{}
+	err = parseDefinition(
+		io.NopCloser(&buffer),
+		console_logger.DefaultLogger(),
+		node,
+	)
+
+	checkEmptyConstraint(t, node, ntype, help, err)
+
+	// path in variable, so skip it since need VyOS context for it
+	expr = `$VAR(../) in "enable", "disable"`
+	definition = constructDefinition(
+		&ntype,
+		&help,
+		false,
+		false,
+		[]string{},
+		nil,
+		&expr,
+	)
+
+	buffer.Truncate(0)
+	buffer.WriteString(definition)
+
+	node = &Node{}
+	err = parseDefinition(
+		io.NopCloser(&buffer),
+		console_logger.DefaultLogger(),
+		node,
+	)
+
+	checkEmptyConstraint(t, node, ntype, help, err)
+}
+
+func TestHelpFromValues(t *testing.T) {
+	expectedHelp := "Protocol to match (protocol name in /etc/protocols or protocol number or \"all\")"
+	expectedConstraintHelp := `txt; IP protocol name from /etc/protocols (e.g. "tcp" or "udp")
+u32:0-255; IP protocol number
+tcp_udp; Both TCP and UDP
+all; All IP protocols
+!<protocol>; All IP protocols except for the specified name or number`
+
+	// from firewall/name/node.tag/rule/node.tag/protocol/node.def
+	definition := `type: txt
+
+help: Protocol to match (protocol name in /etc/protocols or protocol number or "all")
+
+val_help: txt; IP protocol name from /etc/protocols (e.g. "tcp" or "udp")
+val_help: u32:0-255; IP protocol number
+val_help: tcp_udp; Both TCP and UDP
+val_help: all; All IP protocols
+val_help: !<protocol>; All IP protocols except for the specified name or number
+
+syntax:expression: exec "if ! /usr/sbin/ubnt-fw validate-protocol '$VAR(@)' ;
+                         then
+                           echo invalid protocol \"$VAR(@)\"
+                           exit 1
+                         fi"
+`
+
+	var buffer bytes.Buffer
+	buffer.Truncate(0)
+	buffer.WriteString(definition)
+
+	node := &Node{}
+	err := parseDefinition(
+		io.NopCloser(&buffer),
+		console_logger.DefaultLogger(),
+		node,
+	)
+
+	assert.NoError(t, err)
+
+	assert.Equal(t, "txt", node.Type)
+	assert.Equal(t, expectedHelp, node.Help)
+
+	assert.Len(t, node.Constraints, 1)
+	if len(node.Constraints) != 1 {
+		t.FailNow()
+	}
+	assert.Equal(t, expectedConstraintHelp, node.Constraints[0].FailureReason)
+
+}
+
+func TestParseNodeDef(t *testing.T) {
+	node, err := ParseNodeDef("/nonexistent")
+	assert.Nil(t, node)
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, errFailedReadDir)
 }

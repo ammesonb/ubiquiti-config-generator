@@ -8,7 +8,7 @@ import (
 
 	"github.com/charmbracelet/log"
 
-	"github.com/ammesonb/ubiquiti-config-generator/logger"
+	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 )
 
 /*
@@ -22,7 +22,7 @@ import (
 // ParseBootDefinitions takes an opened reader of a config boot file and definitions
 // and will update the definitions with the data from the file
 func ParseBootDefinitions(reader io.Reader, definitions *Definitions, rootNode *Node) {
-	logger := logger.DefaultLogger()
+	logger := console_logger.DefaultLogger()
 	definitionStack := make([]*Definition, 0)
 	nodeStack := []*Node{rootNode}
 
