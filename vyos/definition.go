@@ -2,6 +2,7 @@ package vyos
 
 import (
 	"fmt"
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"reflect"
 	"strings"
 
@@ -12,23 +13,19 @@ import (
 // Definition contains the actual values for a given node
 // Also requires a path to ensure we know the actual value for tag nodes
 type Definition struct {
-	Name     string        `yaml:"name"`
-	Path     []string      `yaml:"path"`
-	Node     *Node         `yaml:"node"`
-	Comment  string        `yaml:"comment"`
-	Value    any           `yaml:"value"`
-	Values   []any         `yaml:"values"`
-	Children []*Definition `yaml:"children"`
+	Name       string        `yaml:"name"`
+	Path       []string      `yaml:"path"`
+	Node       *Node         `yaml:"node"`
+	Comment    string        `yaml:"comment"`
+	Value      any           `yaml:"value"`
+	Values     []any         `yaml:"values"`
+	Children   []*Definition `yaml:"children"`
+	ParentNode *Node
 }
 
 // ParentPath returns a slash-joined version of the path to the definition's parent
+// Dynamic nodes are an essential part of the configuration path, so do not need to skip those
 func (definition *Definition) ParentPath() string {
-	if definition.Node.IsTag {
-		// For tags, include the name since that will describe the parent path
-		// and e.g. firewall groups could have overlapping port-group and address-group names
-		return strings.Join(definition.Path, "/")
-	}
-
 	return strings.Join(definition.Path, "/")
 }
 
@@ -63,7 +60,11 @@ func (definition *Definition) Diff(other *Definition) []string {
 	differences := definition.diffDefinition(other)
 
 	if definition.Node != nil && other.Node != nil {
-		differences = append(differences, definition.diffNode(other)...)
+		differences = append(differences, definition.Node.diffNode(other.Node)...)
+	}
+
+	if definition.ParentNode != nil && other.ParentNode != nil {
+		differences = append(differences, definition.ParentNode.diffNode(other.ParentNode)...)
 	}
 
 	if len(definition.Children) != len(other.Children) {
@@ -78,9 +79,16 @@ func (definition *Definition) Diff(other *Definition) []string {
 		)
 	}
 
-	for idx, child := range definition.Children {
-		otherChild := other.Children[idx]
-		differences = append(differences, child.Diff(otherChild)...)
+	// Only check this if length of children matches
+	for _, child := range definition.Children {
+		// Slightly inefficient n^2 comparison of children here, but quick fail cases and
+		// generally configs are small enough, so not worth time to re-index the entire children array
+		for _, otherChild := range other.Children {
+			// If name matches, and also node tag value matches if applicable
+			if child.Name == otherChild.Name && (!child.Node.IsTag || child.Value == otherChild.Value) {
+				differences = append(differences, child.Diff(otherChild)...)
+			}
+		}
 	}
 
 	return differences
@@ -161,66 +169,21 @@ func (definition *Definition) diffDefinition(other *Definition) []string {
 			),
 		)
 	}
-
-	return differences
-}
-
-func (definition *Definition) diffNode(other *Definition) []string {
-	differences := []string{}
-
-	// Skip node child check since that could be expensive
-	if definition.Node.Name != other.Node.Name {
+	if len(definition.Path) > 0 && definition.ParentNode == nil {
 		differences = append(
 			differences,
 			fmt.Sprintf(
-				"%s: Node 'Name' should be '%s' but got '%s'",
+				"%s: Definition parent node should not be nil",
 				definition.FullPath(),
-				definition.Node.Name,
-				other.Node.Name,
 			),
 		)
 	}
-	if definition.Node.Type != other.Node.Type {
+	if len(other.Path) > 0 && other.ParentNode == nil {
 		differences = append(
 			differences,
 			fmt.Sprintf(
-				"%s: Node 'Type' should be '%s' but got '%s'",
+				"%s: Other parent node should not be nil",
 				definition.FullPath(),
-				definition.Node.Type,
-				other.Node.Type,
-			),
-		)
-	}
-	if definition.Node.IsTag != other.Node.IsTag {
-		differences = append(
-			differences,
-			fmt.Sprintf(
-				"%s: Node 'IsTag' should be '%t' but got '%t'",
-				definition.FullPath(),
-				definition.Node.IsTag,
-				other.Node.IsTag,
-			),
-		)
-	}
-	if definition.Node.Multi != other.Node.Multi {
-		differences = append(
-			differences,
-			fmt.Sprintf(
-				"%s: Node 'Multi' should be '%t' but got '%t'",
-				definition.FullPath(),
-				definition.Node.Multi,
-				other.Node.Multi,
-			),
-		)
-	}
-	if definition.Node.Path != other.Node.Path {
-		differences = append(
-			differences,
-			fmt.Sprintf(
-				"%s: Node 'Path' should be '%s' but got '%s'",
-				definition.FullPath(),
-				definition.Node.Path,
-				other.Node.Path,
 			),
 		)
 	}
@@ -274,7 +237,7 @@ func (definitions *Definitions) FindChild(path []any) *Definition {
 
 		}
 
-		for _, child := range children[len(children)-1].Children {
+		for _, child := range utils.Last(children).Children {
 			// Child matches if the name matches the step and either
 			// - the node is not a tag
 			// - the node IS a tag, and its value matches the next step of the path (+2 since starting from index 1 on path)
@@ -297,77 +260,100 @@ func (definitions *Definitions) FindChild(path []any) *Definition {
 		}
 	}
 
-	return children[len(children)-1]
+	return utils.Last(children)
 }
 
 func (definitions *Definitions) add(definition *Definition) {
 	logger := console_logger.DefaultLogger()
-	if _, ok := definitions.NodeByPath[definition.FullPath()]; ok {
-		logger.Warnf(
-			"Already has node '%s' (%s) defined for path '%s'",
-			definitions.NodeByPath[definition.FullPath()].Name,
-			definitions.NodeByPath[definition.FullPath()].Help,
-			definition.FullPath(),
-		)
+
+	// For dynamic nodes, there are actually two paths - one for the root tagged element, and one for the instance of the tagged element
+	// Need to add both, since if we want to check if a certain path exists, we may need the root of the tag as well
+	nodeParent := definition.Node.ParentPath()
+	if _, ok := definitions.NodeByPath[nodeParent]; !ok {
+		definitions.NodeByPath[nodeParent] = definition.ParentNode
 	}
-	if _, ok := definitions.DefinitionByPath[definition.FullPath()]; ok {
+
+	fullPath := definition.FullPath()
+
+	// Check if we have defined the definition already
+	// This will occasionally happen if there are overlapping paths between dynamic and static configs, but usually
+	// is okay as long as you are careful
+	if _, ok := definitions.DefinitionByPath[fullPath]; ok {
 		logger.Warnf(
 			"Already has definition '%s' defined for path '%s'",
-			definitions.DefinitionByPath[definition.FullPath()].FullPath(),
-			definition.FullPath(),
+			definitions.DefinitionByPath[fullPath].FullPath(),
+			fullPath,
 		)
-	}
-
-	logger.Debugf("Adding indexing for path %s", definition.FullPath())
-	definitions.NodeByPath[definition.FullPath()] = definition.Node
-	definitions.DefinitionByPath[definition.FullPath()] = definition
-
-	// Only add root definitions to the list since others will be nested as children
-	if len(definition.Path) == 0 {
+	} else if len(definition.Path) == 0 {
+		// Only add root definitions to the list since others will be nested as children,
+		// and make sure we only do it once
 		logger.Debugf("Adding definition for '%s' to root list", definition.Name)
 		definitions.Definitions = append(definitions.Definitions, definition)
+		definitions.NodeByPath[fullPath] = definition.Node
+		definitions.DefinitionByPath[fullPath] = definition
 	} else {
+		// For any other new node, add indexing to this definition
+		// If it already exists, then this new index would clobber it
+		logger.Debugf("Adding indexing for path %s", fullPath)
+		definitions.NodeByPath[fullPath] = definition.Node
+		definitions.DefinitionByPath[fullPath] = definition
+	}
+
+	// If this definition has a parent, check to see if the parent already has this node as a child
+	if len(definition.Path) > 0 {
+		parentPath := definition.ParentPath()
 		logger.Debugf(
 			"Adding relationship for definition '%s' with parent '%s'",
-			definition.FullPath(),
-			definition.ParentPath(),
+			fullPath,
+			parentPath,
 		)
 		// Add this definition to its parent
-		parent := definitions.DefinitionByPath[definition.ParentPath()]
-		if !parent.hasChild(definition) {
+		parent := definitions.DefinitionByPath[parentPath]
+		if len(definition.Path) > 0 && !parent.hasChild(definition) {
 			parent.Children = append(
 				parent.Children, definition,
 			)
 		}
 	}
 
+	// Recurse into any children this definition may have
 	for _, child := range definition.Children {
 		definitions.add(child)
 	}
 }
 
-func (definitions *Definitions) addValue(nodes *Node, path []string, nodePath []string, keyName string, value any) {
+func (definitions *Definitions) addValue(nodes *Node, path *utils.VyosPath, keyName string, value any) {
+	parent := nodes.FindChild(path.NodePath)
+	if parent.Name == utils.DYNAMIC_NODE {
+		parent = nodes.FindChild(utils.AllExcept(path.NodePath, 1))
+	}
 	definitions.add(&Definition{
-		Name:  keyName,
-		Node:  nodes.FindChild(append(nodePath, keyName)),
-		Path:  path,
-		Value: value,
+		Name:       keyName,
+		Node:       nodes.FindChild(append(path.NodePath, keyName)),
+		Path:       path.Path,
+		Value:      value,
+		ParentNode: parent,
 	})
 }
 
-func (definitions *Definitions) addListValue(nodes *Node, path []string, nodePath []string, keyName string, value []any) {
+func (definitions *Definitions) addListValue(nodes *Node, path *utils.VyosPath, keyName string, value []any) {
+	parent := nodes.FindChild(path.NodePath)
+	if parent.Name == utils.DYNAMIC_NODE {
+		parent = nodes.FindChild(utils.AllExcept(path.NodePath, 1))
+	}
 	definitions.add(&Definition{
-		Name:   keyName,
-		Node:   nodes.FindChild(append(nodePath, keyName)),
-		Path:   path,
-		Values: value,
+		Name:       keyName,
+		Node:       nodes.FindChild(append(path.NodePath, keyName)),
+		Path:       path.Path,
+		Values:     value,
+		ParentNode: parent,
 	})
 }
 
-func (definitions *Definitions) appendToListValue(nodes *Node, path []string, nodePath []string, keyName string, value any) {
-	node := definitions.FindChild(config.SliceStrToAny(append(path, keyName)))
+func (definitions *Definitions) appendToListValue(nodes *Node, path *utils.VyosPath, keyName string, value any) {
+	node := definitions.FindChild(config.SliceStrToAny(utils.CopySliceWith(path.Path, keyName)))
 	if node == nil {
-		definitions.addListValue(nodes, path, nodePath, keyName, []any{value})
+		definitions.addListValue(nodes, path, keyName, []any{value})
 	} else {
 		node.Values = append(node.Values, value)
 	}
@@ -424,29 +410,59 @@ func initDefinitions() *Definitions {
 	}
 }
 
-func generateSparseDefinitionTree(nodes *Node, path []string) *Definition {
+func generateSparseDefinitionTree(nodes *Node, path *utils.VyosPath) *Definition {
 	steps := make([]string, 0)
 	definition := &Definition{
-		Name:     path[0],
+		Name:     path.Path[0],
 		Path:     steps,
-		Node:     nodes.FindChild([]string{path[0]}),
+		Node:     nodes.FindChild([]string{path.NodePath[0]}),
 		Children: []*Definition{},
 	}
 
-	steps = append(steps, path[0])
+	nodeSteps := utils.CopySliceWith(steps, path.Path[0])
+	steps = append(steps, path.Path[0])
 
 	def := definition
-	for _, step := range path[1:] {
+	for idx, step := range path.Path[1:] {
+		// First check parent node
+		parent := nodes.FindChild(nodeSteps)
+		// If parent is a dynamic node, then the tag's name/value was pulled from the next path entry
+		// However, it still needs to be added to both paths
+		// Since we already created a definition referencing it, do nothing else and continue iterating
+		if parent.IsTag {
+			steps = append(steps, step)
+			nodeSteps = append(nodeSteps, utils.DYNAMIC_NODE)
+			continue
+		} else if parent.Name == utils.DYNAMIC_NODE {
+			// If parent is a placeholder node, then traverse up one further to find the real parent,
+			// since this one contains no real information
+			parent = nodes.FindChild(utils.AllExcept(nodeSteps, 1))
+		}
+
+		node := nodes.FindChild(append(nodeSteps, step))
+
+		name := step
+		var value any = nil
+		// Tag nodes will need to get an extra step appended to the node path,
+		// but the definition path will skip over the placeholder
+		if node.IsTag {
+			name = step
+			// Offset by 1 since starting at index 1, then one more to look ahead
+			value = path.Path[idx+2]
+		}
 		def.Children = []*Definition{
 			{
-				Name:     step,
-				Path:     steps,
-				Node:     nodes.FindChild(append(steps, step)),
-				Children: []*Definition{},
+				Name:       name,
+				Path:       steps,
+				Node:       node,
+				Value:      value,
+				Children:   []*Definition{},
+				ParentNode: parent,
 			},
 		}
 
 		steps = append(steps, step)
+		nodeSteps = append(nodeSteps, step)
 
 		// Reassign the pointer to the newly-created child so we recurse
 		def = def.Children[0]
@@ -463,27 +479,31 @@ type BasicDefinition struct {
 	Children []BasicDefinition
 }
 
-func generatePopulatedDefinitionTree(nodes *Node, definition BasicDefinition, path []string, nodePath []string) *Definition {
-	node := nodes.FindChild(append(nodePath, definition.Name))
+func generatePopulatedDefinitionTree(nodes *Node, definition BasicDefinition, path *utils.VyosPath, parentNode *Node) *Definition {
+	node := nodes.FindChild(append(path.NodePath, definition.Name))
 
 	def := &Definition{
-		Name:     definition.Name,
-		Path:     path,
-		Node:     node,
-		Comment:  definition.Comment,
-		Value:    definition.Value,
-		Values:   definition.Values,
-		Children: make([]*Definition, 0),
+		Name:       definition.Name,
+		Path:       path.Path,
+		Node:       node,
+		Comment:    definition.Comment,
+		Value:      definition.Value,
+		Values:     definition.Values,
+		Children:   make([]*Definition, 0),
+		ParentNode: parentNode,
 	}
 
 	for _, child := range definition.Children {
-		var childPath, childNodePath []string
-		if node.IsTag {
-			childPath = append(path, definition.Name, definition.Value.(string))
-			childNodePath = append(path, definition.Name, DYNAMIC_NODE)
+		var childPath *utils.VyosPath
+		// If node is flagged as a tag, or the name of the node is the tag placeholder,
+		// then we need to use the definition's value instead
+		if node.IsTag || node.Name == utils.DYNAMIC_NODE {
+			childPath = path.Extend(
+				utils.MakeVyosPC(definition.Name),
+				utils.MakeVyosDynamicPC(definition.Value.(string)),
+			)
 		} else {
-			childPath = append(path, definition.Name)
-			childNodePath = append(nodePath, definition.Name)
+			childPath = path.Extend(utils.MakeVyosPC(definition.Name))
 		}
 
 		// Recurse into each child and add the generated definition
@@ -493,7 +513,7 @@ func generatePopulatedDefinitionTree(nodes *Node, definition BasicDefinition, pa
 				nodes,
 				child,
 				childPath,
-				childNodePath,
+				node,
 			),
 		)
 	}

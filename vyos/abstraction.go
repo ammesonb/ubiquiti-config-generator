@@ -2,7 +2,9 @@ package vyos
 
 import (
 	"fmt"
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"reflect"
+	"sort"
 	"strconv"
 
 	"github.com/ammesonb/ubiquiti-config-generator/abstraction"
@@ -10,53 +12,39 @@ import (
 	"github.com/ammesonb/ubiquiti-config-generator/validation"
 )
 
-func FromNetworkAbstraction(nodes *Node, network *abstraction.Network, deviceConfig *config.DeviceConfig) (*Definitions, []error) {
+func FromNetworkAbstraction(nodes *Node, network *abstraction.Network) (*Definitions, []error) {
 	definitions := initDefinitions()
 
-	dhcpPath := []string{"service", "dhcp-server", "shared-network-name"}
-	dhcpDefinition := generateSparseDefinitionTree(nodes, dhcpPath)
-	dhcpDefinition.Children[0].Children[0].Children[0].Value = network.Name
-	dhcpDefinition.Children[0].Children[0].Children[0].Children[0].Value = network.Description
-
-	definitions.add(
-		generatePopulatedDefinitionTree(
-			nodes,
-			BasicDefinition{
-				Name:  DYNAMIC_NODE,
-				Value: network.Name,
-				Children: []BasicDefinition{
-					{
-						Name:  "authoritative",
-						Value: network.Authoritative,
-					},
-					{
-						Name:  "description",
-						Value: network.Description,
-					},
-				},
-			},
-			dhcpPath,
-			dhcpPath,
-		),
+	dhcpPath := utils.MakeVyosPath()
+	dhcpPath.Append(
+		utils.MakeVyosPC("service"),
+		utils.MakeVyosPC("dhcp-server"),
+		utils.MakeVyosPC("shared-network-name"),
+		utils.MakeVyosDynamicPC(network.Name),
 	)
+	dhcpDefinition := generateSparseDefinitionTree(nodes, dhcpPath)
+	definitions.add(dhcpDefinition)
+
+	definitions.addValue(nodes, dhcpPath, "authoritative", network.Authoritative)
+	definitions.addValue(nodes, dhcpPath, "description", network.Description)
 
 	if network.Interface != nil {
 		configureNetworkInterface(
 			nodes,
 			definitions,
 			network.Interface,
-			[]string{"interfaces", "ethernet"},
 		)
 	}
 
 	errors := make([]error, 0)
-	subnetNodePath := append(dhcpPath, DYNAMIC_NODE, "subnet", DYNAMIC_NODE)
+	subnetBase := dhcpPath.Extend(utils.MakeVyosPC("subnet"))
 	for _, subnet := range network.Subnets {
-		subnetPath := append(dhcpPath, network.Name, "subnet", subnet.CIDR)
-		addSubnetNetworkValues(nodes, definitions, subnet, subnetPath, subnetNodePath)
+		subnetPath := subnetBase.Extend(utils.MakeVyosDynamicPC(subnet.CIDR))
+		definitions.add(generateSparseDefinitionTree(nodes, subnetPath))
+		addSubnetNetworkValues(nodes, definitions, subnet, subnetPath)
 
 		for _, host := range subnet.Hosts {
-			addHostToSubnet(nodes, definitions, host, subnetPath, subnetNodePath)
+			addHostToSubnet(nodes, definitions, host, subnetPath)
 			addHostToAddressGroups(nodes, definitions, host)
 			if err := addFirewallRules(nodes, definitions, network, subnet, host); err != nil {
 				errors = append(errors, err...)
@@ -68,92 +56,104 @@ func FromNetworkAbstraction(nodes *Node, network *abstraction.Network, deviceCon
 }
 
 // configureNetworkInterface sets properties of an interface including address, firewalls, etc
-func configureNetworkInterface(nodes *Node, definitions *Definitions, iface *abstraction.Interface, path []string) {
-	nodePath := append(path, DYNAMIC_NODE)
-	path = append(path, iface.Name)
+func configureNetworkInterface(nodes *Node, definitions *Definitions, iface *abstraction.Interface) {
+	path := utils.MakeVyosPath()
+	path.Append(
+		utils.MakeVyosPC("interfaces"),
+		utils.MakeVyosPC("ethernet"),
+		utils.MakeVyosDynamicPC(iface.Name),
+	)
+	// initialize the interfaces/ethernet tree, and override the dynamic node with the proper value
+	ethInterfaces := generateSparseDefinitionTree(nodes, path)
+	definitions.add(ethInterfaces)
 
-	definitions.addValue(nodes, path, nodePath, "duplex", iface.Duplex)
-	definitions.addValue(nodes, path, nodePath, "speed", iface.Speed)
+	definitions.addValue(nodes, path, "duplex", iface.Duplex)
+	definitions.addValue(nodes, path, "speed", iface.Speed)
 
 	if iface.Vif != nil {
 		// For interfaces with virtual interfaces/VLANs, set the description to CARRIER automatically
-		definitions.addValue(nodes, path, nodePath, "description", "CARRIER")
-		path = append(path, "vif", strconv.Itoa(int(*iface.Vif)))
-		nodePath = append(nodePath, "vif", DYNAMIC_NODE)
+		definitions.addValue(nodes, path, "description", "CARRIER")
+
+		// Initialize the vif dynamic node, updating path in place since
+		path.Append(
+			utils.MakeVyosPC("vif"),
+			utils.MakeVyosDynamicPC(strconv.Itoa(int(*iface.Vif))),
+		)
+		vifDef := generateSparseDefinitionTree(nodes, path)
+		definitions.add(vifDef)
 	}
 
-	definitions.addValue(nodes, path, nodePath, "description", iface.Description)
-	definitions.addValue(nodes, path, nodePath, "address", iface.Address)
+	definitions.addValue(nodes, path, "description", iface.Description)
+	definitions.addValue(nodes, path, "address", iface.Address)
 
-	addExtraValues(nodes, definitions, path, nodePath, iface.Extra)
+	addExtraValues(nodes, definitions, path, iface.Extra)
 
-	path = append(path, "firewall", "in")
-	nodePath = append(nodePath, "firewall", "in")
-	definitions.addValue(nodes, path, nodePath, "name", iface.InboundFirewall)
+	inPath := path.Extend(
+		utils.MakeVyosPC("firewall"),
+		utils.MakeVyosPC("in"),
+	)
+	definitions.add(generateSparseDefinitionTree(nodes, inPath))
+	definitions.addValue(nodes, inPath, "name", iface.InboundFirewall)
 
-	path[len(path)-1] = "out"
-	nodePath[len(nodePath)-1] = "out"
-	definitions.addValue(nodes, path, nodePath, "name", iface.OutboundFirewall)
+	outPath := inPath.DivergeFrom(1, utils.MakeVyosPC("out"))
+	definitions.add(generateSparseDefinitionTree(nodes, outPath))
+	definitions.addValue(nodes, outPath, "name", iface.OutboundFirewall)
 
-	path[len(path)-1] = "local"
-	nodePath[len(nodePath)-1] = "local"
-	definitions.addValue(nodes, path, nodePath, "name", iface.LocalFirewall)
+	localPath := inPath.DivergeFrom(1, utils.MakeVyosPC("local"))
+	definitions.add(generateSparseDefinitionTree(nodes, localPath))
+	definitions.addValue(nodes, localPath, "name", iface.LocalFirewall)
 }
 
 // addSubnetNetworkValues configures the given subnet definitions using the provided nodes and paths
-func addSubnetNetworkValues(nodes *Node, definitions *Definitions, subnet *abstraction.Subnet, path []string, nodePath []string) {
+func addSubnetNetworkValues(nodes *Node, definitions *Definitions, subnet *abstraction.Subnet, path *utils.VyosPath) {
+	definitions.add(generateSparseDefinitionTree(nodes, path))
 	definitions.add(
 		generatePopulatedDefinitionTree(
 			nodes,
 			BasicDefinition{
-				Name: "start",
+				Name:  "start",
+				Value: subnet.DHCPStart,
 				Children: []BasicDefinition{
 					{
-						Name:  DYNAMIC_NODE,
-						Value: subnet.DHCPStart,
-						Children: []BasicDefinition{
-							{
-								Name: "stop",
-								Children: []BasicDefinition{
-									{
-										Name:  DYNAMIC_NODE,
-										Value: subnet.DHCPEnd,
-									},
-								},
-							},
-						},
+						Name:  "stop",
+						Value: subnet.DHCPEnd,
 					},
 				},
 			},
 			path,
-			nodePath,
+			// Get the parent node, stripping the final placeholder from the dynamic tag placeholder
+			nodes.FindChild(utils.AllExcept(path.NodePath, 1)),
 		),
 	)
 
-	definitions.addValue(nodes, path, nodePath, "lease", subnet.DHCPLease)
-	definitions.addListValue(nodes, path, nodePath, "dns-server", config.SliceStrToAny(subnet.DNSServers))
-	definitions.addValue(nodes, path, nodePath, "domain-name", subnet.DomainName)
-	definitions.addValue(nodes, path, nodePath, "default-router", subnet.DefaultRouter)
+	definitions.addValue(nodes, path, "lease", subnet.DHCPLease)
+	definitions.addListValue(nodes, path, "dns-server", config.SliceStrToAny(subnet.DNSServers))
+	definitions.addValue(nodes, path, "domain-name", subnet.DomainName)
+	definitions.addValue(nodes, path, "default-router", subnet.DefaultRouter)
 
-	addExtraValues(nodes, definitions, path, nodePath, subnet.Extra)
+	addExtraValues(nodes, definitions, path, subnet.Extra)
 }
 
 // addHostToSubnet configures the reserved IP address for a host with the given MAC address
-func addHostToSubnet(nodes *Node, definitions *Definitions, host *abstraction.Host, path []string, nodePath []string) {
-	nodePath = append(nodePath, "static-mapping", DYNAMIC_NODE)
-	path = append(path, "static-mapping", host.Name)
+func addHostToSubnet(nodes *Node, definitions *Definitions, host *abstraction.Host, path *utils.VyosPath) {
+	hostPath := path.Extend(
+		utils.MakeVyosPC("static-mapping"),
+		utils.MakeVyosDynamicPC(host.Name),
+	)
 
-	definitions.addValue(nodes, path, nodePath, "ip-address", host.Address)
-	definitions.addValue(nodes, path, nodePath, "mac-address", host.MAC)
+	definitions.add(generateSparseDefinitionTree(nodes, hostPath))
+
+	definitions.addValue(nodes, hostPath, "ip-address", host.Address)
+	definitions.addValue(nodes, hostPath, "mac-address", host.MAC)
 }
 
-func addExtraValues(nodes *Node, definitions *Definitions, path []string, nodePath []string, extra map[string]any) {
+func addExtraValues(nodes *Node, definitions *Definitions, path *utils.VyosPath, extra map[string]any) {
 	for key, val := range extra {
 		valType := reflect.TypeOf(val).Kind()
 		if valType == reflect.Slice || valType == reflect.Array {
-			definitions.addListValue(nodes, path, nodePath, key, val.([]any))
+			definitions.addListValue(nodes, path, key, val.([]any))
 		} else {
-			definitions.addValue(nodes, path, nodePath, key, val)
+			definitions.addValue(nodes, path, key, val)
 		}
 	}
 }
@@ -164,16 +164,30 @@ func addHostToAddressGroups(nodes *Node, definitions *Definitions, host *abstrac
 		return
 	}
 
-	path := []string{"firewall", "group", "address-group"}
-	nodePath := []string{"firewall", "group", "address-group", "node.tag"}
+	path := utils.MakeVyosPath()
+	path.Append(
+		utils.MakeVyosPC("firewall"),
+		utils.MakeVyosPC("group"),
+		utils.MakeVyosPC("address-group"),
+	)
 	for _, group := range host.AddressGroups {
-		definitions.appendToListValue(nodes, append(path, group), nodePath, "address", host.Address)
+		groupPath := path.Extend(utils.MakeVyosDynamicPC(group))
+		definitions.add(generateSparseDefinitionTree(nodes, groupPath))
+		definitions.appendToListValue(nodes, groupPath, "address", host.Address)
 	}
 }
 
 func addFirewallRules(nodes *Node, definitions *Definitions, network *abstraction.Network, subnet *abstraction.Subnet, host *abstraction.Host) []error {
-	for fromPort, toPort := range host.ForwardPorts {
-		addForwardPort(nodes, definitions, host, network.InboundInterface, fromPort, toPort)
+	// ensure consistent ordering of ports
+	fromPorts := make([]int, 0)
+	for p := range host.ForwardPorts {
+		fromPorts = append(fromPorts, int(p))
+	}
+	sort.Ints(fromPorts)
+
+	for _, fromPort := range fromPorts {
+		from := int32(fromPort)
+		addForwardPort(nodes, definitions, host, network.InboundInterface, from, host.ForwardPorts[from])
 	}
 
 	if len(host.Connections) > 0 && network.Interface == nil {
@@ -182,11 +196,22 @@ func addFirewallRules(nodes *Node, definitions *Definitions, network *abstractio
 
 	errors := make([]error, 0)
 	for _, connection := range host.Connections {
+		firewallName := getConnectionFirewall(network, subnet, host, connection)
+		// if firewall name is blank, then some part of the rule definition is likely invalid since it does not seem to
+		// apply to the host that it is written for
+		if firewallName == "" {
+			errors = append(
+				errors,
+				fmt.Errorf("could not identify firewall for connection '%s' on host '%s'", connection.Description, host.Name),
+			)
+			continue
+		}
+
 		if err := addConnection(
 			nodes,
 			definitions,
 			network,
-			getConnectionFirewall(network, subnet, host, connection),
+			firewallName,
 			connection,
 		); err != nil {
 			errors = append(errors, err)
@@ -199,18 +224,32 @@ func addFirewallRules(nodes *Node, definitions *Definitions, network *abstractio
 func addForwardPort(nodes *Node, definitions *Definitions, host *abstraction.Host, inboundInterface string, from int32, to int32) {
 	ruleNumber := abstraction.GetCounter(abstraction.NAT_COUNTER).Next()
 
-	path := []string{"service", "nat", "rule", strconv.Itoa(ruleNumber)}
-	nodePath := []string{"service", "nat", "rule", "node.tag"}
+	path := utils.MakeVyosPath()
+	path.Append(
+		utils.MakeVyosPC("service"),
+		utils.MakeVyosPC("nat"),
+		utils.MakeVyosPC("rule"),
+		utils.MakeVyosDynamicPC(strconv.Itoa(ruleNumber)),
+	)
 
-	definitions.addValue(nodes, path, nodePath, "type", "destination")
-	definitions.addValue(nodes, path, nodePath, "protocol", "tcp_udp")
-	definitions.addValue(nodes, path, nodePath, "inbound-interface", inboundInterface)
-	definitions.addValue(nodes, append(path, "destination"), append(nodePath, "destination"), "port", from)
+	definitions.add(generateSparseDefinitionTree(nodes, path))
+	definitions.addValue(
+		nodes,
+		path,
+		"description",
+		fmt.Sprintf("Forward from port %d to %s port %d", from, host.Name, to),
+	)
+	definitions.addValue(nodes, path, "type", "destination")
+	definitions.addValue(nodes, path, "protocol", "tcp_udp")
+	definitions.addValue(nodes, path, "inbound-interface", inboundInterface)
+	destPath := path.Extend(utils.MakeVyosPC("destination"))
+	definitions.add(generateSparseDefinitionTree(nodes, destPath))
+	definitions.addValue(nodes, destPath, "port", from)
 
-	path = append(path, "inside-address")
-	nodePath = append(nodePath, "inside-address")
-	definitions.addValue(nodes, path, nodePath, "address", host.Address)
-	definitions.addValue(nodes, path, nodePath, "port", to)
+	insidePath := path.Extend(utils.MakeVyosPC("inside-address"))
+	definitions.add(generateSparseDefinitionTree(nodes, insidePath))
+	definitions.addValue(nodes, insidePath, "address", host.Address)
+	definitions.addValue(nodes, insidePath, "port", to)
 }
 
 func addConnection(
@@ -230,18 +269,22 @@ func addConnection(
 
 	rule := abstraction.GetCounter(firewall).Next()
 
-	rulePath := []string{
-		"firewall", "name", firewall, "rule", strconv.Itoa(rule),
-	}
-	ruleNodePath := []string{
-		"firewall", "name", DYNAMIC_NODE, "rule", DYNAMIC_NODE,
-	}
+	rulePath := utils.MakeVyosPath()
+	rulePath.Append(
+		utils.MakeVyosPC("firewall"),
+		utils.MakeVyosPC("name"),
+		utils.MakeVyosDynamicPC(firewall),
+		utils.MakeVyosPC("rule"),
+		utils.MakeVyosDynamicPC(strconv.Itoa(rule)),
+	)
+
+	definitions.add(generateSparseDefinitionTree(nodes, rulePath))
 
 	var action, log string
 	if connection.Allow {
 		action = "accept"
 	} else {
-		action = "reject"
+		action = "drop"
 	}
 
 	if connection.Log {
@@ -250,23 +293,21 @@ func addConnection(
 		log = "disable"
 	}
 
-	definitions.addValue(nodes, rulePath, ruleNodePath, "action", action)
-	definitions.addValue(nodes, rulePath, ruleNodePath, "description", connection.Description)
-	definitions.addValue(nodes, rulePath, ruleNodePath, "protocol", connection.Protocol)
-	definitions.addValue(nodes, rulePath, ruleNodePath, "log", log)
+	definitions.addValue(nodes, rulePath, "action", action)
+	definitions.addValue(nodes, rulePath, "description", connection.Description)
+	definitions.addValue(nodes, rulePath, "protocol", connection.Protocol)
+	definitions.addValue(nodes, rulePath, "log", log)
 
 	addConnectionDetail(
 		definitions,
 		nodes,
-		append(rulePath, "source"),
-		append(ruleNodePath, "source"),
+		rulePath.Extend(utils.MakeVyosPC("source")),
 		connection.Source,
 	)
 	addConnectionDetail(
 		definitions,
 		nodes,
-		append(rulePath, "destination"),
-		append(ruleNodePath, "destination"),
+		rulePath.Extend(utils.MakeVyosPC("destination")),
 		connection.Destination,
 	)
 
@@ -282,17 +323,18 @@ func getConnectionFirewall(network *abstraction.Network, subnet *abstraction.Sub
 	} else {
 		// since address may be an address group, ignore errors about invalid IPs
 		sourceLocal, _ = validation.IsAddressInSubnet(*connection.Source.Address, subnet.CIDR)
-		sourceLocal = config.InSlice(connection.Source.Address, config.SliceStrToAny(host.AddressGroups)) || sourceLocal
+		sourceLocal = config.InSlice(*connection.Source.Address, config.SliceStrToAny(host.AddressGroups)) || sourceLocal
 	}
 
 	// Must define an address for destination to be local
 	destValid := connection.Destination != nil && connection.Destination.Address != nil
-	if !destValid {
+	if destValid {
 		// since address may be an address group, ignore errors about invalid IPs
 		destLocal, _ = validation.IsAddressInSubnet(*connection.Destination.Address, subnet.CIDR)
-		destLocal = config.InSlice(connection.Destination.Address, config.SliceStrToAny(host.AddressGroups)) || destLocal
+		destLocal = config.InSlice(*connection.Destination.Address, config.SliceStrToAny(host.AddressGroups)) || destLocal
 	}
 
+	// after determining locality of source and destination, can determine appropriate firewall to use
 	if sourceLocal && destLocal {
 		// local if both source and destination addresses are in the network subnet
 		return network.Interface.LocalFirewall
@@ -307,18 +349,20 @@ func getConnectionFirewall(network *abstraction.Network, subnet *abstraction.Sub
 	return ""
 }
 
-func addConnectionDetail(definitions *Definitions, nodes *Node, path []string, nodePath []string, connection *abstraction.ConnectionDetail) {
+func addConnectionDetail(definitions *Definitions, nodes *Node, path *utils.VyosPath, connection *abstraction.ConnectionDetail) {
 	if connection != nil {
+		definitions.add(generateSparseDefinitionTree(nodes, path))
 		if connection.Address != nil {
 			if validation.IsValidAddress(*connection.Address) {
 				// For valid IP address, just add it directly
-				definitions.addValue(nodes, path, nodePath, "address", connection.Address)
+				definitions.addValue(nodes, path, "address", connection.Address)
 			} else if connection.Address != nil {
 				// Group needs to nest further
+				groupPath := path.Extend(utils.MakeVyosPC("group"))
+				definitions.add(generateSparseDefinitionTree(nodes, groupPath))
 				definitions.addValue(
 					nodes,
-					append(path, "group"),
-					append(nodePath, "group"),
+					groupPath,
 					"address-group",
 					connection.Address,
 				)
@@ -328,18 +372,18 @@ func addConnectionDetail(definitions *Definitions, nodes *Node, path []string, n
 		if connection.Port != nil {
 			port, err := strconv.Atoi(*connection.Port)
 			if err == nil {
-				definitions.addValue(nodes, path, nodePath, "port", port)
+				definitions.addValue(nodes, path, "port", port)
 			} else {
 				// Group needs to nest further
+				groupPath := path.Extend(utils.MakeVyosPC("group"))
+				definitions.add(generateSparseDefinitionTree(nodes, groupPath))
 				definitions.addValue(
 					nodes,
-					append(path, "group"),
-					append(nodePath, "group"),
+					groupPath,
 					"port-group",
 					connection.Port,
 				)
 			}
-
 		}
 	}
 }
@@ -347,27 +391,22 @@ func addConnectionDetail(definitions *Definitions, nodes *Node, path []string, n
 func FromPortGroupAbstraction(nodes *Node, group abstraction.PortGroup) *Definitions {
 	// Have to explicitly add each port to a new slice, cannot convert/assert any other way :(
 	definitions := initDefinitions()
-	startingPath := []string{"firewall", "group", "port-group"}
-	groupDefinition := generateSparseDefinitionTree(nodes, startingPath)
-	groupDefinition.Children[0].Children[0].Value = group.Name
-	groupDefinition.Children[0].Children[0].Children = []*Definition{
-		{
-			Name:     "description",
-			Path:     append(startingPath, group.Name),
-			Node:     nodes.FindChild(append(startingPath, DYNAMIC_NODE, "description")),
-			Value:    group.Description,
-			Children: []*Definition{},
-		},
-		{
-			Name:     "port",
-			Path:     []string{"firewall", "group", "port-group", group.Name},
-			Node:     nodes.FindChild(append(startingPath, DYNAMIC_NODE, "port")),
-			Values:   config.SliceIntToAny(group.Ports),
-			Children: []*Definition{},
-		},
-	}
-
+	path := utils.MakeVyosPath()
+	path.Append(
+		utils.MakeVyosPC("firewall"),
+		utils.MakeVyosPC("group"),
+		utils.MakeVyosPC("port-group"),
+		utils.MakeVyosDynamicPC(group.Name),
+	)
+	groupDefinition := generateSparseDefinitionTree(nodes, path)
 	definitions.add(groupDefinition)
+
+	definitions.addValue(
+		nodes, path, "description", group.Description,
+	)
+	definitions.addListValue(
+		nodes, path, "port", config.SliceIntToAny(group.Ports),
+	)
 
 	return definitions
 }

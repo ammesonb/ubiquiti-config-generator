@@ -1,6 +1,8 @@
 package vyos
 
 import (
+	"fmt"
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"strings"
 
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
@@ -27,9 +29,6 @@ import (
 		  where this now creates a new group
 	* $VAR(@) needs to be replaced for both commands/expressions/etc and help text
 */
-
-// DYNAMIC_NODE represents the node path name that will be replaced by a "value", e.g. firewall names, interfaces, subnets
-var DYNAMIC_NODE = "node.tag"
 
 // Node represents a configurable path or entry in the VyOS template directory
 type Node struct {
@@ -83,7 +82,7 @@ func (node *Node) Children() []*Node {
 func (node *Node) FindChild(path []string) *Node {
 	children := []*Node{node}
 	for _, step := range path {
-		child, ok := children[len(children)-1].ChildNodes[step]
+		child, ok := utils.Last(children).ChildNodes[step]
 		if !ok {
 			console_logger.DefaultLogger().Debugf(
 				"Could not find node for step '%s' of path '%s'",
@@ -96,7 +95,82 @@ func (node *Node) FindChild(path []string) *Node {
 		children = append(children, child)
 	}
 
-	return children[len(children)-1]
+	return utils.Last(children)
+}
+
+func (node *Node) ParentPath() string {
+	parts := strings.Split(node.Path, "/")
+	// parent is all but last entry of the path parts
+	parts = utils.AllExcept(parts, 1)
+	// If last entry is a placeholder, trim that too
+	if utils.Last(parts) == utils.DYNAMIC_NODE {
+		parts = utils.AllExcept(parts, 1)
+	}
+
+	return strings.Join(parts, "/")
+}
+
+func (node *Node) diffNode(other *Node) []string {
+	differences := []string{}
+
+	// Skip node child check since that could be expensive
+	if node.Name != other.Name {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: Node 'Name' should be '%s' but got '%s'",
+				node.Path,
+				node.Name,
+				other.Name,
+			),
+		)
+	}
+	if node.Type != other.Type {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: Node 'Type' should be '%s' but got '%s'",
+				node.Path,
+				node.Type,
+				other.Type,
+			),
+		)
+	}
+	if node.IsTag != other.IsTag {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: Node 'IsTag' should be '%t' but got '%t'",
+				node.Path,
+				node.IsTag,
+				other.IsTag,
+			),
+		)
+	}
+	if node.Multi != other.Multi {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: Node 'Multi' should be '%t' but got '%t'",
+				node.Path,
+				node.Multi,
+				other.Multi,
+			),
+		)
+	}
+	if node.Path != other.Path {
+		differences = append(
+			differences,
+			fmt.Sprintf(
+				"%s: Node 'Path' should be '%s' but got '%s'",
+				node.Path,
+				node.Path,
+				other.Path,
+			),
+		)
+	}
+
+	return differences
 }
 
 // NodeConstraint contains a set of values, command, or pattern the value of the node must satisfy

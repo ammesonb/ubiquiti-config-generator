@@ -1,6 +1,7 @@
 package vyos
 
 import (
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"os"
 	"strings"
 	"testing"
@@ -163,28 +164,32 @@ func TestParseBootDefinitions(t *testing.T) {
 	}
 
 	firewall := Definition{
-		Name: "firewall",
-		Path: []string{},
-		Node: rootNode.ChildNodes["firewall"],
+		Name:       "firewall",
+		Path:       []string{},
+		Node:       rootNode.ChildNodes["firewall"],
+		ParentNode: nil,
 		Children: []*Definition{
 			{
-				Name:     "all-ping",
-				Path:     []string{"firewall"},
-				Node:     rootNode.FindChild([]string{"firewall", "all-ping"}),
-				Value:    "enable",
-				Children: []*Definition{},
+				Name:       "all-ping",
+				Path:       []string{"firewall"},
+				Node:       rootNode.FindChild([]string{"firewall", "all-ping"}),
+				ParentNode: rootNode.FindChild([]string{"firewall"}),
+				Value:      "enable",
+				Children:   []*Definition{},
 			},
 			{
-				Name:     "broadcast-ping",
-				Path:     []string{"firewall"},
-				Node:     rootNode.FindChild([]string{"firewall", "broadcast-ping"}),
-				Value:    "disable",
-				Children: []*Definition{},
+				Name:       "broadcast-ping",
+				Path:       []string{"firewall"},
+				Node:       rootNode.FindChild([]string{"firewall", "broadcast-ping"}),
+				ParentNode: rootNode.FindChild([]string{"firewall"}),
+				Value:      "disable",
+				Children:   []*Definition{},
 			},
 			{
-				Name: "group",
-				Path: []string{"firewall"},
-				Node: rootNode.FindChild([]string{"firewall", "group"}),
+				Name:       "group",
+				Path:       []string{"firewall"},
+				Node:       rootNode.FindChild([]string{"firewall", "group"}),
+				ParentNode: rootNode.FindChild([]string{"firewall"}),
 				Children: []*Definition{
 					{
 						Name:    "address-group",
@@ -194,22 +199,25 @@ func TestParseBootDefinitions(t *testing.T) {
 						Node: rootNode.FindChild([]string{
 							"firewall", "group", "address-group",
 						}),
+						ParentNode: rootNode.FindChild([]string{"firewall", "group"}),
 						Children: []*Definition{
 							{
 								Name: "description",
 								Path: []string{"firewall", "group", "address-group", "admin"},
 								Node: rootNode.FindChild([]string{
-									"firewall", "group", "address-group", DYNAMIC_NODE, "description",
+									"firewall", "group", "address-group", utils.DYNAMIC_NODE, "description",
 								}),
-								Value:    "admin",
-								Children: []*Definition{},
+								ParentNode: rootNode.FindChild([]string{"firewall", "group", "address-group"}),
+								Value:      "admin",
+								Children:   []*Definition{},
 							},
 							{
 								Name: "address",
 								Path: []string{"firewall", "group", "address-group", "admin"},
 								Node: rootNode.FindChild([]string{
-									"firewall", "group", "address-group", DYNAMIC_NODE, "address",
+									"firewall", "group", "address-group", utils.DYNAMIC_NODE, "address",
 								}),
+								ParentNode: rootNode.FindChild([]string{"firewall", "group", "address-group"}),
 								Values: []any{
 									"192.168.0.1",
 									"192.168.0.2",
@@ -222,70 +230,78 @@ func TestParseBootDefinitions(t *testing.T) {
 				},
 			},
 			{
-				Name:     "log-martians",
-				Path:     []string{"firewall"},
-				Node:     rootNode.FindChild([]string{"firewall", "log-martians"}),
-				Value:    "enable",
-				Children: []*Definition{},
+				Name:       "log-martians",
+				Path:       []string{"firewall"},
+				Node:       rootNode.FindChild([]string{"firewall", "log-martians"}),
+				ParentNode: rootNode.FindChild([]string{"firewall"}),
+				Value:      "enable",
+				Children:   []*Definition{},
 			},
 			{
-				Name:  "name",
-				Path:  []string{"firewall"},
-				Value: "WAN_IN",
-				Node:  rootNode.FindChild([]string{"firewall", "name"}),
+				Name:       "name",
+				Path:       []string{"firewall"},
+				Value:      "WAN_IN",
+				Node:       rootNode.FindChild([]string{"firewall", "name"}),
+				ParentNode: rootNode.FindChild([]string{"firewall"}),
 				Children: []*Definition{
 					{
 						Name:  "default-action",
 						Value: "drop",
 						Path:  []string{"firewall", "name", "WAN_IN"},
 						Node: rootNode.FindChild([]string{
-							"firewall", "name", DYNAMIC_NODE, "default-action",
+							"firewall", "name", utils.DYNAMIC_NODE, "default-action",
 						}),
-						Children: []*Definition{},
+						ParentNode: rootNode.FindChild([]string{"firewall", "name"}),
+						Children:   []*Definition{},
 					},
 					{
 						Name:  "rule",
 						Value: "100",
 						Path:  []string{"firewall", "name", "WAN_IN"},
 						Node: rootNode.FindChild([]string{
-							"firewall", "name", DYNAMIC_NODE, "rule",
+							"firewall", "name", utils.DYNAMIC_NODE, "rule",
 						}),
+						ParentNode: rootNode.FindChild([]string{"firewall", "name"}),
 						Children: []*Definition{
 							{
 								Name:  "action",
 								Value: "accept",
 								Path:  []string{"firewall", "name", "WAN_IN", "rule", "100"},
 								Node: rootNode.FindChild([]string{
-									"firewall", "name", DYNAMIC_NODE, "rule", DYNAMIC_NODE, "action",
+									"firewall", "name", utils.DYNAMIC_NODE, "rule", utils.DYNAMIC_NODE, "action",
 								}),
-								Children: []*Definition{},
+								ParentNode: rootNode.FindChild([]string{"firewall", "name", utils.DYNAMIC_NODE, "rule"}),
+								Children:   []*Definition{},
 							},
 							{
 								Name:  "description",
 								Value: "Allow 'IGMP'",
 								Path:  []string{"firewall", "name", "WAN_IN", "rule", "100"},
 								Node: rootNode.FindChild([]string{
-									"firewall", "name", DYNAMIC_NODE, "rule", DYNAMIC_NODE, "description",
+									"firewall", "name", utils.DYNAMIC_NODE, "rule", utils.DYNAMIC_NODE, "description",
 								}),
-								Children: []*Definition{},
+								ParentNode: rootNode.FindChild([]string{"firewall", "name", utils.DYNAMIC_NODE, "rule"}),
+								Children:   []*Definition{},
 							},
 							{
 								Name:  "log",
 								Value: "disable",
 								Path:  []string{"firewall", "name", "WAN_IN", "rule", "100"},
 								Node: rootNode.FindChild([]string{
-									"firewall", "name", DYNAMIC_NODE, "rule", DYNAMIC_NODE, "log",
+									"firewall", "name", utils.DYNAMIC_NODE, "rule", utils.DYNAMIC_NODE, "log",
 								}),
-								Children: []*Definition{},
+								ParentNode: rootNode.FindChild([]string{"firewall", "name", utils.DYNAMIC_NODE, "rule"}),
+								Children:   []*Definition{},
 							},
 							{
 								Name:  "protocol",
 								Value: "igmp",
 								Path:  []string{"firewall", "name", "WAN_IN", "rule", "100"},
 								Node: rootNode.FindChild([]string{
-									"firewall", "name", DYNAMIC_NODE, "rule", DYNAMIC_NODE, "protocol",
+									"firewall", "name", utils.DYNAMIC_NODE, "rule", utils.DYNAMIC_NODE, "protocol",
 								}),
-								Children: []*Definition{},
+								ParentNode: rootNode.FindChild([]string{"firewall", "name", utils.DYNAMIC_NODE, "rule"}),
+								Children:   []*Definition{},
 							},
 						},
 					},
@@ -295,142 +311,159 @@ func TestParseBootDefinitions(t *testing.T) {
 	}
 
 	interfaces := Definition{
-		Name: "interfaces",
-		Path: []string{},
-		Node: rootNode.ChildNodes["interfaces"],
+		Name:       "interfaces",
+		Path:       []string{},
+		Node:       rootNode.ChildNodes["interfaces"],
+		ParentNode: nil,
 		Children: []*Definition{
 			{
-				Name:  "ethernet",
-				Path:  []string{"interfaces"},
-				Node:  rootNode.FindChild([]string{"interfaces", "ethernet"}),
-				Value: "eth0",
+				Name:       "ethernet",
+				Path:       []string{"interfaces"},
+				Node:       rootNode.FindChild([]string{"interfaces", "ethernet"}),
+				ParentNode: rootNode.FindChild([]string{"interfaces"}),
+				Value:      "eth0",
 				Children: []*Definition{
 					{
 						Name: "address",
 						Path: []string{"interfaces", "ethernet", "eth0"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "ethernet", DYNAMIC_NODE, "address",
+							"interfaces", "ethernet", utils.DYNAMIC_NODE, "address",
 						}),
-						Values:   []any{"dhcp"},
-						Children: []*Definition{},
+						ParentNode: rootNode.FindChild([]string{"interfaces", "ethernet"}),
+						Values:     []any{"dhcp"},
+						Children:   []*Definition{},
 					},
 					{
 						Name: "description",
 						Path: []string{"interfaces", "ethernet", "eth0"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "ethernet", DYNAMIC_NODE, "description",
+							"interfaces", "ethernet", utils.DYNAMIC_NODE, "description",
 						}),
-						Value:    "UPLINK",
-						Children: []*Definition{},
+						ParentNode: rootNode.FindChild([]string{"interfaces", "ethernet"}),
+						Value:      "UPLINK",
+						Children:   []*Definition{},
 					},
 					{
 						Name: "duplex",
 						Path: []string{"interfaces", "ethernet", "eth0"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "ethernet", DYNAMIC_NODE, "duplex",
+							"interfaces", "ethernet", utils.DYNAMIC_NODE, "duplex",
 						}),
-						Value:    "auto",
-						Children: []*Definition{},
+						ParentNode: rootNode.FindChild([]string{"interfaces", "ethernet"}),
+						Value:      "auto",
+						Children:   []*Definition{},
 					},
 					{
 						Name: "firewall",
 						Path: []string{"interfaces", "ethernet", "eth0"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "ethernet", DYNAMIC_NODE, "firewall",
+							"interfaces", "ethernet", utils.DYNAMIC_NODE, "firewall",
 						}),
+						ParentNode: rootNode.FindChild([]string{"interfaces", "ethernet"}),
 						Children: []*Definition{
 							{
 								Name: "in",
 								Path: []string{"interfaces", "ethernet", "eth0", "firewall"},
 								Node: rootNode.FindChild([]string{
-									"interfaces", "ethernet", DYNAMIC_NODE, "firewall", "in",
+									"interfaces", "ethernet", utils.DYNAMIC_NODE, "firewall", "in",
 								}),
+								ParentNode: rootNode.FindChild([]string{"interfaces", "ethernet", utils.DYNAMIC_NODE, "firewall"}),
 								Children: []*Definition{
 									{
 										Name: "name",
 										Path: []string{"interfaces", "ethernet", "eth0", "firewall", "in"},
 										Node: rootNode.FindChild([]string{
-											"interfaces", "ethernet", DYNAMIC_NODE, "firewall", "in", "name",
+											"interfaces", "ethernet", utils.DYNAMIC_NODE, "firewall", "in", "name",
 										}),
-										Value:    "WAN-IN",
-										Children: []*Definition{},
+										ParentNode: rootNode.FindChild([]string{"interfaces", "ethernet", utils.DYNAMIC_NODE, "firewall", "in"}),
+										Value:      "WAN-IN",
+										Children:   []*Definition{},
 									},
 								},
 							},
 						},
 					},
 					{
-						Name:     "speed",
-						Path:     []string{"interfaces", "ethernet", "eth0"},
-						Node:     rootNode.FindChild([]string{"interfaces", "ethernet", DYNAMIC_NODE, "speed"}),
-						Value:    "auto",
-						Children: []*Definition{},
+						Name:       "speed",
+						Path:       []string{"interfaces", "ethernet", "eth0"},
+						Node:       rootNode.FindChild([]string{"interfaces", "ethernet", utils.DYNAMIC_NODE, "speed"}),
+						ParentNode: rootNode.FindChild([]string{"interfaces", "ethernet"}),
+						Value:      "auto",
+						Children:   []*Definition{},
 					},
 				},
 			},
 			{
-				Name:  "ethernet",
-				Path:  []string{"interfaces"},
-				Node:  rootNode.FindChild([]string{"interfaces", "ethernet"}),
-				Value: "eth1",
+				Name:       "ethernet",
+				Path:       []string{"interfaces"},
+				Node:       rootNode.FindChild([]string{"interfaces", "ethernet"}),
+				ParentNode: rootNode.FindChild([]string{"interfaces"}),
+				Value:      "eth1",
 				Children: []*Definition{
 					{
 						Name: "address",
 						Path: []string{"interfaces", "ethernet", "eth1"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "ethernet", DYNAMIC_NODE, "address",
+							"interfaces", "ethernet", utils.DYNAMIC_NODE, "address",
 						}),
-						Values:   []any{"192.168.0.1/24"},
-						Children: []*Definition{},
+						ParentNode: rootNode.FindChild([]string{"interfaces", "ethernet"}),
+						Values:     []any{"192.168.0.1/24"},
+						Children:   []*Definition{},
 					},
 					{
 						Name: "description",
 						Path: []string{"interfaces", "ethernet", "eth1"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "ethernet", DYNAMIC_NODE, "description",
+							"interfaces", "ethernet", utils.DYNAMIC_NODE, "description",
 						}),
-						Value:    "HOUSE",
-						Children: []*Definition{},
+						ParentNode: rootNode.FindChild([]string{"interfaces", "ethernet"}),
+						Value:      "HOUSE",
+						Children:   []*Definition{},
 					},
 					{
 						Name: "duplex",
 						Path: []string{"interfaces", "ethernet", "eth1"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "ethernet", DYNAMIC_NODE, "duplex",
+							"interfaces", "ethernet", utils.DYNAMIC_NODE, "duplex",
 						}),
-						Value:    "auto",
-						Children: []*Definition{},
+						ParentNode: rootNode.FindChild([]string{"interfaces", "ethernet"}),
+						Value:      "auto",
+						Children:   []*Definition{},
 					},
 					{
-						Name:     "speed",
-						Path:     []string{"interfaces", "ethernet", "eth1"},
-						Node:     rootNode.FindChild([]string{"interfaces", "ethernet", DYNAMIC_NODE, "speed"}),
-						Value:    "auto",
-						Children: []*Definition{},
+						Name:       "speed",
+						Path:       []string{"interfaces", "ethernet", "eth1"},
+						Node:       rootNode.FindChild([]string{"interfaces", "ethernet", utils.DYNAMIC_NODE, "speed"}),
+						ParentNode: rootNode.FindChild([]string{"interfaces", "ethernet"}),
+						Value:      "auto",
+						Children:   []*Definition{},
 					},
 				},
 			},
 			{
-				Name:     "loopback",
-				Path:     []string{"interfaces"},
-				Node:     rootNode.FindChild([]string{"interfaces", "loopback"}),
-				Value:    "lo",
-				Children: []*Definition{},
+				Name:       "loopback",
+				Path:       []string{"interfaces"},
+				Node:       rootNode.FindChild([]string{"interfaces", "loopback"}),
+				ParentNode: rootNode.FindChild([]string{"interfaces"}),
+				Value:      "lo",
+				Children:   []*Definition{},
 			},
 			{
-				Name:  "switch",
-				Path:  []string{"interfaces"},
-				Node:  rootNode.FindChild([]string{"interfaces", "switch"}),
-				Value: "switch0",
+				Name:       "switch",
+				Path:       []string{"interfaces"},
+				Node:       rootNode.FindChild([]string{"interfaces", "switch"}),
+				ParentNode: rootNode.FindChild([]string{"interfaces"}),
+				Value:      "switch0",
 				Children: []*Definition{
 					{
 						Name: "mtu",
 						Path: []string{"interfaces", "switch", "switch0"},
 						Node: rootNode.FindChild([]string{
-							"interfaces", "switch", DYNAMIC_NODE, "mtu",
+							"interfaces", "switch", utils.DYNAMIC_NODE, "mtu",
 						}),
-						Value:    "1500",
-						Children: []*Definition{},
+						ParentNode: rootNode.FindChild([]string{"interfaces", "switch"}),
+						Value:      "1500",
+						Children:   []*Definition{},
 					},
 				},
 			},
@@ -438,14 +471,16 @@ func TestParseBootDefinitions(t *testing.T) {
 	}
 
 	serviceSSH := Definition{
-		Name: "service",
-		Path: []string{},
-		Node: rootNode.ChildNodes["service"],
+		Name:       "service",
+		Path:       []string{},
+		Node:       rootNode.ChildNodes["service"],
+		ParentNode: nil,
 		Children: []*Definition{
 			{
-				Name: "ssh",
-				Path: []string{"service"},
-				Node: rootNode.FindChild([]string{"service", "ssh"}),
+				Name:       "ssh",
+				Path:       []string{"service"},
+				Node:       rootNode.FindChild([]string{"service", "ssh"}),
+				ParentNode: rootNode.FindChild([]string{"service"}),
 				Children: []*Definition{
 					{
 						Name: "disable-password-authentication",
@@ -453,7 +488,8 @@ func TestParseBootDefinitions(t *testing.T) {
 						Node: rootNode.FindChild([]string{
 							"service", "ssh", "disable-password-authentication",
 						}),
-						Children: []*Definition{},
+						ParentNode: rootNode.FindChild([]string{"service", "ssh"}),
+						Children:   []*Definition{},
 					},
 					{
 						Name: "port",
@@ -461,8 +497,9 @@ func TestParseBootDefinitions(t *testing.T) {
 						Node: rootNode.FindChild([]string{
 							"service", "ssh", "port",
 						}),
-						Value:    "22",
-						Children: []*Definition{},
+						ParentNode: rootNode.FindChild([]string{"service", "ssh"}),
+						Value:      "22",
+						Children:   []*Definition{},
 					},
 					{
 						Name: "protocol-version",
@@ -470,8 +507,9 @@ func TestParseBootDefinitions(t *testing.T) {
 						Node: rootNode.FindChild([]string{
 							"service", "ssh", "protocol-version",
 						}),
-						Value:    "v2",
-						Children: []*Definition{},
+						ParentNode: rootNode.FindChild([]string{"service", "ssh"}),
+						Value:      "v2",
+						Children:   []*Definition{},
 					},
 				},
 			},

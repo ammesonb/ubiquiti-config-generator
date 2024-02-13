@@ -129,13 +129,6 @@
             </set>
           </value>
         </entry>
-        <entry key="Parser">
-          <value>
-            <set>
-              <option value="file://$PROJECT_DIR$/vyos/parser.go" />
-            </set>
-          </value>
-        </entry>
         <entry key="PortGroup">
           <value>
             <set>
@@ -210,34 +203,6 @@
           <value>
             <set>
               <option value="file://$PROJECT_DIR$/web/git_api.go" />
-            </set>
-          </value>
-        </entry>
-        <entry key="mockFileInfo">
-          <value>
-            <set>
-              <option value="file://$PROJECT_DIR$/vyos/parser_test.go" />
-            </set>
-          </value>
-        </entry>
-        <entry key="mockParser">
-          <value>
-            <set>
-              <option value="file://$PROJECT_DIR$/vyos/parser_test.go" />
-            </set>
-          </value>
-        </entry>
-        <entry key="mockedFS">
-          <value>
-            <set>
-              <option value="file://$PROJECT_DIR$/vyos/parser_test.go" />
-            </set>
-          </value>
-        </entry>
-        <entry key="mockedFileInfo">
-          <value>
-            <set>
-              <option value="file://$PROJECT_DIR$/vyos/parser_test.go" />
             </set>
           </value>
         </entry>
@@ -389,20 +354,6 @@
             </ScannedPath>
           </value>
         </entry>
-        <entry key="file://$PROJECT_DIR$/logger/default.go">
-          <value>
-            <ScannedPath>
-              <option name="lastModified" value="1706468664645" />
-            </ScannedPath>
-          </value>
-        </entry>
-        <entry key="file://$PROJECT_DIR$/logger/default_test.go">
-          <value>
-            <ScannedPath>
-              <option name="lastModified" value="1706468778837" />
-            </ScannedPath>
-          </value>
-        </entry>
         <entry key="file://$PROJECT_DIR$/main.go">
           <value>
             <ScannedPath>
@@ -427,7 +378,14 @@
         <entry key="file://$PROJECT_DIR$/vyos/abstraction.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706648234977" />
+              <option name="lastModified" value="1707841848059" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/vyos/abstraction_test.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1707764954330" />
             </ScannedPath>
           </value>
         </entry>
@@ -448,7 +406,7 @@
         <entry key="file://$PROJECT_DIR$/vyos/definition.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706648184858" />
+              <option name="lastModified" value="1707853516784" />
               <option name="schema">
                 <list>
                   <option value="Definition" />
@@ -462,7 +420,7 @@
         <entry key="file://$PROJECT_DIR$/vyos/definition_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706468416641" />
+              <option name="lastModified" value="1707847516449" />
             </ScannedPath>
           </value>
         </entry>
@@ -476,7 +434,7 @@
         <entry key="file://$PROJECT_DIR$/vyos/node.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706648184840" />
+              <option name="lastModified" value="1707852958968" />
               <option name="schema">
                 <list>
                   <option value="Node" />
@@ -503,7 +461,7 @@
         <entry key="file://$PROJECT_DIR$/vyos/node_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706054551489" />
+              <option name="lastModified" value="1707842694126" />
             </ScannedPath>
           </value>
         </entry>
@@ -627,20 +585,15 @@
         <entry key="installations_response" value="installationsResponse" />
         <entry key="interface" value="Interface" />
         <entry key="logging_config" value="LoggingConfig" />
-        <entry key="mock_file_info" value="mockFileInfo" />
-        <entry key="mock_parser" value="mockParser" />
-        <entry key="mocked_file_info" value="mockedFileInfo" />
-        <entry key="mocked_fs" value="mockedFS" />
         <entry key="network" value="Network" />
         <entry key="node" value="Node" />
         <entry key="node_constraint" value="NodeConstraint" />
-        <entry key="parser" value="Parser" />
         <entry key="port_group" value="PortGroup" />
         <entry key="repository" value="repository" />
         <entry key="rule_counter" value="RuleCounter" />
         <entry key="subnet" value="Subnet" />
       </map>
     </option>
-    <option name="lastTimeChecked" value="1706466933196" />
+    <option name="lastTimeChecked" value="1707591874496" />
   </component>
 </project>

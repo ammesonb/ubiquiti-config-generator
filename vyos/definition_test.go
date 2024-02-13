@@ -2,6 +2,7 @@ package vyos
 
 import (
 	"github.com/ammesonb/ubiquiti-config-generator/config"
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
@@ -10,7 +11,7 @@ import (
 func TestDefinition_Diff(t *testing.T) {
 	def := Definition{
 		Path:  []string{},
-		Name:  DYNAMIC_NODE,
+		Name:  utils.DYNAMIC_NODE,
 		Value: "foo",
 		Node: &Node{
 			Name:  "node1",
@@ -29,7 +30,7 @@ func TestDefinition_Diff(t *testing.T) {
 
 	diffs := def.Diff(&Definition{
 		Path:  []string{},
-		Name:  DYNAMIC_NODE,
+		Name:  utils.DYNAMIC_NODE,
 		Value: "bar",
 		Node: &Node{
 			Name:  "node1",
@@ -46,38 +47,9 @@ func TestDefinition_Diff(t *testing.T) {
 	assert.Contains(t, diffs[1], "Should have 1 children but got 0")
 }
 
-func TestDiffNode(t *testing.T) {
-	def := Definition{
-		Path:  []string{"foo"},
-		Name:  DYNAMIC_NODE,
-		Value: "node1",
-		Node: &Node{
-			Name:  "node1",
-			Type:  "txt",
-			IsTag: true,
-			Multi: true,
-			Path:  "foo",
-		},
-	}
-
-	diffs := def.diffNode(&Definition{
-		Path: []string{"bar"},
-		Name: "node2",
-		Node: &Node{
-			Name:  "node2",
-			Type:  "int",
-			IsTag: false,
-			Multi: false,
-			Path:  "bar",
-		},
-	})
-
-	assert.Len(t, diffs, 5, "Should have 5 differences, got %d", diffs)
-}
-
 func TestDiffDefinition(t *testing.T) {
 	def := Definition{
-		Name:    DYNAMIC_NODE,
+		Name:    utils.DYNAMIC_NODE,
 		Path:    []string{"foo"},
 		Comment: "foo",
 		Value:   "node1",
@@ -94,7 +66,7 @@ func TestDiffDefinition(t *testing.T) {
 		Node:    nil,
 	})
 
-	assert.Len(t, diffs, 7, "Should have 7 differences, got %d", len(diffs))
+	assert.Len(t, diffs, 9, "Should have 9 differences, got %d", len(diffs))
 }
 
 func TestMerge(t *testing.T) {
@@ -105,219 +77,242 @@ func TestMerge(t *testing.T) {
 	definitions := initDefinitions()
 
 	definitions.add(&Definition{
-		Name:     "interfaces",
-		Path:     []string{},
-		Node:     nodes.FindChild([]string{"interfaces"}),
-		Comment:  "",
-		Value:    nil,
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "interfaces",
+		Path:       []string{},
+		Node:       nodes.FindChild([]string{"interfaces"}),
+		Comment:    "",
+		Value:      nil,
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nil,
 	})
 
 	definitions.add(&Definition{
-		Name:     "firewall",
-		Path:     []string{},
-		Node:     nodes.FindChild([]string{"firewall"}),
-		Comment:  "",
-		Value:    nil,
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "firewall",
+		Path:       []string{},
+		Node:       nodes.FindChild([]string{"firewall"}),
+		Comment:    "",
+		Value:      nil,
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nil,
 	})
 
 	definitions.add(&Definition{
-		Name:     "all-ping",
-		Path:     []string{"firewall"},
-		Node:     nodes.FindChild([]string{"firewall", "all-ping"}),
-		Comment:  "",
-		Value:    "enable",
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "all-ping",
+		Path:       []string{"firewall"},
+		Node:       nodes.FindChild([]string{"firewall", "all-ping"}),
+		Comment:    "",
+		Value:      "enable",
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"firewall"}),
 	})
 	definitions.add(&Definition{
-		Name:     "broadcast-ping",
-		Path:     []string{"firewall"},
-		Node:     nodes.FindChild([]string{"firewall", "broadcast-ping"}),
-		Comment:  "",
-		Value:    "disable",
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "broadcast-ping",
+		Path:       []string{"firewall"},
+		Node:       nodes.FindChild([]string{"firewall", "broadcast-ping"}),
+		Comment:    "",
+		Value:      "disable",
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"firewall"}),
 	})
 	definitions.add(&Definition{
-		Name:     "group",
-		Path:     []string{"firewall"},
-		Node:     nodes.FindChild([]string{"firewall", "group"}),
-		Comment:  "",
-		Value:    nil,
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "group",
+		Path:       []string{"firewall"},
+		Node:       nodes.FindChild([]string{"firewall", "group"}),
+		Comment:    "",
+		Value:      nil,
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"firewall"}),
 	})
 	definitions.add(&Definition{
-		Name:     "port-group",
-		Path:     []string{"firewall", "group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group"}),
-		Comment:  "",
-		Value:    "test-port-group",
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "port-group",
+		Path:       []string{"firewall", "group"},
+		Node:       nodes.FindChild([]string{"firewall", "group", "port-group"}),
+		Comment:    "",
+		Value:      "test-port-group",
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"firewall", "group"}),
 	})
 	definitions.add(&Definition{
-		Name:     "description",
-		Path:     []string{"firewall", "group", "port-group", "test-port-group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", DYNAMIC_NODE, "description"}),
-		Comment:  "",
-		Value:    "a test port group",
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "description",
+		Path:       []string{"firewall", "group", "port-group", "test-port-group"},
+		Node:       nodes.FindChild([]string{"firewall", "group", "port-group", utils.DYNAMIC_NODE, "description"}),
+		Comment:    "",
+		Value:      "a test port group",
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"firewall", "group", "port-group"}),
 	})
 	definitions.add(&Definition{
-		Name:     "port",
-		Path:     []string{"firewall", "group", "port-group", "test-port-group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", DYNAMIC_NODE, "port"}),
-		Comment:  "",
-		Value:    nil,
-		Values:   []any{53, 123},
-		Children: []*Definition{},
+		Name:       "port",
+		Path:       []string{"firewall", "group", "port-group", "test-port-group"},
+		Node:       nodes.FindChild([]string{"firewall", "group", "port-group", utils.DYNAMIC_NODE, "port"}),
+		Comment:    "",
+		Value:      nil,
+		Values:     []any{53, 123},
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"firewall", "group", "port-group"}),
 	})
 
 	others := initDefinitions()
 
 	domainName := "ubiquiti"
 	others.add(&Definition{
-		Name:     "system",
-		Path:     []string{},
-		Node:     nodes.FindChild([]string{"system"}),
-		Comment:  "",
-		Value:    nil,
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "system",
+		Path:       []string{},
+		Node:       nodes.FindChild([]string{"system"}),
+		Comment:    "",
+		Value:      nil,
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nil,
 	})
 	others.add(&Definition{
-		Name:     "domain-name",
-		Path:     []string{"system"},
-		Node:     nodes.FindChild([]string{"system", "domain-name"}),
-		Comment:  "",
-		Value:    domainName,
-		Values:   nil,
-		Children: []*Definition{},
-	})
-
-	others.add(&Definition{
-		Name:     "interfaces",
-		Path:     []string{},
-		Node:     nodes.FindChild([]string{"interfaces"}),
-		Comment:  "",
-		Value:    nil,
-		Values:   nil,
-		Children: []*Definition{},
-	})
-	others.add(&Definition{
-		Name:     "ethernet",
-		Path:     []string{"interfaces"},
-		Node:     nodes.FindChild([]string{"interfaces", "ethernet"}),
-		Comment:  "",
-		Value:    "eth0",
-		Values:   nil,
-		Children: []*Definition{},
-	})
-	others.add(&Definition{
-		Name:     "address",
-		Path:     []string{"interfaces", "ethernet", "eth0"},
-		Node:     nodes.FindChild([]string{"interfaces", "ethernet", DYNAMIC_NODE, "address"}),
-		Comment:  "",
-		Value:    "192.168.0.1",
-		Values:   nil,
-		Children: []*Definition{},
-	})
-	others.add(&Definition{
-		Name:     "vif",
-		Path:     []string{"interfaces", "ethernet", "eth0"},
-		Node:     nodes.FindChild([]string{"interfaces", "ethernet", DYNAMIC_NODE, "vif"}),
-		Comment:  "",
-		Value:    99,
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "domain-name",
+		Path:       []string{"system"},
+		Node:       nodes.FindChild([]string{"system", "domain-name"}),
+		Comment:    "",
+		Value:      domainName,
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"system"}),
 	})
 
 	others.add(&Definition{
-		Name:     "firewall",
-		Path:     []string{},
-		Node:     nodes.FindChild([]string{"firewall"}),
-		Comment:  "",
-		Value:    nil,
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "interfaces",
+		Path:       []string{},
+		Node:       nodes.FindChild([]string{"interfaces"}),
+		Comment:    "",
+		Value:      nil,
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nil,
 	})
 	others.add(&Definition{
-		Name:     "all-ping",
-		Path:     []string{"firewall"},
-		Node:     nodes.FindChild([]string{"firewall", "all-ping"}),
-		Comment:  "",
-		Value:    "enable",
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "ethernet",
+		Path:       []string{"interfaces"},
+		Node:       nodes.FindChild([]string{"interfaces", "ethernet"}),
+		Comment:    "",
+		Value:      "eth0",
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"interfaces"}),
 	})
 	others.add(&Definition{
-		Name:     "ip-src-route",
-		Path:     []string{"firewall"},
-		Node:     nodes.FindChild([]string{"firewall", "ip-src-route"}),
-		Comment:  "",
-		Value:    "disable",
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "address",
+		Path:       []string{"interfaces", "ethernet", "eth0"},
+		Node:       nodes.FindChild([]string{"interfaces", "ethernet", utils.DYNAMIC_NODE, "address"}),
+		Comment:    "",
+		Value:      "192.168.0.1",
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"interfaces", "ethernet"}),
 	})
 	others.add(&Definition{
-		Name:     "group",
-		Path:     []string{"firewall"},
-		Node:     nodes.FindChild([]string{"firewall", "group"}),
-		Comment:  "",
-		Value:    nil,
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "vif",
+		Path:       []string{"interfaces", "ethernet", "eth0"},
+		Node:       nodes.FindChild([]string{"interfaces", "ethernet", utils.DYNAMIC_NODE, "vif"}),
+		Comment:    "",
+		Value:      99,
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"interfaces", "ethernet"}),
+	})
+
+	others.add(&Definition{
+		Name:       "firewall",
+		Path:       []string{},
+		Node:       nodes.FindChild([]string{"firewall"}),
+		Comment:    "",
+		Value:      nil,
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nil,
 	})
 	others.add(&Definition{
-		Name:     "port-group",
-		Path:     []string{"firewall", "group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group"}),
-		Comment:  "",
-		Value:    "test-port-group",
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "all-ping",
+		Path:       []string{"firewall"},
+		Node:       nodes.FindChild([]string{"firewall", "all-ping"}),
+		Comment:    "",
+		Value:      "enable",
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"firewall"}),
 	})
 	others.add(&Definition{
-		Name:     "port",
-		Path:     []string{"firewall", "group", "port-group", "test-port-group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", DYNAMIC_NODE, "port"}),
-		Comment:  "",
-		Value:    nil,
-		Values:   []any{53, 123},
-		Children: []*Definition{},
+		Name:       "ip-src-route",
+		Path:       []string{"firewall"},
+		Node:       nodes.FindChild([]string{"firewall", "ip-src-route"}),
+		Comment:    "",
+		Value:      "disable",
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"firewall"}),
 	})
 	others.add(&Definition{
-		Name:     "port-group",
-		Path:     []string{"firewall", "group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group"}),
-		Comment:  "",
-		Value:    "http-port-group",
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "group",
+		Path:       []string{"firewall"},
+		Node:       nodes.FindChild([]string{"firewall", "group"}),
+		Comment:    "",
+		Value:      nil,
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"firewall"}),
 	})
 	others.add(&Definition{
-		Name:     "description",
-		Path:     []string{"firewall", "group", "port-group", "http-port-group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", DYNAMIC_NODE, "description"}),
-		Comment:  "",
-		Value:    "HTTP ports",
-		Values:   nil,
-		Children: []*Definition{},
+		Name:       "port-group",
+		Path:       []string{"firewall", "group"},
+		Node:       nodes.FindChild([]string{"firewall", "group", "port-group"}),
+		Comment:    "",
+		Value:      "test-port-group",
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"firewall", "group"}),
 	})
 	others.add(&Definition{
-		Name:     "port",
-		Path:     []string{"firewall", "group", "port-group", "http-port-group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", DYNAMIC_NODE, "port"}),
-		Comment:  "",
-		Value:    nil,
-		Values:   []any{80, 443},
-		Children: []*Definition{},
+		Name:       "port",
+		Path:       []string{"firewall", "group", "port-group", "test-port-group"},
+		Node:       nodes.FindChild([]string{"firewall", "group", "port-group", utils.DYNAMIC_NODE, "port"}),
+		Comment:    "",
+		Value:      nil,
+		Values:     []any{53, 123},
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"firewall", "group", "port-group"}),
+	})
+	others.add(&Definition{
+		Name:       "port-group",
+		Path:       []string{"firewall", "group"},
+		Node:       nodes.FindChild([]string{"firewall", "group", "port-group"}),
+		Comment:    "",
+		Value:      "http-port-group",
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"firewall", "group"}),
+	})
+	others.add(&Definition{
+		Name:       "description",
+		Path:       []string{"firewall", "group", "port-group", "http-port-group"},
+		Node:       nodes.FindChild([]string{"firewall", "group", "port-group", utils.DYNAMIC_NODE, "description"}),
+		Comment:    "",
+		Value:      "HTTP ports",
+		Values:     nil,
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"firewall", "group", "port-group"}),
+	})
+	others.add(&Definition{
+		Name:       "port",
+		Path:       []string{"firewall", "group", "port-group", "http-port-group"},
+		Node:       nodes.FindChild([]string{"firewall", "group", "port-group", utils.DYNAMIC_NODE, "port"}),
+		Comment:    "",
+		Value:      nil,
+		Values:     []any{80, 443},
+		Children:   []*Definition{},
+		ParentNode: nodes.FindChild([]string{"firewall", "group", "port-group"}),
 	})
 
 	err = definitions.merge(others)
@@ -447,7 +442,7 @@ func TestMergeConflictingDefinition(t *testing.T) {
 	definitions.add(&Definition{
 		Name:     "description",
 		Path:     []string{"firewall", "group", "port-group", "test-port-group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", DYNAMIC_NODE, "description"}),
+		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", utils.DYNAMIC_NODE, "description"}),
 		Comment:  "",
 		Value:    "a test port group",
 		Values:   nil,
@@ -456,7 +451,7 @@ func TestMergeConflictingDefinition(t *testing.T) {
 	definitions.add(&Definition{
 		Name:     "port",
 		Path:     []string{"firewall", "group", "port-group", "test-port-group"},
-		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", DYNAMIC_NODE, "port"}),
+		Node:     nodes.FindChild([]string{"firewall", "group", "port-group", utils.DYNAMIC_NODE, "port"}),
 		Comment:  "",
 		Value:    nil,
 		Values:   []any{53, 123},
@@ -514,7 +509,14 @@ func TestGenerateDefinitionTree(t *testing.T) {
 		t.Errorf("Failed to generate fixtures: %v", err)
 	}
 
-	generated := generateSparseDefinitionTree(nodes, []string{"firewall", "group", "port-group"})
+	path := utils.MakeVyosPath()
+	path.Append(
+		utils.MakeVyosPC("firewall"),
+		utils.MakeVyosPC("group"),
+		utils.MakeVyosPC("port-group"),
+		utils.MakeVyosDynamicPC("test-port-group"),
+	)
+	generated := generateSparseDefinitionTree(nodes, path)
 
 	expected := &Definition{
 		Name: "firewall",
@@ -527,14 +529,17 @@ func TestGenerateDefinitionTree(t *testing.T) {
 				Node: nodes.FindChild([]string{"firewall", "group"}),
 				Children: []*Definition{
 					{
-						Name:     "port-group",
-						Path:     []string{"firewall", "group"},
-						Node:     nodes.FindChild([]string{"firewall", "group", "port-group"}),
-						Children: []*Definition{},
+						Name:       "port-group",
+						Path:       []string{"firewall", "group"},
+						Node:       nodes.FindChild([]string{"firewall", "group", "port-group"}),
+						Value:      "test-port-group",
+						ParentNode: nodes.FindChild([]string{"firewall", "group"}),
 					},
 				},
+				ParentNode: nodes.FindChild([]string{"firewall"}),
 			},
 		},
+		ParentNode: nil,
 	}
 
 	diffs := expected.Diff(generated)
@@ -543,7 +548,54 @@ func TestGenerateDefinitionTree(t *testing.T) {
 	}
 }
 
-func TestGeneratePopulatedDefinitionTree(t *testing.T) {
+func TestGenerateMultiDynamicNodeDefinitionTree(t *testing.T) {
+	nodes, err := GetGeneratedNodes()
+	if err != nil {
+		t.Errorf("Failed to generate fixtures: %v", err)
+	}
+
+	path := utils.MakeVyosPath()
+	path.Append(
+		utils.MakeVyosPC("interfaces"),
+		utils.MakeVyosPC("ethernet"),
+		utils.MakeVyosDynamicPC("eth1"),
+		utils.MakeVyosPC("vif"),
+		utils.MakeVyosDynamicPC("10"),
+	)
+	generated := generateSparseDefinitionTree(nodes, path)
+
+	expected := &Definition{
+		Name: "interfaces",
+		Path: []string{},
+		Node: nodes.FindChild([]string{"interfaces"}),
+		Children: []*Definition{
+			{
+				Name:  "ethernet",
+				Path:  []string{"interfaces"},
+				Node:  nodes.FindChild([]string{"interfaces", "ethernet"}),
+				Value: "eth1",
+				Children: []*Definition{
+					{
+						Name:       "vif",
+						Path:       []string{"interfaces", "ethernet", "eth1"},
+						Node:       nodes.FindChild([]string{"interfaces", "ethernet", utils.DYNAMIC_NODE, "vif"}),
+						Value:      "10",
+						ParentNode: nodes.FindChild([]string{"interfaces", "ethernet"}),
+					},
+				},
+				ParentNode: nodes.FindChild([]string{"interfaces"}),
+			},
+		},
+		ParentNode: nil,
+	}
+
+	diffs := expected.Diff(generated)
+	if len(diffs) > 0 {
+		t.Errorf("Generated tree did not match expected: %s", strings.Join(diffs, ", "))
+	}
+}
+
+func TestGeneratePopulatedDefinitionTreeFromRoot(t *testing.T) {
 	nodes, err := GetGeneratedNodes()
 	assert.NoError(t, err, "Generating nodes should not fail")
 
@@ -559,13 +611,15 @@ func TestGeneratePopulatedDefinitionTree(t *testing.T) {
 				Value: "foo",
 				Children: []*Definition{
 					{
-						Name:     "default-action",
-						Path:     []string{"firewall", "name", "foo"},
-						Node:     nodes.FindChild([]string{"firewall", "name", DYNAMIC_NODE, "default-action"}),
-						Value:    "drop",
-						Children: []*Definition{},
+						Name:       "default-action",
+						Path:       []string{"firewall", "name", "foo"},
+						Node:       nodes.FindChild([]string{"firewall", "name", utils.DYNAMIC_NODE, "default-action"}),
+						Value:      "drop",
+						Children:   []*Definition{},
+						ParentNode: nodes.FindChild([]string{"firewall", "name"}),
 					},
 				},
+				ParentNode: nodes.FindChild([]string{"firewall"}),
 			},
 			{
 				Name:  "name",
@@ -574,13 +628,15 @@ func TestGeneratePopulatedDefinitionTree(t *testing.T) {
 				Value: "bar",
 				Children: []*Definition{
 					{
-						Name:     "default-action",
-						Path:     []string{"firewall", "name", "bar"},
-						Node:     nodes.FindChild([]string{"firewall", "name", DYNAMIC_NODE, "default-action"}),
-						Value:    "accept",
-						Children: []*Definition{},
+						Name:       "default-action",
+						Path:       []string{"firewall", "name", "bar"},
+						Node:       nodes.FindChild([]string{"firewall", "name", utils.DYNAMIC_NODE, "default-action"}),
+						Value:      "accept",
+						Children:   []*Definition{},
+						ParentNode: nodes.FindChild([]string{"firewall", "name"}),
 					},
 				},
+				ParentNode: nodes.FindChild([]string{"firewall"}),
 			},
 		},
 	}
@@ -612,13 +668,64 @@ func TestGeneratePopulatedDefinitionTree(t *testing.T) {
 				},
 			},
 		},
-		[]string{},
-		[]string{},
+		utils.MakeVyosPath(),
+		nil,
 	)
 
 	assert.Empty(t, expected.Diff(generated), "Definitions should generate as expected")
 }
 
+func TestGeneratePopulatedDefinitionTreeNested(t *testing.T) {
+	nodes, err := GetGeneratedNodes()
+	assert.NoError(t, err, "Generating nodes should not fail")
+
+	path := utils.MakeVyosPath()
+	path.Append(
+		utils.MakeVyosPC("service"),
+		utils.MakeVyosPC("dhcp-server"),
+		utils.MakeVyosPC("shared-network-name"),
+		utils.MakeVyosDynamicPC("test-service"),
+		utils.MakeVyosPC("subnet"),
+		utils.MakeVyosDynamicPC("10.0.0.0/24"),
+	)
+
+	expected := &Definition{
+		Name:  "start",
+		Path:  path.Path,
+		Node:  nodes.FindChild(utils.CopySliceWith(path.NodePath, "start")),
+		Value: "10.0.0.240",
+		Children: []*Definition{
+			{
+				Name:       "stop",
+				Path:       utils.CopySliceWith(path.Path, "start", "10.0.0.240"),
+				Node:       nodes.FindChild(utils.CopySliceWith(path.NodePath, "start", utils.DYNAMIC_NODE, "stop")),
+				Value:      "10.0.0.255",
+				Children:   []*Definition{},
+				ParentNode: nodes.FindChild(utils.CopySliceWith(path.NodePath, "start")),
+			},
+		},
+		ParentNode: nodes.FindChild(utils.AllExcept(path.NodePath, 1)),
+	}
+
+	generated := generatePopulatedDefinitionTree(
+		nodes,
+		BasicDefinition{
+			Name:  "start",
+			Value: "10.0.0.240",
+			Children: []BasicDefinition{
+				{
+					Name:  "stop",
+					Value: "10.0.0.255",
+				},
+			},
+		},
+		path,
+		// Skip the tag placeholder for the parent, since that is what would be done normally
+		nodes.FindChild(utils.AllExcept(path.NodePath, 1)),
+	)
+
+	assert.Empty(t, expected.Diff(generated), "Definitions should generate as expected")
+}
 func TestDefinitions_FindChild(t *testing.T) {
 	nodes, err := GetGeneratedNodes()
 	assert.NoError(t, err, "Generating nodes should not fail")
@@ -652,8 +759,8 @@ func TestDefinitions_FindChild(t *testing.T) {
 					},
 				},
 			},
-			[]string{},
-			[]string{},
+			utils.MakeVyosPath(),
+			nil,
 		),
 	)
 
@@ -669,6 +776,11 @@ func TestDefinitions_FindChild(t *testing.T) {
 	assert.Equal(t, barAction.Value, "accept")
 
 	assert.Nil(t, defs.FindChild([]any{"firewall", "name", "nonexistent", "default-action"}))
+
+	assert.Equal(t, foo.ParentNode.Name, "firewall")
+	assert.False(t, foo.ParentNode.IsTag)
+	assert.Equal(t, barAction.ParentNode.Name, "name")
+	assert.True(t, barAction.ParentNode.IsTag)
 }
 
 func TestAddValue(t *testing.T) {
@@ -695,29 +807,40 @@ func TestAddValue(t *testing.T) {
 					},
 				},
 			},
-			[]string{},
-			[]string{},
+			utils.MakeVyosPath(),
+			nil,
 		),
 	)
 
-	path := []string{"firewall", "group", "port-group", "web-ports"}
-	nodePath := []string{"firewall", "group", "port-group", DYNAMIC_NODE}
+	path := utils.MakeVyosPath()
+	path.Append(
+		utils.MakeVyosPC("firewall"),
+		utils.MakeVyosPC("group"),
+		utils.MakeVyosPC("port-group"),
+		utils.MakeVyosDynamicPC("web-ports"),
+	)
 
 	description := "Ports used by web servers"
-	defs.addValue(nodes, path, nodePath, "description", description)
-	defs.appendToListValue(nodes, path, nodePath, "port", 80)
-	defs.appendToListValue(nodes, path, nodePath, "port", 443)
+	defs.addValue(nodes, path, "description", description)
+	defs.appendToListValue(nodes, path, "port", 80)
+	defs.appendToListValue(nodes, path, "port", 443)
 
-	descriptionDef := defs.FindChild(config.SliceStrToAny(append(path, "description")))
+	descriptionDef := defs.FindChild(config.SliceStrToAny(utils.CopySliceWith(path.Path, "description")))
 	assert.NotNil(t, descriptionDef)
 	assert.Equal(t, descriptionDef.Value, description)
 	assert.Nil(t, descriptionDef.Values)
 
-	portsDef := defs.FindChild(config.SliceStrToAny(append(path, "port")))
+	assert.Equal(t, descriptionDef.ParentNode.Name, "port-group")
+	assert.True(t, descriptionDef.ParentNode.IsTag)
+
+	portsDef := defs.FindChild(config.SliceStrToAny(utils.CopySliceWith(path.Path, "port")))
 	assert.NotNil(t, portsDef)
 	assert.Len(t, portsDef.Values, 2, "Port 80 and 443 added")
 	assert.Equal(t, portsDef.Values, []any{80, 443})
 	assert.Nil(t, portsDef.Value)
+
+	assert.Equal(t, portsDef.ParentNode.Name, "port-group")
+	assert.True(t, portsDef.ParentNode.IsTag)
 }
 
 func TestAddExisting(t *testing.T) {
@@ -736,8 +859,8 @@ func TestAddExisting(t *testing.T) {
 				},
 			},
 		},
-		[]string{},
-		[]string{},
+		utils.MakeVyosPath(),
+		nil,
 	)
 
 	defs.add(definition)
@@ -748,4 +871,35 @@ func TestAddExisting(t *testing.T) {
 
 	defs.add(definition)
 	assert.False(t, defs.FindChild(pingPath).Value.(bool), "Existing path value should be overridden")
+}
+
+func TestAddDoesNotOverwrite(t *testing.T) {
+	nodes, err := GetGeneratedNodes()
+	assert.NoError(t, err)
+	if err != nil || nodes == nil {
+		t.FailNow()
+	}
+	assert.NotNil(t, nodes)
+
+	defs := initDefinitions()
+	ethPath := utils.MakeVyosPath()
+	ethPath.Append(
+		utils.MakeVyosPC("interfaces"),
+		utils.MakeVyosPC("ethernet"),
+		utils.MakeVyosDynamicPC("eth0"),
+	)
+	defs.add(generateSparseDefinitionTree(nodes, ethPath))
+	defs.addValue(nodes, ethPath, "description", "foo")
+	defs.addValue(nodes, ethPath, "duplex", "auto")
+	defs.addValue(nodes, ethPath, "speed", "auto")
+
+	vifPath := ethPath.Extend(utils.MakeVyosPC("vif"), utils.MakeVyosDynamicPC("10"))
+	defs.add(generateSparseDefinitionTree(nodes, vifPath))
+
+	eth := defs.FindChild(config.SliceStrToAny(ethPath.Path))
+	assert.NotNil(t, eth)
+	if eth == nil {
+		t.FailNow()
+	}
+	assert.Len(t, eth.Children, 4, "Should have four children: description, duplex, speed, vif")
 }

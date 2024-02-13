@@ -2,6 +2,7 @@ package vyos
 
 import (
 	"bufio"
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"io"
 	"regexp"
 	"strings"
@@ -34,7 +35,7 @@ func ParseBootDefinitions(reader io.Reader, definitions *Definitions, rootNode *
 		if len(line) == 0 {
 			continue
 		} else if lineIsComment(line) {
-			definitionStack[len(definitionStack)-1].Comment = line
+			utils.Last(definitionStack).Comment = line
 		} else if lineCreatesNode(line) {
 			openScope(line, rootNode, definitions, &definitionStack, &nodeStack, logger)
 		} else if lineEndsNode(line) {
@@ -45,10 +46,6 @@ func ParseBootDefinitions(reader io.Reader, definitions *Definitions, rootNode *
 			handleUnknown(line, definitions, definitionStack, nodeStack, logger)
 		}
 	}
-}
-
-func last[T interface{}](slice []T) T {
-	return slice[len(slice)-1]
 }
 
 func lineIsComment(line string) bool {
@@ -97,11 +94,11 @@ func openScope(
 	nodeStack *[]*Node,
 	logger *log.Logger,
 ) {
-	parentNode := last(*nodeStack)
+	parentNode := utils.Last(*nodeStack)
 	// Parent definition may not be set
 	var parentDefinition *Definition = nil
 	if parentNode != rootNode {
-		parentDefinition = last(*definitionStack)
+		parentDefinition = utils.Last(*definitionStack)
 	}
 
 	logger.Debugf("Adding new scope: %s", getDefinitionName(line))
@@ -138,13 +135,13 @@ func closeScope(
 	nodeStack *[]*Node,
 	logger *log.Logger,
 ) {
-	logger.Debugf("Closing out scope: %s", last(*definitionStack).FullPath())
+	logger.Debugf("Closing out scope: %s", utils.Last(*definitionStack).FullPath())
 	*definitionStack = (*definitionStack)[:len(*definitionStack)-1]
 	*nodeStack = (*nodeStack)[:len(*nodeStack)-1]
 	// If top of stack is a tag, then we'll need to skip that one too
 	// since when opening the tag we appended two nodes
-	if len(*nodeStack) > 0 && last(*nodeStack).IsTag {
-		logger.Debugf("Scope was tag node, also closing: %s", last(*nodeStack).Name)
+	if len(*nodeStack) > 0 && utils.Last(*nodeStack).IsTag {
+		logger.Debugf("Scope was tag node, also closing: %s", utils.Last(*nodeStack).Name)
 		*nodeStack = (*nodeStack)[:len(*nodeStack)-1]
 	}
 }
@@ -161,10 +158,10 @@ func setValue(
 		"Detected value '%v' for attribute '%s' on path %s",
 		value,
 		attribute,
-		last(definitionStack).FullPath(),
+		utils.Last(definitionStack).FullPath(),
 	)
 
-	definition := makeNewDefinition(last(nodeStack).Children(), last(definitionStack), attribute)
+	definition := makeNewDefinition(utils.Last(nodeStack).Children(), utils.Last(definitionStack), attribute)
 	if _, ok := definitions.DefinitionByPath[definition.FullPath()]; definition.Node.Multi && ok {
 		definitions.DefinitionByPath[definition.FullPath()].Values = append(
 			definitions.DefinitionByPath[definition.FullPath()].Values,
@@ -189,14 +186,14 @@ func handleUnknown(
 	logger *log.Logger,
 ) {
 	// Try to get a definition anyways
-	definition := makeNewDefinition(last(nodeStack).Children(), last(definitionStack), strings.TrimSpace(line))
+	definition := makeNewDefinition(utils.Last(nodeStack).Children(), utils.Last(definitionStack), strings.TrimSpace(line))
 
 	// If a node is not found, or has a type, then there should be a value set
 	// so should not be here
 	if definition.Node == nil || len(definition.Node.Type) > 0 {
 		logger.Warnf("Could not determine purpose of line: '%s'", line)
 	} else if len(definition.Node.Type) == 0 {
-		logger.Debugf("Found implicit boolean attribute on path %s", last(definitionStack).FullPath())
+		logger.Debugf("Found implicit boolean attribute on path %s", utils.Last(definitionStack).FullPath())
 		// Otherwise, this is an implicit boolean by being present and we should
 		// keep the definition
 		definitions.add(&definition)
@@ -204,18 +201,21 @@ func handleUnknown(
 }
 
 func makeNewDefinition(nodes []*Node, parentDefinition *Definition, name string) Definition {
-	path := []string{}
+	path := make([]string, 0)
+	var parentNode *Node = nil
 	if parentDefinition != nil {
 		path = append(parentDefinition.Path, parentDefinition.Name)
 		// For a tag node, path must also include the actual name of the node
 		if parentDefinition.Node.IsTag {
 			path = append(path, parentDefinition.Value.(string))
 		}
+		parentNode = parentDefinition.Node
 	}
 	definition := Definition{
-		Name:     name,
-		Path:     path,
-		Children: make([]*Definition, 0),
+		Name:       name,
+		Path:       path,
+		Children:   make([]*Definition, 0),
+		ParentNode: parentNode,
 	}
 
 	for _, node := range nodes {

@@ -22,6 +22,27 @@ func TestNode_FindChild(t *testing.T) {
 	assert.NotNil(t, child, "Child found for dependent node")
 }
 
+func TestDiffNode(t *testing.T) {
+	node := Node{
+		Name:  "node1",
+		Type:  "txt",
+		IsTag: true,
+		Multi: true,
+		Path:  "foo",
+	}
+
+	diffs := node.diffNode(
+		&Node{
+			Name:  "node2",
+			Type:  "int",
+			IsTag: false,
+			Multi: false,
+			Path:  "bar",
+		})
+
+	assert.Len(t, diffs, 5, "Should have 5 differences, got %d", diffs)
+}
+
 func TestNodeConstraint_GetProperty(t *testing.T) {
 	constraint := NodeConstraint{FailureReason: "failed"}
 
