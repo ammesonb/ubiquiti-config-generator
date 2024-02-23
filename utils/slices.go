@@ -17,9 +17,7 @@ func AllExcept[T interface{}](slice []T, n int) []T {
 
 func CopySlice[T interface{}](slice []T) []T {
 	n := make([]T, len(slice))
-	for i := range slice {
-		n[i] = slice[i]
-	}
+	copy(n, slice)
 
 	return n
 }

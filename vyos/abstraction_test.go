@@ -5,6 +5,7 @@ import (
 	"github.com/ammesonb/ubiquiti-config-generator/abstraction"
 	"github.com/ammesonb/ubiquiti-config-generator/config"
 	"github.com/ammesonb/ubiquiti-config-generator/utils"
+	"github.com/ammesonb/ubiquiti-config-generator/validation"
 	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
@@ -21,8 +22,9 @@ func TestFromPortGroupAbstraction(t *testing.T) {
 		Description: description,
 		Ports:       []int{},
 	}
-	defs := FromPortGroupAbstraction(nodes, group)
+	defs, err := FromPortGroupAbstraction(nodes, group)
 
+	assert.NoError(t, err)
 	groupPath := []any{"firewall", "group", "port-group", name}
 	assert.NotNil(t, defs.FindChild(groupPath), "Port group should exist")
 	assert.Equal(t, description, defs.FindChild(append(groupPath, "description")).Value)
@@ -34,8 +36,9 @@ func TestFromPortGroupAbstraction(t *testing.T) {
 		Description: description,
 		Ports:       []int{123, 53, 80},
 	}
-	defs = FromPortGroupAbstraction(nodes, group)
+	defs, err = FromPortGroupAbstraction(nodes, group)
 
+	assert.NoError(t, err)
 	assert.NotNil(t, defs.FindChild(groupPath), "Port group should exist")
 	assert.Equal(t, description, defs.FindChild(append(groupPath, "description")).Value)
 	assert.Len(t, defs.FindChild(append(groupPath, "port")).Values, 3)
@@ -194,7 +197,7 @@ func TestFromNetworkAbstraction(t *testing.T) {
 		network.Interface.LocalFirewall,
 		abstraction.NAT_COUNTER,
 	} {
-		abstraction.MakeCounter(firewall, network.FirewallRuleNumberStart, network.FirewallRuleNumberStart)
+		abstraction.MakeCounter(firewall, network.FirewallRuleNumberStart, network.FirewallRuleNumberStep)
 	}
 
 	generated, errs := FromNetworkAbstraction(nodes, &network)
@@ -214,7 +217,7 @@ func TestFromNetworkAbstraction(t *testing.T) {
 		utils.MakeVyosPC("firewall"),
 	)
 	expected := initDefinitions()
-	expected.add(generateSparseDefinitionTree(
+	assert.NoError(t, expected.ensureTree(
 		nodes,
 		ifaceFwPath,
 	))
@@ -335,7 +338,7 @@ func TestFromNetworkAbstraction(t *testing.T) {
 		utils.MakeVyosDynamicPC("test-network"),
 	)
 
-	expected.add(generateSparseDefinitionTree(nodes, dhcpPath))
+	assert.NoError(t, expected.ensureTree(nodes, dhcpPath))
 
 	expected.addValue(nodes, dhcpPath, "authoritative", "enable")
 	expected.addValue(nodes, dhcpPath, "description", "sample test network")
@@ -344,7 +347,7 @@ func TestFromNetworkAbstraction(t *testing.T) {
 		utils.MakeVyosPC("subnet"),
 		utils.MakeVyosDynamicPC("10.0.0.0/24"),
 	)
-	expected.add(generateSparseDefinitionTree(nodes, zeroSubnet))
+	assert.NoError(t, expected.ensureTree(nodes, zeroSubnet))
 	expected.addValue(nodes, zeroSubnet, "domain-name", "home.lan")
 	expected.addValue(nodes, zeroSubnet, "default-router", "10.0.0.1")
 	expected.addValue(nodes, zeroSubnet, "lease", int32(86400))
@@ -354,16 +357,14 @@ func TestFromNetworkAbstraction(t *testing.T) {
 		utils.MakeVyosPC("start"),
 		utils.MakeVyosDynamicPC("10.0.0.240"),
 	)
-	expected.add(
-		generateSparseDefinitionTree(nodes, zeroStartPath),
-	)
+	assert.NoError(t, expected.ensureTree(nodes, zeroStartPath))
 	expected.addValue(nodes, zeroStartPath, "stop", "10.0.0.255")
 
 	zeroHostPath := zeroSubnet.Extend(utils.MakeVyosPC("static-mapping"))
 	zeroHostOne := zeroHostPath.Extend(utils.MakeVyosDynamicPC("host-1"))
 	zeroHostTwo := zeroHostPath.Extend(utils.MakeVyosDynamicPC("host-2"))
-	expected.add(generateSparseDefinitionTree(nodes, zeroHostOne))
-	expected.add(generateSparseDefinitionTree(nodes, zeroHostTwo))
+	assert.NoError(t, expected.ensureTree(nodes, zeroHostOne))
+	assert.NoError(t, expected.ensureTree(nodes, zeroHostTwo))
 
 	expected.addValue(nodes, zeroHostOne, "ip-address", "10.0.0.10")
 	expected.addValue(nodes, zeroHostOne, "mac-address", "ab:cd:ef:12:34:56")
@@ -374,7 +375,7 @@ func TestFromNetworkAbstraction(t *testing.T) {
 		1,
 		utils.MakeVyosDynamicPC("10.1.0.0/24"),
 	)
-	expected.add(generateSparseDefinitionTree(nodes, oneSubnet))
+	assert.NoError(t, expected.ensureTree(nodes, oneSubnet))
 	expected.addValue(nodes, oneSubnet, "domain-name", "guest.lan")
 	expected.addValue(nodes, oneSubnet, "default-router", "10.0.0.1")
 	expected.addValue(nodes, oneSubnet, "lease", int32(86400))
@@ -393,7 +394,7 @@ func TestFromNetworkAbstraction(t *testing.T) {
 	for _, src := range []int32{123, 4430, 8080} {
 		dest := forwards[src]
 		natRule := nat.Extend(utils.MakeVyosDynamicPC(strconv.Itoa(rule)))
-		expected.add(generateSparseDefinitionTree(nodes, natRule))
+		assert.NoError(t, expected.ensureTree(nodes, natRule))
 		expected.addValue(
 			nodes,
 			natRule,
@@ -404,12 +405,12 @@ func TestFromNetworkAbstraction(t *testing.T) {
 		expected.addValue(nodes, natRule, "protocol", "tcp_udp")
 		expected.addValue(nodes, natRule, "type", "destination")
 		inside := natRule.Extend(utils.MakeVyosPC("inside-address"))
-		expected.add(generateSparseDefinitionTree(nodes, inside))
+		assert.NoError(t, expected.ensureTree(nodes, inside))
 		expected.addValue(nodes, inside, "address", "10.0.0.10")
-		expected.addValue(nodes, inside, "port", src)
+		expected.addValue(nodes, inside, "port", dest)
 		destination := natRule.Extend(utils.MakeVyosPC("destination"))
-		expected.add(generateSparseDefinitionTree(nodes, destination))
-		expected.addValue(nodes, destination, "port", dest)
+		assert.NoError(t, expected.ensureTree(nodes, destination))
+		expected.addValue(nodes, destination, "port", src)
 		rule += 10
 	}
 
@@ -437,12 +438,13 @@ func TestFromNetworkAbstraction(t *testing.T) {
 		2,
 		utils.MakeVyosDynamicPC("test-local"),
 	)
-	expected.add(generateSparseDefinitionTree(nodes, localFirewall))
+	assert.NoError(t, expected.ensureTree(nodes, localFirewall))
 
-	web := "web-ports"
+	web := any("web-ports")
 	group1 := "group1"
 	group2 := "group2"
 	addFirewallRule(
+		t,
 		expected, nodes,
 		outFirewall, "1000",
 		"allow outbound web connections",
@@ -452,6 +454,7 @@ func TestFromNetworkAbstraction(t *testing.T) {
 		&group1, nil,
 	)
 	addFirewallRule(
+		t,
 		expected, nodes,
 		outFirewall, "1010",
 		"block inbound web connections",
@@ -461,6 +464,7 @@ func TestFromNetworkAbstraction(t *testing.T) {
 		&group1, &web,
 	)
 	addFirewallRule(
+		t,
 		expected, nodes,
 		outFirewall, "1020",
 		"allow group 1 and 2 to communicate",
@@ -470,6 +474,7 @@ func TestFromNetworkAbstraction(t *testing.T) {
 		&group1, nil,
 	)
 	addFirewallRule(
+		t,
 		expected, nodes,
 		inFirewall, "1000",
 		"allow group 2 and 1 to communicate",
@@ -479,8 +484,9 @@ func TestFromNetworkAbstraction(t *testing.T) {
 		&group2, nil,
 	)
 	hostAddr := "10.0.0.10"
-	dnsPort := "53"
+	dnsPort := any(53)
 	addFirewallRule(
+		t,
 		expected, nodes,
 		inFirewall, "1010",
 		"allow host to talk to DNS",
@@ -500,6 +506,7 @@ func TestFromNetworkAbstraction(t *testing.T) {
 }
 
 func addFirewallRule(
+	t *testing.T,
 	definitions *Definitions,
 	nodes *Node,
 	path *utils.VyosPath,
@@ -509,12 +516,13 @@ func addFirewallRule(
 	log bool,
 	protocol string,
 	srcAddr *string,
-	srcPort *string,
+	srcPort *any,
 	destAddr *string,
-	destPort *string,
+	destPort *any,
 ) {
+	t.Helper()
 	r := path.Extend(utils.MakeVyosDynamicPC(rule))
-	definitions.add(generateSparseDefinitionTree(nodes, r))
+	assert.NoError(t, definitions.ensureTree(nodes, r))
 	definitions.addValue(nodes, r, "description", description)
 	action := "accept"
 	if !allow {
@@ -527,24 +535,37 @@ func addFirewallRule(
 	}
 	definitions.addValue(nodes, r, "log", doLog)
 	definitions.addValue(nodes, r, "protocol", protocol)
-	if srcAddr != nil || srcPort != nil {
-		src := r.Extend(utils.MakeVyosPC("source"))
-		definitions.add(generateSparseDefinitionTree(nodes, src))
-		if srcAddr != nil {
-			definitions.addValue(nodes, src, "address", *srcAddr)
+	for _, conn := range []struct {
+		Type    string
+		Address *string
+		Port    *any
+	}{
+		{Type: "source", Address: srcAddr, Port: srcPort},
+		{Type: "destination", Address: destAddr, Port: destPort},
+	} {
+		if conn.Address == nil && conn.Port == nil {
+			continue
 		}
-		if srcPort != nil {
-			definitions.addValue(nodes, src, "port", *srcPort)
+		fwConn := r.Extend(utils.MakeVyosPC(conn.Type))
+		assert.NoError(t, definitions.ensureTree(nodes, fwConn))
+		if conn.Address != nil {
+			if validation.IsValidAddress(*conn.Address) {
+				definitions.addValue(nodes, fwConn, "address", *conn.Address)
+			} else {
+				fwGroup := fwConn.Extend(utils.MakeVyosPC("group"))
+				assert.NoError(t, definitions.ensureTree(nodes, fwGroup))
+				definitions.addValue(nodes, fwGroup, "address-group", *conn.Address)
+			}
 		}
-	}
-	if destAddr != nil || destPort != nil {
-		dest := r.Extend(utils.MakeVyosPC("destination"))
-		definitions.add(generateSparseDefinitionTree(nodes, dest))
-		if destAddr != nil {
-			definitions.addValue(nodes, dest, "address", *destAddr)
+		if conn.Port != nil {
+			if _, ok := (*conn.Port).(string); !ok {
+				definitions.addValue(nodes, fwConn, "port", *conn.Port)
+			} else {
+				fwGroup := fwConn.Extend(utils.MakeVyosPC("group"))
+				assert.NoError(t, definitions.ensureTree(nodes, fwGroup))
+				definitions.addValue(nodes, fwGroup, "port-group", *conn.Port)
+			}
 		}
-		if destPort != nil {
-			definitions.addValue(nodes, dest, "port", *destPort)
-		}
+
 	}
 }

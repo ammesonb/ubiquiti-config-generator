@@ -234,7 +234,6 @@ func (definitions *Definitions) FindChild(path []any) *Definition {
 		if foundTag {
 			foundTag = false
 			continue
-
 		}
 
 		for _, child := range utils.Last(children).Children {
@@ -320,6 +319,83 @@ func (definitions *Definitions) add(definition *Definition) {
 	for _, child := range definition.Children {
 		definitions.add(child)
 	}
+}
+
+func (definitions *Definitions) ensureTree(nodes *Node, path *utils.VyosPath) error {
+	if len(path.Path) != len(path.NodePath) {
+		return fmt.Errorf(
+			"cannot ensure paths for differing definition and node lengths, got %d and %d",
+			len(path.Path),
+			len(path.NodePath),
+		)
+	}
+
+	lastDynamic := false
+	defPath := make([]string, 0)
+	nodePath := make([]string, 0)
+	var parentNode *Node = nil
+	// Loop through each step of the path and add missing definitions
+	// Working in reverse (bottom-up) would allow detection of when a tree starts existing,
+	// but then need to either build definitions backwards or reverse direction again so top-down is simpler
+	for idx := range path.Path {
+		// Dynamic nodes will consume the next as its value for a tag, so skip this index but do append the
+		// tagged values, for proper definition traversals
+		// Also clear the flag, to avoid infinitely skipping later paths
+		if lastDynamic {
+			defPath = append(defPath, path.Path[idx])
+			nodePath = append(nodePath, path.NodePath[idx])
+			lastDynamic = false
+			continue
+		}
+
+		// Track this definition's path
+		childPath := utils.CopySliceWith(defPath, path.Path[idx])
+		fullPath := strings.Join(childPath, "/")
+		childNodePath := utils.CopySliceWith(nodePath, path.NodePath[idx])
+		fullNodePath := strings.Join(childNodePath, "/")
+		// Identify this node, and update the last dynamic state based on its configuration
+		node := nodes.FindChild(childNodePath)
+		if node == nil {
+			return fmt.Errorf("failed to find node for: %s", fullNodePath)
+		} else if node.IsTag {
+			lastDynamic = true
+			if len(path.Path) == idx {
+				return fmt.Errorf("cannot end tree path on dynamic entry without defined tag: %s", fullPath)
+			}
+			// Add the next path definition name to the string path, so when we check if the given definition is already
+			// included, it is fully qualified instead of the placeholder tag instead
+			// e.g. firewall -> name is meaningless without the trailing -> <some firewall name>
+			fullPath = fullPath + "/" + path.Path[idx+1]
+		}
+		// Check if this path is defined or not
+		// If this path is already defined, then we don't need to add anything here
+		// Child paths will be added to parent definitions by the `add` function, so can safely append new children
+		if _, ok := definitions.DefinitionByPath[fullPath]; !ok {
+			var value any
+			// For tags, we require the next definition to be present, so we know the value to use
+			if node.IsTag {
+				value = path.Path[idx+1]
+			}
+			// Since definition not present, we can safely add it
+			definitions.add(&Definition{
+				Name:       path.Path[idx],
+				Path:       defPath,
+				Node:       node,
+				Value:      value,
+				Children:   make([]*Definition, 0),
+				ParentNode: parentNode,
+			})
+		}
+
+		// Assign paths to the children versions, to recurse further
+		defPath = childPath
+		nodePath = childNodePath
+		// Only reassign parent node on meaningful nodes, since no definitions will be added
+		// on the placeholder tag nodes
+		parentNode = node
+	}
+
+	return nil
 }
 
 func (definitions *Definitions) addValue(nodes *Node, path *utils.VyosPath, keyName string, value any) {

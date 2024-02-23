@@ -23,12 +23,12 @@ func MakeVyosPath() *VyosPath {
 	}
 }
 
-// MakeVyosPC returns a new path component
+// MakeVyosPC returns a new path component, e.g. firewall -> name are both static components
 func MakeVyosPC(name string) VyosPathComponent {
 	return VyosPathComponent{Name: name, IsDynamic: false}
 }
 
-// MakeVyosDynamicPC returns a new dynamic path component
+// MakeVyosDynamicPC returns a new dynamic path component, e.g. "something" in firewall -> name -> <something>
 func MakeVyosDynamicPC(name string) VyosPathComponent {
 	return VyosPathComponent{Name: name, IsDynamic: true}
 }

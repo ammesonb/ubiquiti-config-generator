@@ -22,30 +22,43 @@ func FromNetworkAbstraction(nodes *Node, network *abstraction.Network) (*Definit
 		utils.MakeVyosPC("shared-network-name"),
 		utils.MakeVyosDynamicPC(network.Name),
 	)
-	dhcpDefinition := generateSparseDefinitionTree(nodes, dhcpPath)
-	definitions.add(dhcpDefinition)
+	if err := definitions.ensureTree(nodes, dhcpPath); err != nil {
+		return nil, []error{fmt.Errorf("failed to generate DHCP service tree: %w", err)}
+	}
 
 	definitions.addValue(nodes, dhcpPath, "authoritative", network.Authoritative)
 	definitions.addValue(nodes, dhcpPath, "description", network.Description)
 
 	if network.Interface != nil {
-		configureNetworkInterface(
+		if err := configureNetworkInterface(
 			nodes,
 			definitions,
 			network.Interface,
-		)
+		); err != nil {
+			return nil, []error{fmt.Errorf("failed to configure network interface: %w", err)}
+		}
 	}
 
 	errors := make([]error, 0)
 	subnetBase := dhcpPath.Extend(utils.MakeVyosPC("subnet"))
 	for _, subnet := range network.Subnets {
 		subnetPath := subnetBase.Extend(utils.MakeVyosDynamicPC(subnet.CIDR))
-		definitions.add(generateSparseDefinitionTree(nodes, subnetPath))
-		addSubnetNetworkValues(nodes, definitions, subnet, subnetPath)
+		if err := definitions.ensureTree(nodes, subnetPath); err != nil {
+			errors = append(errors, fmt.Errorf("failed to generate subnet %s tree: %w", subnet.CIDR, err))
+			continue
+		} else if err := addSubnetNetworkValues(nodes, definitions, subnet, subnetPath); err != nil {
+			errors = append(errors, fmt.Errorf("failed to set subnet %s values: %w", subnet.CIDR, err))
+			continue
+		}
 
 		for _, host := range subnet.Hosts {
-			addHostToSubnet(nodes, definitions, host, subnetPath)
-			addHostToAddressGroups(nodes, definitions, host)
+			if err := addHostToSubnet(nodes, definitions, host, subnetPath); err != nil {
+				errors = append(errors, err)
+				continue
+			}
+			if errs := addHostToAddressGroups(nodes, definitions, host); errs != nil {
+				errors = append(errors, errs...)
+			}
 			if err := addFirewallRules(nodes, definitions, network, subnet, host); err != nil {
 				errors = append(errors, err...)
 			}
@@ -56,7 +69,7 @@ func FromNetworkAbstraction(nodes *Node, network *abstraction.Network) (*Definit
 }
 
 // configureNetworkInterface sets properties of an interface including address, firewalls, etc
-func configureNetworkInterface(nodes *Node, definitions *Definitions, iface *abstraction.Interface) {
+func configureNetworkInterface(nodes *Node, definitions *Definitions, iface *abstraction.Interface) error {
 	path := utils.MakeVyosPath()
 	path.Append(
 		utils.MakeVyosPC("interfaces"),
@@ -64,8 +77,9 @@ func configureNetworkInterface(nodes *Node, definitions *Definitions, iface *abs
 		utils.MakeVyosDynamicPC(iface.Name),
 	)
 	// initialize the interfaces/ethernet tree, and override the dynamic node with the proper value
-	ethInterfaces := generateSparseDefinitionTree(nodes, path)
-	definitions.add(ethInterfaces)
+	if err := definitions.ensureTree(nodes, path); err != nil {
+		return fmt.Errorf("failed to set ethernet %s interface: %w", iface.Name, err)
+	}
 
 	definitions.addValue(nodes, path, "duplex", iface.Duplex)
 	definitions.addValue(nodes, path, "speed", iface.Speed)
@@ -79,8 +93,9 @@ func configureNetworkInterface(nodes *Node, definitions *Definitions, iface *abs
 			utils.MakeVyosPC("vif"),
 			utils.MakeVyosDynamicPC(strconv.Itoa(int(*iface.Vif))),
 		)
-		vifDef := generateSparseDefinitionTree(nodes, path)
-		definitions.add(vifDef)
+		if err := definitions.ensureTree(nodes, path); err != nil {
+			return fmt.Errorf("failed to set VIF %d for interface %s: %w", iface.Vif, iface.Name, err)
+		}
 	}
 
 	definitions.addValue(nodes, path, "description", iface.Description)
@@ -92,21 +107,31 @@ func configureNetworkInterface(nodes *Node, definitions *Definitions, iface *abs
 		utils.MakeVyosPC("firewall"),
 		utils.MakeVyosPC("in"),
 	)
-	definitions.add(generateSparseDefinitionTree(nodes, inPath))
+	if err := definitions.ensureTree(nodes, inPath); err != nil {
+		return fmt.Errorf("failed to create inbound firewall tree: %w", err)
+	}
 	definitions.addValue(nodes, inPath, "name", iface.InboundFirewall)
 
 	outPath := inPath.DivergeFrom(1, utils.MakeVyosPC("out"))
-	definitions.add(generateSparseDefinitionTree(nodes, outPath))
+	if err := definitions.ensureTree(nodes, outPath); err != nil {
+		return fmt.Errorf("failed to create outbound firewall tree: %w", err)
+	}
 	definitions.addValue(nodes, outPath, "name", iface.OutboundFirewall)
 
 	localPath := inPath.DivergeFrom(1, utils.MakeVyosPC("local"))
-	definitions.add(generateSparseDefinitionTree(nodes, localPath))
+	if err := definitions.ensureTree(nodes, localPath); err != nil {
+		return fmt.Errorf("failed to create local firewall tree: %w", err)
+	}
 	definitions.addValue(nodes, localPath, "name", iface.LocalFirewall)
+
+	return nil
 }
 
 // addSubnetNetworkValues configures the given subnet definitions using the provided nodes and paths
-func addSubnetNetworkValues(nodes *Node, definitions *Definitions, subnet *abstraction.Subnet, path *utils.VyosPath) {
-	definitions.add(generateSparseDefinitionTree(nodes, path))
+func addSubnetNetworkValues(nodes *Node, definitions *Definitions, subnet *abstraction.Subnet, path *utils.VyosPath) error {
+	if err := definitions.ensureTree(nodes, path); err != nil {
+		return err
+	}
 	definitions.add(
 		generatePopulatedDefinitionTree(
 			nodes,
@@ -132,19 +157,25 @@ func addSubnetNetworkValues(nodes *Node, definitions *Definitions, subnet *abstr
 	definitions.addValue(nodes, path, "default-router", subnet.DefaultRouter)
 
 	addExtraValues(nodes, definitions, path, subnet.Extra)
+
+	return nil
 }
 
 // addHostToSubnet configures the reserved IP address for a host with the given MAC address
-func addHostToSubnet(nodes *Node, definitions *Definitions, host *abstraction.Host, path *utils.VyosPath) {
+func addHostToSubnet(nodes *Node, definitions *Definitions, host *abstraction.Host, path *utils.VyosPath) error {
 	hostPath := path.Extend(
 		utils.MakeVyosPC("static-mapping"),
 		utils.MakeVyosDynamicPC(host.Name),
 	)
 
-	definitions.add(generateSparseDefinitionTree(nodes, hostPath))
+	if err := definitions.ensureTree(nodes, hostPath); err != nil {
+		return fmt.Errorf("failed to create tree for host %s: %w", host.Name, err)
+	}
 
 	definitions.addValue(nodes, hostPath, "ip-address", host.Address)
 	definitions.addValue(nodes, hostPath, "mac-address", host.MAC)
+
+	return nil
 }
 
 func addExtraValues(nodes *Node, definitions *Definitions, path *utils.VyosPath, extra map[string]any) {
@@ -159,9 +190,9 @@ func addExtraValues(nodes *Node, definitions *Definitions, path *utils.VyosPath,
 }
 
 // addHostToAddressGroups will add the address of the host to any specified groups it should have
-func addHostToAddressGroups(nodes *Node, definitions *Definitions, host *abstraction.Host) {
+func addHostToAddressGroups(nodes *Node, definitions *Definitions, host *abstraction.Host) []error {
 	if host.AddressGroups == nil {
-		return
+		return []error{}
 	}
 
 	path := utils.MakeVyosPath()
@@ -170,11 +201,17 @@ func addHostToAddressGroups(nodes *Node, definitions *Definitions, host *abstrac
 		utils.MakeVyosPC("group"),
 		utils.MakeVyosPC("address-group"),
 	)
+	errors := make([]error, 0)
 	for _, group := range host.AddressGroups {
 		groupPath := path.Extend(utils.MakeVyosDynamicPC(group))
-		definitions.add(generateSparseDefinitionTree(nodes, groupPath))
+		if err := definitions.ensureTree(nodes, groupPath); err != nil {
+			errors = append(errors, fmt.Errorf("failed to create tree for address group %s: %w", group, err))
+			continue
+		}
 		definitions.appendToListValue(nodes, groupPath, "address", host.Address)
 	}
+
+	return errors
 }
 
 func addFirewallRules(nodes *Node, definitions *Definitions, network *abstraction.Network, subnet *abstraction.Subnet, host *abstraction.Host) []error {
@@ -185,16 +222,18 @@ func addFirewallRules(nodes *Node, definitions *Definitions, network *abstractio
 	}
 	sort.Ints(fromPorts)
 
+	errors := make([]error, 0)
 	for _, fromPort := range fromPorts {
 		from := int32(fromPort)
-		addForwardPort(nodes, definitions, host, network.InboundInterface, from, host.ForwardPorts[from])
+		if err := addForwardPort(nodes, definitions, host, network.InboundInterface, from, host.ForwardPorts[from]); err != nil {
+			errors = append(errors, err)
+		}
 	}
 
 	if len(host.Connections) > 0 && network.Interface == nil {
 		return []error{fmt.Errorf("network %s must have interface defined in order to set firewall rules on host %s", network.Name, host.Name)}
 	}
 
-	errors := make([]error, 0)
 	for _, connection := range host.Connections {
 		firewallName := getConnectionFirewall(network, subnet, host, connection)
 		// if firewall name is blank, then some part of the rule definition is likely invalid since it does not seem to
@@ -221,7 +260,7 @@ func addFirewallRules(nodes *Node, definitions *Definitions, network *abstractio
 	return errors
 }
 
-func addForwardPort(nodes *Node, definitions *Definitions, host *abstraction.Host, inboundInterface string, from int32, to int32) {
+func addForwardPort(nodes *Node, definitions *Definitions, host *abstraction.Host, inboundInterface string, from int32, to int32) error {
 	ruleNumber := abstraction.GetCounter(abstraction.NAT_COUNTER).Next()
 
 	path := utils.MakeVyosPath()
@@ -232,7 +271,9 @@ func addForwardPort(nodes *Node, definitions *Definitions, host *abstraction.Hos
 		utils.MakeVyosDynamicPC(strconv.Itoa(ruleNumber)),
 	)
 
-	definitions.add(generateSparseDefinitionTree(nodes, path))
+	if err := definitions.ensureTree(nodes, path); err != nil {
+		return fmt.Errorf("failed to create NAT rule to forward port %d to %s: %w", from, host.Name, err)
+	}
 	definitions.addValue(
 		nodes,
 		path,
@@ -243,13 +284,19 @@ func addForwardPort(nodes *Node, definitions *Definitions, host *abstraction.Hos
 	definitions.addValue(nodes, path, "protocol", "tcp_udp")
 	definitions.addValue(nodes, path, "inbound-interface", inboundInterface)
 	destPath := path.Extend(utils.MakeVyosPC("destination"))
-	definitions.add(generateSparseDefinitionTree(nodes, destPath))
+	if err := definitions.ensureTree(nodes, destPath); err != nil {
+		return fmt.Errorf("failed to create destination NAT to forward port %d to %s: %w", from, host.Name, err)
+	}
 	definitions.addValue(nodes, destPath, "port", from)
 
 	insidePath := path.Extend(utils.MakeVyosPC("inside-address"))
-	definitions.add(generateSparseDefinitionTree(nodes, insidePath))
+	if err := definitions.ensureTree(nodes, insidePath); err != nil {
+		return fmt.Errorf("failed to create inside NAT to forward port %d to %s: %w", from, host.Name, err)
+	}
 	definitions.addValue(nodes, insidePath, "address", host.Address)
 	definitions.addValue(nodes, insidePath, "port", to)
+
+	return nil
 }
 
 func addConnection(
@@ -278,7 +325,9 @@ func addConnection(
 		utils.MakeVyosDynamicPC(strconv.Itoa(rule)),
 	)
 
-	definitions.add(generateSparseDefinitionTree(nodes, rulePath))
+	if err := definitions.ensureTree(nodes, rulePath); err != nil {
+		return fmt.Errorf("failed to create tree for firewall %s, rule %d: %w", firewall, rule, err)
+	}
 
 	var action, log string
 	if connection.Allow {
@@ -349,22 +398,26 @@ func getConnectionFirewall(network *abstraction.Network, subnet *abstraction.Sub
 	return ""
 }
 
-func addConnectionDetail(definitions *Definitions, nodes *Node, path *utils.VyosPath, connection *abstraction.ConnectionDetail) {
+func addConnectionDetail(definitions *Definitions, nodes *Node, path *utils.VyosPath, connection *abstraction.ConnectionDetail) error {
 	if connection != nil {
-		definitions.add(generateSparseDefinitionTree(nodes, path))
+		if err := definitions.ensureTree(nodes, path); err != nil {
+			return fmt.Errorf("failed to create connection tree: %w", err)
+		}
 		if connection.Address != nil {
 			if validation.IsValidAddress(*connection.Address) {
 				// For valid IP address, just add it directly
-				definitions.addValue(nodes, path, "address", connection.Address)
+				definitions.addValue(nodes, path, "address", *connection.Address)
 			} else if connection.Address != nil {
 				// Group needs to nest further
 				groupPath := path.Extend(utils.MakeVyosPC("group"))
-				definitions.add(generateSparseDefinitionTree(nodes, groupPath))
+				if err := definitions.ensureTree(nodes, groupPath); err != nil {
+					return fmt.Errorf("failed to create address group path for %p: %w", connection.Address, err)
+				}
 				definitions.addValue(
 					nodes,
 					groupPath,
 					"address-group",
-					connection.Address,
+					*connection.Address,
 				)
 			}
 		}
@@ -376,19 +429,23 @@ func addConnectionDetail(definitions *Definitions, nodes *Node, path *utils.Vyos
 			} else {
 				// Group needs to nest further
 				groupPath := path.Extend(utils.MakeVyosPC("group"))
-				definitions.add(generateSparseDefinitionTree(nodes, groupPath))
+				if err := definitions.ensureTree(nodes, groupPath); err != nil {
+					return fmt.Errorf("failed to create port group path for %p: %w", connection.Port, err)
+				}
 				definitions.addValue(
 					nodes,
 					groupPath,
 					"port-group",
-					connection.Port,
+					*connection.Port,
 				)
 			}
 		}
 	}
+
+	return nil
 }
 
-func FromPortGroupAbstraction(nodes *Node, group abstraction.PortGroup) *Definitions {
+func FromPortGroupAbstraction(nodes *Node, group abstraction.PortGroup) (*Definitions, error) {
 	// Have to explicitly add each port to a new slice, cannot convert/assert any other way :(
 	definitions := initDefinitions()
 	path := utils.MakeVyosPath()
@@ -398,8 +455,9 @@ func FromPortGroupAbstraction(nodes *Node, group abstraction.PortGroup) *Definit
 		utils.MakeVyosPC("port-group"),
 		utils.MakeVyosDynamicPC(group.Name),
 	)
-	groupDefinition := generateSparseDefinitionTree(nodes, path)
-	definitions.add(groupDefinition)
+	if err := definitions.ensureTree(nodes, path); err != nil {
+		return nil, fmt.Errorf("failed to create port group %s tree: %w", group.Name, err)
+	}
 
 	definitions.addValue(
 		nodes, path, "description", group.Description,
@@ -408,5 +466,5 @@ func FromPortGroupAbstraction(nodes *Node, group abstraction.PortGroup) *Definit
 		nodes, path, "port", config.SliceIntToAny(group.Ports),
 	)
 
-	return definitions
+	return definitions, nil
 }
