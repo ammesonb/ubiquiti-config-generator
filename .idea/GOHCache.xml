@@ -150,6 +150,20 @@
             </set>
           </value>
         </entry>
+        <entry key="VyosPath">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/utils/vyos_path.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="VyosPathComponent">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/utils/vyos_path.go" />
+            </set>
+          </value>
+        </entry>
         <entry key="accessTokenResponse">
           <value>
             <set>
@@ -361,6 +375,26 @@
             </ScannedPath>
           </value>
         </entry>
+        <entry key="file://$PROJECT_DIR$/utils/slices.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1708673184083" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/utils/vyos_path.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1708668499590" />
+              <option name="schema">
+                <list>
+                  <option value="VyosPath" />
+                  <option value="VyosPathComponent" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
         <entry key="file://$PROJECT_DIR$/validation/ip_address.go">
           <value>
             <ScannedPath>
@@ -378,35 +412,35 @@
         <entry key="file://$PROJECT_DIR$/vyos/abstraction.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1707841848059" />
+              <option name="lastModified" value="1708673143577" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/vyos/abstraction_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1707764954330" />
+              <option name="lastModified" value="1708673043724" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/vyos/boot_parser.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706648184851" />
+              <option name="lastModified" value="1708204551733" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/vyos/boot_parser_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706054711397" />
+              <option name="lastModified" value="1708621599077" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/vyos/definition.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1707853516784" />
+              <option name="lastModified" value="1708671705795" />
               <option name="schema">
                 <list>
                   <option value="Definition" />
@@ -420,7 +454,7 @@
         <entry key="file://$PROJECT_DIR$/vyos/definition_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1707847516449" />
+              <option name="lastModified" value="1708621599081" />
             </ScannedPath>
           </value>
         </entry>
@@ -434,7 +468,7 @@
         <entry key="file://$PROJECT_DIR$/vyos/node.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1707852958968" />
+              <option name="lastModified" value="1708620398597" />
               <option name="schema">
                 <list>
                   <option value="Node" />
@@ -592,8 +626,10 @@
         <entry key="repository" value="repository" />
         <entry key="rule_counter" value="RuleCounter" />
         <entry key="subnet" value="Subnet" />
+        <entry key="vyos_path" value="VyosPath" />
+        <entry key="vyos_path_component" value="VyosPathComponent" />
       </map>
     </option>
-    <option name="lastTimeChecked" value="1707591874496" />
+    <option name="lastTimeChecked" value="1708615955498" />
   </component>
 </project>
