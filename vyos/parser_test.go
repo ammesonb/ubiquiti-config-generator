@@ -2,12 +2,12 @@ package vyos
 
 import (
 	"fmt"
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"github.com/stretchr/testify/assert"
 	"os"
+	"path/filepath"
 	"testing"
 )
-
-var errStatFailed = "failed to stat file"
 
 func TestParse(t *testing.T) {
 	nodes, err := Parse("./test-files/node")
@@ -18,21 +18,21 @@ func TestParse(t *testing.T) {
 	nodes, err = Parse("./test-files/xml")
 	assert.Nil(t, nodes, "No XML nodes generated")
 	assert.Error(t, err)
-	assert.ErrorContains(t, err, errUnsupportedType)
+	assert.ErrorIs(t, err, utils.ErrWithCtx(errUnsupportedType, "./test-files/xml"))
 
 	nodes, err = Parse("./test-files/invalid-node-dir")
 	assert.Nil(t, nodes, "No nodes generated")
 	assert.Error(t, err)
-	assert.ErrorContains(t, err, errUnsupportedType)
+	assert.ErrorIs(t, err, utils.ErrWithCtx(errUnsupportedType, "./test-files/invalid-node-dir"))
 }
 
 func TestParseErrors(t *testing.T) {
 	fmt.Println("Testing stat")
 	isNode, err := isNodeDef(
 		"/failure",
-		func(_ string) (os.FileInfo, error) { return nil, fmt.Errorf(errStatFailed) },
+		func(_ string) (os.FileInfo, error) { return nil, utils.Err(errFailedStat) },
 	)
 	assert.False(t, isNode, "Not nodes if function errors")
 	assert.Error(t, err, "Error thrown on failure")
-	assert.ErrorContains(t, err, errStatFailed)
+	assert.ErrorIs(t, err, utils.ErrWithCtx(errFailedStat, filepath.Join("/failure", "firewall", "node.def")))
 }

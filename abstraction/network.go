@@ -1,7 +1,7 @@
 package abstraction
 
 import (
-	"fmt"
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"os"
 	"path"
 	"regexp"
@@ -11,14 +11,20 @@ import (
 	"github.com/ammesonb/ubiquiti-config-generator/validation"
 )
 
-var errReadNetworkDir = "failed to read networks dir"
+var errReadNetworks = "failed to read networks in directory %s"
+var errReadNetworkConf = "failed to read network config in %s"
+var errParseNetworkConf = "failed to parse network config in %s"
+var errReadHostDir = "failed to read hosts directory for network: %s"
+var errReadHost = "failed to read host: %s"
+var errParseHost = "failed to parse host: %s"
+var errCheckHostSubnet = "failed checking host subnet: %s"
 
 func LoadNetworks(networksPath string) ([]Network, []error) {
 	var networks []Network
 
 	entries, err := os.ReadDir(networksPath)
 	if err != nil {
-		return nil, []error{fmt.Errorf("%s %s: %v", errReadNetworkDir, networksPath, err)}
+		return nil, []error{utils.ErrWithCtxParent(errReadNetworks, networksPath, err)}
 	}
 
 	var errors []error
@@ -37,18 +43,15 @@ func LoadNetworks(networksPath string) ([]Network, []error) {
 	return networks, errors
 }
 
-var errReadNetworkConfig = "failed to read network config"
-var errParseNetworkConfig = "failed to parse network config at"
-
 func loadNetwork(networkPath string) (*Network, []error) {
 	config, err := os.ReadFile(path.Join(networkPath, "config.yaml"))
 	if err != nil {
-		return nil, []error{fmt.Errorf("%s: %s/config.yaml: %v", errReadNetworkConfig, networkPath, err)}
+		return nil, []error{utils.ErrWithCtxParent(errReadNetworkConf, networkPath, err)}
 	}
 	var network Network
 
 	if err = yaml.Unmarshal(config, &network); err != nil {
-		return nil, []error{fmt.Errorf("%s %s: %v", errParseNetworkConfig, networkPath, err)}
+		return nil, []error{utils.ErrWithCtxParent(errParseNetworkConf, networkPath, err)}
 	}
 
 	if errs := loadHosts(&network, networkPath); len(errs) > 0 {
@@ -74,22 +77,16 @@ func setupFirewallRuleCounters(network Network) {
 	}
 }
 
-var (
-	errFailedReadHostDirectory = "failed to read hosts directory for network"
-	errFailedReadHost          = "failed to read host"
-	errFailedParseHost         = "failed to parse host"
-	errCheckHostSubnet         = "failed checking host subnet"
-)
-
 func loadHosts(network *Network, networkPath string) []error {
 	// if the hosts directory does not exist, then simply skip loading
 	if _, err := os.Stat(path.Join(networkPath, "hosts")); os.IsNotExist(err) {
 		return nil
 	}
 
-	hostFiles, err := os.ReadDir(path.Join(networkPath, "hosts"))
+	hostDir := path.Join(networkPath, "hosts")
+	hostFiles, err := os.ReadDir(hostDir)
 	if err != nil {
-		return []error{fmt.Errorf("%s: %v", errFailedReadHostDirectory, err)}
+		return []error{utils.ErrWithCtxParent(errReadHostDir, hostDir, err)}
 	}
 
 	errors := make([]error, 0)
@@ -112,7 +109,7 @@ func loadHosts(network *Network, networkPath string) []error {
 func loadHost(hostPath string, network *Network) error {
 	hostYAML, err := os.ReadFile(hostPath)
 	if err != nil {
-		return fmt.Errorf("%s %s: %v", errFailedReadHost, hostPath, err)
+		return utils.ErrWithCtxParent(errReadHost, hostPath, err)
 	}
 
 	nameExtract := regexp.MustCompile(`^.*/(.*)\.ya?ml$`)
@@ -127,13 +124,13 @@ func loadHost(hostPath string, network *Network) error {
 	}
 
 	if err = yaml.Unmarshal(hostYAML, &host); err != nil {
-		return fmt.Errorf("%s %s: %v", errFailedParseHost, hostPath, err)
+		return utils.ErrWithCtxParent(errParseHost, hostPath, err)
 	}
 
 	for _, subnet := range network.Subnets {
 		inSubnet, err := validation.IsAddressInSubnet(host.Address, subnet.CIDR)
 		if err != nil {
-			return fmt.Errorf("%s %s: %v", errCheckHostSubnet, hostPath, err)
+			return utils.ErrWithCtxParent(errCheckHostSubnet, hostPath, err)
 		} else if inSubnet {
 			subnet.Hosts = append(subnet.Hosts, &host)
 		}

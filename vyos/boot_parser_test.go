@@ -157,11 +157,7 @@ func TestGetTagDefinitionName(t *testing.T) {
 - Compound test combining above elements like a normal config would
 */
 func TestParseBootDefinitions(t *testing.T) {
-	rootNode, err := GetGeneratedNodes()
-	if err != nil {
-		t.Error(err.Error())
-		t.FailNow()
-	}
+	rootNode := GetGeneratedNodes(t)
 
 	firewall := Definition{
 		Name:       "firewall",

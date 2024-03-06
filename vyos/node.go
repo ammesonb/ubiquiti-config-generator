@@ -67,9 +67,17 @@ type Node struct {
 	Constraints []NodeConstraint `yaml:"Constraints"`
 }
 
+type ErrNonexistentNode struct {
+	nodePath string
+}
+
+func (e ErrNonexistentNode) Error() string {
+	return fmt.Sprintf("failed to find node at path %s", e.nodePath)
+}
+
 // Children returns an unordered list of nodes this one contains
 func (node *Node) Children() []*Node {
-	children := []*Node{}
+	children := make([]*Node, 0)
 
 	for _, child := range node.ChildNodes {
 		children = append(children, child)

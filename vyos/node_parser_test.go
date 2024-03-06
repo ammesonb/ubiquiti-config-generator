@@ -3,6 +3,7 @@ package vyos
 import (
 	"bytes"
 	"fmt"
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"math/rand"
@@ -1032,9 +1033,7 @@ func TestInvalidConstraint(t *testing.T) {
 	// invalid unrecognized expression
 	ntype := "txt"
 	help := "Time in seconds the prefix will remain valid"
-	expr := fmt.Sprintf(
-		`a, b, c`,
-	)
+	expr := `a, b, c`
 
 	definition := constructDefinition(
 		&ntype,
@@ -1047,7 +1046,7 @@ func TestInvalidConstraint(t *testing.T) {
 	)
 
 	var buffer bytes.Buffer
-	buffer.Truncate(0)
+	buffer.Reset()
 	buffer.WriteString(definition)
 
 	node := &Node{}
@@ -1071,7 +1070,7 @@ func TestInvalidConstraint(t *testing.T) {
 		&expr,
 	)
 
-	buffer.Truncate(0)
+	buffer.Reset()
 	buffer.WriteString(definition)
 
 	node = &Node{}
@@ -1162,5 +1161,5 @@ func TestParseNodeDef(t *testing.T) {
 	node, err := ParseNodeDef("/nonexistent")
 	assert.Nil(t, node)
 	assert.Error(t, err)
-	assert.ErrorContains(t, err, errFailedReadDir)
+	assert.ErrorIs(t, err, utils.ErrWithCtx(errReadNodeDir, "/nonexistent"))
 }

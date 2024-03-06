@@ -70,10 +70,7 @@ func TestDiffDefinition(t *testing.T) {
 }
 
 func TestMerge(t *testing.T) {
-	nodes, err := GetGeneratedNodes()
-	if err != nil {
-		t.Errorf("Failed to get generated nodes: %v", err)
-	}
+	nodes := GetGeneratedNodes(t)
 	definitions := initDefinitions()
 
 	definitions.add(&Definition{
@@ -315,7 +312,7 @@ func TestMerge(t *testing.T) {
 		ParentNode: nodes.FindChild([]string{"firewall", "group", "port-group"}),
 	})
 
-	err = definitions.merge(others)
+	err := definitions.merge(others)
 	assert.NoError(t, err, "Definitions should merge successfully")
 
 	assert.Equal(
@@ -387,10 +384,7 @@ func TestMerge(t *testing.T) {
 }
 
 func TestMergeConflictingDefinition(t *testing.T) {
-	nodes, err := GetGeneratedNodes()
-	if err != nil {
-		t.Errorf("Failed to get generated nodes: %v", err)
-	}
+	nodes := GetGeneratedNodes(t)
 	definitions := initDefinitions()
 
 	definitions.add(&Definition{
@@ -499,15 +493,12 @@ func TestMergeConflictingDefinition(t *testing.T) {
 		Children: []*Definition{},
 	})
 
-	err = definitions.merge(others)
+	err := definitions.merge(others)
 	assert.ErrorContainsf(t, err, "differences between nodes at path firewall/all-ping", "Expected all-ping to have conflicting value")
 }
 
 func TestGenerateDefinitionTree(t *testing.T) {
-	nodes, err := GetGeneratedNodes()
-	if err != nil {
-		t.Errorf("Failed to generate fixtures: %v", err)
-	}
+	nodes := GetGeneratedNodes(t)
 
 	path := utils.MakeVyosPath()
 	path.Append(
@@ -549,10 +540,7 @@ func TestGenerateDefinitionTree(t *testing.T) {
 }
 
 func TestGenerateMultiDynamicNodeDefinitionTree(t *testing.T) {
-	nodes, err := GetGeneratedNodes()
-	if err != nil {
-		t.Errorf("Failed to generate fixtures: %v", err)
-	}
+	nodes := GetGeneratedNodes(t)
 
 	path := utils.MakeVyosPath()
 	path.Append(
@@ -596,8 +584,7 @@ func TestGenerateMultiDynamicNodeDefinitionTree(t *testing.T) {
 }
 
 func TestGeneratePopulatedDefinitionTreeFromRoot(t *testing.T) {
-	nodes, err := GetGeneratedNodes()
-	assert.NoError(t, err, "Generating nodes should not fail")
+	nodes := GetGeneratedNodes(t)
 
 	expected := &Definition{
 		Name: "firewall",
@@ -676,8 +663,7 @@ func TestGeneratePopulatedDefinitionTreeFromRoot(t *testing.T) {
 }
 
 func TestGeneratePopulatedDefinitionTreeNested(t *testing.T) {
-	nodes, err := GetGeneratedNodes()
-	assert.NoError(t, err, "Generating nodes should not fail")
+	nodes := GetGeneratedNodes(t)
 
 	path := utils.MakeVyosPath()
 	path.Append(
@@ -727,8 +713,7 @@ func TestGeneratePopulatedDefinitionTreeNested(t *testing.T) {
 	assert.Empty(t, expected.Diff(generated), "Definitions should generate as expected")
 }
 func TestDefinitions_FindChild(t *testing.T) {
-	nodes, err := GetGeneratedNodes()
-	assert.NoError(t, err, "Generating nodes should not fail")
+	nodes := GetGeneratedNodes(t)
 
 	defs := initDefinitions()
 	defs.add(
@@ -784,8 +769,7 @@ func TestDefinitions_FindChild(t *testing.T) {
 }
 
 func TestAddValue(t *testing.T) {
-	nodes, err := GetGeneratedNodes()
-	assert.NoError(t, err, "Generating nodes should not fail")
+	nodes := GetGeneratedNodes(t)
 
 	defs := initDefinitions()
 
@@ -844,8 +828,7 @@ func TestAddValue(t *testing.T) {
 }
 
 func TestAddExisting(t *testing.T) {
-	nodes, err := GetGeneratedNodes()
-	assert.NoError(t, err, "Generating nodes should not fail")
+	nodes := GetGeneratedNodes(t)
 
 	defs := initDefinitions()
 	definition := generatePopulatedDefinitionTree(
@@ -874,12 +857,7 @@ func TestAddExisting(t *testing.T) {
 }
 
 func TestAddDoesNotOverwrite(t *testing.T) {
-	nodes, err := GetGeneratedNodes()
-	assert.NoError(t, err)
-	if err != nil || nodes == nil {
-		t.FailNow()
-	}
-	assert.NotNil(t, nodes)
+	nodes := GetGeneratedNodes(t)
 
 	defs := initDefinitions()
 	ethPath := utils.MakeVyosPath()
@@ -902,4 +880,19 @@ func TestAddDoesNotOverwrite(t *testing.T) {
 		t.FailNow()
 	}
 	assert.Len(t, eth.Children, 4, "Should have four children: description, duplex, speed, vif")
+}
+
+func TestEnsureTree(t *testing.T) {
+	nodes := GetGeneratedNodes(t)
+	defs := initDefinitions()
+
+	goodPath := utils.MakeVyosPath()
+	goodPath.Append(
+		utils.MakeVyosPC("firewall"),
+		utils.MakeVyosPC("name"),
+		utils.MakeVyosDynamicPC("test-firewall"),
+		utils.MakeVyosPC("rule"),
+		utils.MakeVyosDynamicPC("100"),
+	)
+	assert.Nil(t, defs.ensureTree(nodes, goodPath))
 }

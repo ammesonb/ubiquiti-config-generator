@@ -13,6 +13,7 @@ import (
 * This app will be called when a PR is created for ANOTHER repo
 * When a GitHub webhook check suite request is received, this program will do the following:
 * - Create a new check run that:
+*   - Check which files were modified and determine which devices will need updates
 *   - Parses the configuration and abstractions and merges the VyOS equivalents
 *   - Validates the new configuration
 *   - Gets the live config for affected production routers and diffs it against the new one
@@ -29,6 +30,7 @@ import (
 * - Definitions are the values contained in an actual configuration, which will be tested against node specifications
 
 TODO:
+* Determine which files were changed and which devices need updating
 * Convert custom YAML files into VyOS equivalents
 * Load abstractions
 * Merge abstractions into VyOS boot configs
@@ -65,16 +67,14 @@ func main() {
 	configData, err := config2.ReadConfig("./config.yaml")
 	if err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
 
 	config, err := config2.LoadConfig(configData)
 	if err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
 
-	log.Debugf("Settings read, found %d configured routers", len(config.Devices))
+	log.Debugf("Settings read")
 
 	shutdownChannel := make(chan os.Signal, 1)
 	// We'll accept graceful shutdowns when quit via SIGINT (Ctrl+C)

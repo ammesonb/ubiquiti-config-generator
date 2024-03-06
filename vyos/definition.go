@@ -321,13 +321,12 @@ func (definitions *Definitions) add(definition *Definition) {
 	}
 }
 
+var errDiffLength = "cannot ensure paths for differing definition and node lengths: got %d definitions and %d nodes"
+var errUnmatchedDynamicNode = "cannot end tree path on dynamic entry without defined tag: %s"
+
 func (definitions *Definitions) ensureTree(nodes *Node, path *utils.VyosPath) error {
 	if len(path.Path) != len(path.NodePath) {
-		return fmt.Errorf(
-			"cannot ensure paths for differing definition and node lengths, got %d and %d",
-			len(path.Path),
-			len(path.NodePath),
-		)
+		return utils.ErrWithVarCtx(errDiffLength, len(path.Path), len(path.NodePath))
 	}
 
 	lastDynamic := false
@@ -356,11 +355,11 @@ func (definitions *Definitions) ensureTree(nodes *Node, path *utils.VyosPath) er
 		// Identify this node, and update the last dynamic state based on its configuration
 		node := nodes.FindChild(childNodePath)
 		if node == nil {
-			return fmt.Errorf("failed to find node for: %s", fullNodePath)
+			return ErrNonexistentNode{nodePath: fullNodePath}
 		} else if node.IsTag {
 			lastDynamic = true
 			if len(path.Path) == idx {
-				return fmt.Errorf("cannot end tree path on dynamic entry without defined tag: %s", fullPath)
+				return utils.ErrWithCtx(errUnmatchedDynamicNode, fullPath)
 			}
 			// Add the next path definition name to the string path, so when we check if the given definition is already
 			// included, it is fully qualified instead of the placeholder tag instead
@@ -452,16 +451,25 @@ func (definitions *Definitions) merge(other *Definitions) error {
 	return nil
 }
 
+type ErrMergeConflict struct {
+	diffs          []string
+	definitionPath string
+}
+
+func (e ErrMergeConflict) Error() string {
+	return fmt.Sprintf(
+		"got %d differences between nodes at path %s: %s",
+		len(e.diffs),
+		e.definitionPath,
+		strings.Join(e.diffs, "\n"),
+	)
+}
+
 func (definition *Definition) merge(definitions *Definitions, other *Definition) error {
 	diffs := definition.diffDefinition(other)
 	// Make sure the attributes on the definition are the same, otherwise they are not compatible
 	if len(diffs) > 0 {
-		return fmt.Errorf(
-			"got %d differences between nodes at path %s: %s",
-			len(diffs),
-			definition.FullPath(),
-			strings.Join(diffs, "\n"),
-		)
+		return ErrMergeConflict{diffs: diffs, definitionPath: definition.FullPath()}
 	}
 
 	for _, child := range other.Children {

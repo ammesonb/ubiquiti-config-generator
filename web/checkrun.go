@@ -21,6 +21,7 @@ func ProcessGitCheckRun(
 	client *http.Client,
 	logDB *gorm.DB,
 	cfg *config.Config,
+	devices map[string]*config.DeviceConfig,
 	accessToken string,
 ) {
 	log := console_logger.DefaultLogger()
@@ -85,7 +86,7 @@ func ProcessGitCheckRun(
 		),
 	})
 
-	repositoryDirectory, err := cloneRepo(
+	repositoryDirectory, head, err := cloneRepo(
 		checkrun.CheckRun.CheckSuite.Repository.CloneURL,
 		checkrun.CheckRun.CheckSuite.HeadBranch,
 	)
@@ -96,10 +97,22 @@ func ProcessGitCheckRun(
 
 	log.Infof("Cloned repository in %s", repositoryDirectory)
 
-	// TODO: analyze config.yaml in repository directory and repo to identify devices that need to have configs validated
-	// TODO: load/parse configs specified for those devices
-	//       - steps above needed for deployment too
-	// TODO: validate those configs
+	changes, err := getChangedFiles(repositoryDirectory, head)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	for deviceName, device := range devices {
+		if config.DeviceFilesChanged(device, changes) {
+			// TODO: actually do things here
+			fmt.Printf("Got changes for device %s", deviceName)
+		}
+	}
+
+	// TODO: for each device:
+	// TODO:   - parse and load files
+	// TODO:   - perform validations
 	// TODO: pull prod configs for devices
 	// TODO: update check + post comment with diff
 }

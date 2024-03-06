@@ -1,7 +1,7 @@
 package abstraction
 
 import (
-	"fmt"
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"os"
 	"path"
 	"regexp"
@@ -9,10 +9,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var (
-	ErrPortGroupEmpty = "no ports specified for port group"
-	ErrParsePortYAML  = "failed to parse port group in"
-)
+var errReadPortGroup = "failed to read the port group in %s"
+var errPortGroupEmpty = "no ports specified for port group %s"
+var errParsePortGroup = "failed to parse port group in %s"
+var failReadPortGroup = "failed to read port group path '%s'"
 
 // LoadPortGroups will look at all yaml files in the given path and return a list of port groups
 func LoadPortGroups(portGroupsPath string) ([]PortGroup, []error) {
@@ -22,9 +22,7 @@ func LoadPortGroups(portGroupsPath string) ([]PortGroup, []error) {
 	entries, err := os.ReadDir(portGroupsPath)
 	if err != nil {
 		return portGroups,
-			[]error{fmt.Errorf(
-				"failed to read port group path '%s': %v", portGroupsPath, err,
-			)}
+			[]error{utils.ErrWithCtxParent(failReadPortGroup, portGroupsPath, err)}
 	}
 
 	for _, entry := range entries {
@@ -43,7 +41,7 @@ func LoadPortGroups(portGroupsPath string) ([]PortGroup, []error) {
 			} else if len(group.Ports) > 0 {
 				portGroups = append(portGroups, *group)
 			} else {
-				errors = append(errors, fmt.Errorf("%s %s", ErrPortGroupEmpty, groupName))
+				errors = append(errors, utils.ErrWithCtx(errPortGroupEmpty, group.Name))
 			}
 		}
 	}
@@ -51,20 +49,14 @@ func LoadPortGroups(portGroupsPath string) ([]PortGroup, []error) {
 	return portGroups, errors
 }
 
-var errFailedReadPortGroup = "failed to read the port group at path"
-
 func makePortGroup(filepath string, groupName string) (*PortGroup, error) {
 	groupData, err := os.ReadFile(filepath)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"%s '%s': %v", errFailedReadPortGroup, filepath, err,
-		)
+		return nil, utils.ErrWithCtxParent(errReadPortGroup, filepath, err)
 	}
 	group := PortGroup{Name: groupName}
 	if err = yaml.Unmarshal(groupData, &group); err != nil {
-		return nil, fmt.Errorf(
-			"%s '%s': %v", ErrParsePortYAML, filepath, err,
-		)
+		return nil, utils.ErrWithCtxParent(errParsePortGroup, filepath, err)
 	}
 
 	return &group, nil

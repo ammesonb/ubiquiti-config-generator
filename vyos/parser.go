@@ -2,28 +2,28 @@ package vyos
 
 import (
 	"errors"
-	"fmt"
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"os"
 	"path/filepath"
 
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 )
 
-var errUnsupportedType = "unsupported templates directory type"
-var errFailedStat = "failed to stat firewall node info"
+var errUnsupportedType = "unsupported type for templates directory: %s"
+var errFailedStat = "failed to stat file %s"
 
 type tStatFunc func(string) (os.FileInfo, error)
 
 func isNodeDef(templatesPath string, statFunc tStatFunc) (bool, error) {
 	// Uses arbitrary firewall node.def file to determine if running using nodes or XML
-	info, err := statFunc(filepath.Join(templatesPath, "firewall", "node.def"))
+	firewallPath := filepath.Join(templatesPath, "firewall", "node.def")
+	info, err := statFunc(firewallPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return false, nil
 		}
 
-		return false,
-			fmt.Errorf("%s: %v", errFailedStat, err)
+		return false, utils.ErrWithCtx(errFailedStat, firewallPath)
 	}
 
 	return !info.IsDir(), nil
@@ -39,5 +39,5 @@ func Parse(templatesPath string) (*Node, error) {
 		return ParseNodeDef(templatesPath)
 	}
 
-	return nil, fmt.Errorf(errUnsupportedType)
+	return nil, utils.ErrWithCtx(errUnsupportedType, templatesPath)
 }

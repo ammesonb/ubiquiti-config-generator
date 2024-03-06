@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/charmbracelet/log"
 	"net/http"
 	"time"
 
@@ -51,6 +52,10 @@ func ProcessGitCheckSuite(
 		return
 	}
 
+	ensureDBCommitCheck(logDB, client, request, accessToken)
+}
+
+func ensureDBCommitCheck(logDB *gorm.DB, client *http.Client, request checkSuiteRequest, accessToken string) {
 	check := &db.CommitCheck{
 		Revision:  request.CheckSuite.HeadSHA,
 		Status:    "pending",

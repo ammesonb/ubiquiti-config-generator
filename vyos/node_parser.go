@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"io"
 	"os"
 	"path/filepath"
@@ -34,8 +35,9 @@ import (
       e.g. interfaces/switch/node.tag/switch-port/interface/node.def
 */
 
-var errFailedReadDir = "failed to read files in"
-var errReadDef = "failed opening node.def"
+var errReadNodeDir = "failed to read node files in %s"
+var errOpenNodeDef = "failed opening node definition in %s"
+var errCloseNodeDef = "failed to close definition file: %s"
 
 // ParseNodeDef takes a template path and converts it into a list of nodes for analysis/validation
 func ParseNodeDef(templatesPath string) (*Node, error) {
@@ -44,7 +46,7 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 	entries, err := os.ReadDir(templatesPath)
 	logger := console_logger.DefaultLogger()
 	if err != nil {
-		return nil, fmt.Errorf("%s %s: %+v", errFailedReadDir, templatesPath, err)
+		return nil, utils.ErrWithCtxParent(errReadNodeDir, templatesPath, err)
 	}
 
 	node := &Node{
@@ -62,9 +64,10 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 	for _, entry := range entries {
 		if entry.Name() == "node.def" && !entry.IsDir() {
 			// Parse node definition files only
-			reader, err := openDefinitionFile(filepath.Join(templatesPath, entry.Name()))
+			fullFilePath := filepath.Join(templatesPath, entry.Name())
+			reader, err := openDefinitionFile(fullFilePath)
 			if err != nil {
-				return nil, fmt.Errorf("%s: %+v", errReadDef, err)
+				return nil, utils.ErrWithCtxParent(errOpenNodeDef, fullFilePath, err)
 			}
 
 			if err := parseDefinition(reader, logger, node); err != nil {
@@ -72,7 +75,7 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 			}
 
 			if err := reader.Close(); err != nil {
-				return nil, fmt.Errorf("failed to close %s/%s file: %v", templatesPath, entry.Name(), err)
+				return nil, utils.ErrWithCtxParent(errCloseNodeDef, fullFilePath, err)
 			}
 			continue
 		} else if !entry.IsDir() {

@@ -18,9 +18,8 @@ devices:
     configFiles:
       - "config.boot"
 
-    # The path to store the command files in, will be something like:
-    # rev1..rev2-000.sh, rev1..rev2-001.sh, etc for ordered execution
-    command-file-path: /tmp
+    # The path to store the new config file in
+    config-file-path: /tmp
     # The path to vyatta-cfg-cmd-wrapper
     # Typically in /opt/vyatta/[s]bin
     configure-script-path: /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper

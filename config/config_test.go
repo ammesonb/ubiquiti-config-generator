@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"os"
 	"testing"
 
@@ -32,14 +33,6 @@ func TestConvertEnv(t *testing.T) {
 	assert.Nil(t, os.Setenv("webhook_secret", "abcdef"))
 
 	config := Config{
-		Devices: map[string]*DeviceConfig{
-			"device": {
-				Address:  "1.2.3.4",
-				User:     "test_user",
-				Password: "",
-				Keyfile:  "/etc/keyfile",
-			},
-		},
 		Logging: LoggingConfig{
 			DBName:   "logs.db",
 			User:     "log_user",
@@ -55,10 +48,6 @@ func TestConvertEnv(t *testing.T) {
 
 	convertEnv(&config)
 
-	assert.Equal(t, "1.2.3.4", config.Devices["device"].Address)
-	assert.Equal(t, "test_user", config.Devices["device"].User)
-	assert.Equal(t, "", config.Devices["device"].Password)
-	assert.Equal(t, "/etc/keyfile", config.Devices["device"].Keyfile)
 	assert.Equal(t, "logs.db", config.Logging.DBName)
 	assert.Equal(t, "log_user", config.Logging.User)
 	assert.Equal(t, "password", config.Logging.Password)
@@ -68,14 +57,6 @@ func TestConvertEnv(t *testing.T) {
 	assert.Equal(t, "secret", config.Git.WebhookSecret)
 
 	config = Config{
-		Devices: map[string]*DeviceConfig{
-			"device": {
-				Address:  "$addr",
-				User:     "$user",
-				Password: "$password",
-				Keyfile:  "$keyfile",
-			},
-		},
 		Logging: LoggingConfig{
 			DBName:   "$log_db",
 			User:     "$log_user",
@@ -91,10 +72,6 @@ func TestConvertEnv(t *testing.T) {
 
 	convertEnv(&config)
 
-	assert.Equal(t, "address", config.Devices["device"].Address)
-	assert.Equal(t, "root", config.Devices["device"].User)
-	assert.Equal(t, "", config.Devices["device"].Password)
-	assert.Equal(t, "/etc/kf", config.Devices["device"].Keyfile)
 	assert.Equal(t, "/etc/log.db", config.Logging.DBName)
 	assert.Equal(t, "log_root", config.Logging.User)
 	assert.Equal(t, "log_pass", config.Logging.Password)
@@ -102,6 +79,38 @@ func TestConvertEnv(t *testing.T) {
 	assert.Equal(t, "http://example.com", config.Git.WebhookURL)
 	assert.Equal(t, "0.0.0.0:8080", config.Git.ListenIP)
 	assert.Equal(t, "abcdef", config.Git.WebhookSecret)
+}
+
+func TestConvertDeviceEnv(t *testing.T) {
+	devs := map[string]*DeviceConfig{
+		"device": {
+			Address:  "1.2.3.4",
+			User:     "test_user",
+			Password: "",
+			Keyfile:  "/etc/keyfile",
+		},
+	}
+	convertDeviceEnv(devs["device"])
+	assert.Equal(t, "1.2.3.4", devs["device"].Address)
+	assert.Equal(t, "test_user", devs["device"].User)
+	assert.Equal(t, "", devs["device"].Password)
+	assert.Equal(t, "/etc/keyfile", devs["device"].Keyfile)
+
+	devs = map[string]*DeviceConfig{
+		"device": {
+			Address:  "$addr",
+			User:     "$user",
+			Password: "$password",
+			Keyfile:  "$keyfile",
+		},
+	}
+	convertDeviceEnv(devs["device"])
+
+	assert.Equal(t, "address", devs["device"].Address)
+	assert.Equal(t, "root", devs["device"].User)
+	assert.Equal(t, "", devs["device"].Password)
+	assert.Equal(t, "/etc/kf", devs["device"].Keyfile)
+
 }
 
 func TestReadConfig(t *testing.T) {
@@ -117,7 +126,7 @@ func TestReadConfig(t *testing.T) {
 func TestLoadConfig(t *testing.T) {
 	config, err := LoadConfig([]byte("invalid[yaml"))
 	assert.NotNil(t, err, "Invalid YAML should throw error")
-	assert.ErrorContains(t, err, errFailParseConfig)
+	assert.ErrorIs(t, err, utils.Err(errFailParseConfig))
 	assert.Nil(t, config, "Invalid YAML should not return config")
 
 	config, err = LoadConfig([]byte("{}"))

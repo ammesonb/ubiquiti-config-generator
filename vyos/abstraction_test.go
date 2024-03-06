@@ -12,8 +12,7 @@ import (
 )
 
 func TestFromPortGroupAbstraction(t *testing.T) {
-	nodes, err := GetGeneratedNodes()
-	assert.NoError(t, err, "Node generation should succeed")
+	nodes := GetGeneratedNodes(t)
 
 	name := "port-group"
 	description := "test empty port group"
@@ -186,8 +185,7 @@ func getSampleNetwork() abstraction.Network {
 }
 
 func TestFromNetworkAbstraction(t *testing.T) {
-	nodes, err := GetGeneratedNodes()
-	assert.NoError(t, err, "Node generation should succeed")
+	nodes := GetGeneratedNodes(t)
 
 	network := getSampleNetwork()
 

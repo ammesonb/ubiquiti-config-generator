@@ -1,6 +1,7 @@
 package abstraction
 
 import (
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -9,7 +10,7 @@ func TestMissingDirectory(t *testing.T) {
 	network, errs := LoadNetworks("/nonexistent")
 	assert.Nil(t, network, "No network returned if path does not exist")
 	assert.Len(t, errs, 1, "Only one error returned on missing networks directory")
-	assert.ErrorContains(t, errs[0], errReadNetworkDir)
+	assert.ErrorIs(t, errs[0], utils.ErrWithCtx(errReadNetworks, "/nonexistent"))
 }
 
 func TestLoadNetworks(t *testing.T) {
@@ -17,11 +18,23 @@ func TestLoadNetworks(t *testing.T) {
 	assert.NotNil(t, errs, "Errors should not be nil")
 	assert.NotEmpty(t, errs, "Some errors should be returned")
 	assert.Len(t, errs, 5, "Four errors returned")
-	assert.ErrorContains(t, errs[0], errFailedParseHost)
-	assert.ErrorContains(t, errs[1], errCheckHostSubnet)
-	assert.ErrorContains(t, errs[2], errReadNetworkConfig)
-	assert.ErrorContains(t, errs[3], errParseNetworkConfig)
-	assert.ErrorContains(t, errs[4], errReadNetworkConfig)
+	assert.ErrorIs(
+		t,
+		errs[0],
+		utils.ErrWithCtx(errParseHost, "test-files/networks/failing-hosts/hosts/incorrect-syntax.yaml"),
+	)
+	assert.ErrorIs(
+		t,
+		errs[1],
+		utils.ErrWithCtx(errCheckHostSubnet, "test-files/networks/failing-hosts/hosts/invalid-address.yaml"),
+	)
+	assert.ErrorIs(
+		t,
+		errs[2],
+		utils.ErrWithCtx(errReadNetworkConf, "test-files/networks/hosts-as-file"),
+	)
+	assert.ErrorIs(t, errs[3], utils.ErrWithCtx(errParseNetworkConf, "test-files/networks/invalid-config"))
+	assert.ErrorIs(t, errs[4], utils.ErrWithCtx(errReadNetworkConf, "test-files/networks/missing-config"))
 
 	assert.NotNil(t, networks, "Networks should be returned")
 	assert.Len(t, networks, 1, "One network should be valid")
@@ -51,17 +64,34 @@ func TestSetupFirewallCounters(t *testing.T) {
 func TestLoadNetworkFailures(t *testing.T) {
 	network, errs := loadNetwork("./test-files/networks/missing-config")
 	assert.Nil(t, network, "No network returned if config is missing")
-	assert.ErrorContains(t, errs[0], errReadNetworkConfig)
+	assert.ErrorIs(
+		t,
+		errs[0],
+		utils.ErrWithCtx(
+			errReadNetworkConf,
+			"./test-files/networks/missing-config",
+		),
+	)
 
 	network, errs = loadNetwork("./test-files/networks/invalid-config")
 	assert.Nil(t, network, "No network returned if config is invalid")
-	assert.ErrorContains(t, errs[0], errParseNetworkConfig)
+	assert.ErrorIs(t, errs[0], utils.ErrWithCtx(errParseNetworkConf, "./test-files/networks/invalid-config"))
 
 	network, errs = loadNetwork("./test-files/networks/failing-hosts")
 	assert.NotNil(t, errs, "Errors for hosts should be returned")
 	assert.Len(t, errs, 2, "Two hosts have errors")
-	assert.ErrorContains(t, errs[0], errFailedParseHost, "First error is for invalid host YAML")
-	assert.ErrorContains(t, errs[1], errCheckHostSubnet, "Second error is for host address check")
+	assert.ErrorIs(
+		t,
+		errs[0],
+		utils.ErrWithCtx(errParseHost, "test-files/networks/failing-hosts/hosts/incorrect-syntax.yaml"),
+		"First error is for invalid host YAML",
+	)
+	assert.ErrorIs(
+		t,
+		errs[1],
+		utils.ErrWithCtx(errCheckHostSubnet, "test-files/networks/failing-hosts/hosts/invalid-address.yaml"),
+		"Second error is for host address check",
+	)
 
 	assert.Nil(t, network, "Network should be nil if hosts have errors")
 	assert.False(t, HasCounter("eth1-in"), "Inbound firewall counter not set up")
@@ -88,11 +118,20 @@ func TestLoadHost(t *testing.T) {
 	network := &Network{}
 
 	err := loadHost("/nonexistent", network)
-	assert.ErrorContains(t, err, errFailedReadHost, "Should fail to read nonexistent host")
+	assert.ErrorIs(
+		t,
+		err,
+		utils.ErrWithCtx(errReadHost, "/nonexistent"),
+		"Should fail to read nonexistent host",
+	)
 
 	hostDirectory := "test-files/networks/failing-hosts/hosts/"
 	err = loadHost(hostDirectory+"incorrect-syntax.yaml", network)
-	assert.ErrorContains(t, err, errFailedParseHost)
+	assert.ErrorIs(
+		t,
+		err,
+		utils.ErrWithCtx(errParseHost, "test-files/networks/failing-hosts/hosts/incorrect-syntax.yaml"),
+	)
 	assert.ErrorContains(t, err, hostDirectory+"incorrect-syntax.yaml")
 
 	network.Subnets = []*Subnet{
@@ -107,7 +146,11 @@ func TestLoadHost(t *testing.T) {
 	}
 
 	err = loadHost(hostDirectory+"invalid-address.yaml", network)
-	assert.ErrorContains(t, err, errCheckHostSubnet)
+	assert.ErrorIs(
+		t,
+		err,
+		utils.ErrWithCtx(errCheckHostSubnet, "test-files/networks/failing-hosts/hosts/invalid-address.yaml"),
+	)
 	assert.ErrorContains(t, err, hostDirectory+"invalid-address.yaml")
 
 	err = loadHost(hostDirectory+"firewalled-host.yaml", network)
@@ -140,7 +183,7 @@ func TestLoadHosts(t *testing.T) {
 	errs = loadHosts(network, "./test-files/networks/hosts-as-file")
 	assert.NotNil(t, errs, "Error should be returned")
 	assert.Len(t, errs, 1, "Returned one error on fail read hosts dir")
-	assert.ErrorContains(t, errs[0], errFailedReadHostDirectory)
+	assert.ErrorIs(t, errs[0], utils.ErrWithCtx(errReadHostDir, "test-files/networks/hosts-as-file/hosts"))
 	assert.Empty(t, network.Subnets[0].Hosts, "No hosts loaded for invalid hosts directory")
 	assert.Empty(t, network.Subnets[1].Hosts, "No hosts loaded for invalid hosts directory")
 
@@ -150,6 +193,16 @@ func TestLoadHosts(t *testing.T) {
 	assert.Len(t, network.Subnets[1].Hosts, 1, "One hosts loaded for second subnet")
 
 	assert.Len(t, errs, 2, "Two hosts have errors")
-	assert.ErrorContains(t, errs[0], errFailedParseHost, "First error is for invalid host YAML")
-	assert.ErrorContains(t, errs[1], errCheckHostSubnet, "Second error is for host address check")
+	assert.ErrorIs(
+		t,
+		errs[0],
+		utils.ErrWithCtx(errParseHost, "test-files/networks/failing-hosts/hosts/incorrect-syntax.yaml"),
+		"First error is for invalid host YAML",
+	)
+	assert.ErrorIs(
+		t,
+		errs[1],
+		utils.ErrWithCtx(errCheckHostSubnet, "test-files/networks/failing-hosts/hosts/invalid-address.yaml"),
+		"Second error is for host address check",
+	)
 }

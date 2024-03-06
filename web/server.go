@@ -44,7 +44,7 @@ func githubAccessTokenMiddleware(next http.Handler, logger *log.Logger, cfg *con
 			return
 		}
 
-		accessToken, err := getAccessToken(client, cfg.Git.AppId, jwt)
+		accessToken, err := getAccessToken(client, cfg.Git.AppID, jwt)
 		if err != nil {
 			logger.Errorf("Failed getting access token: %v", err)
 			return
@@ -108,7 +108,7 @@ func StartWebhookServer(logger *log.Logger, cfg *config.Config, shutdownChannel 
 	<-shutdownChannel
 
 	// Wait 5 seconds - arbitrary, could use other contextual signals if needed
-	// e.g. graphql/DB closing
+	// e.g. DB closing
 	ctx, cancel := context.WithTimeout(context.Background(), 5)
 	defer cancel()
 	// Doesn't block if no connections, but will otherwise wait
@@ -118,5 +118,4 @@ func StartWebhookServer(logger *log.Logger, cfg *config.Config, shutdownChannel 
 	// <-ctx.Done() if your application should wait for other services
 	// to finalize based on context cancellation.
 	log.Warn("shutting down")
-	os.Exit(0)
 }
