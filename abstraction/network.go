@@ -11,13 +11,15 @@ import (
 	"github.com/ammesonb/ubiquiti-config-generator/validation"
 )
 
-var errReadNetworks = "failed to read networks in directory %s"
-var errReadNetworkConf = "failed to read network config in %s"
-var errParseNetworkConf = "failed to parse network config in %s"
-var errReadHostDir = "failed to read hosts directory for network: %s"
-var errReadHost = "failed to read host: %s"
-var errParseHost = "failed to parse host: %s"
-var errCheckHostSubnet = "failed checking host subnet: %s"
+var (
+	errReadNetworks     = "failed to read networks in directory %s"
+	errReadNetworkConf  = "failed to read network config in %s"
+	errParseNetworkConf = "failed to parse network config in %s"
+	errReadHostDir      = "failed to read hosts directory for network: %s"
+	errReadHost         = "failed to read host: %s"
+	errParseHost        = "failed to parse host: %s"
+	errCheckHostSubnet  = "failed checking host subnet: %s"
+)
 
 func LoadNetworks(networksPath string) ([]Network, []error) {
 	var networks []Network

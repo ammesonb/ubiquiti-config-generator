@@ -67,13 +67,7 @@ type Node struct {
 	Constraints []NodeConstraint `yaml:"Constraints"`
 }
 
-type ErrNonexistentNode struct {
-	nodePath string
-}
-
-func (e ErrNonexistentNode) Error() string {
-	return fmt.Sprintf("failed to find node at path %s", e.nodePath)
-}
+var errNonexistentNode = "failed to find node at path %s"
 
 // Children returns an unordered list of nodes this one contains
 func (node *Node) Children() []*Node {

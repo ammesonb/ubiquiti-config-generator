@@ -73,10 +73,207 @@
             </set>
           </value>
         </entry>
+        <entry key="ErrAbsPath">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/fixtures_test.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrCheckHostSubnet">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/network.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrCloneRepo">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/web/git_fs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrConvertNode">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/fixtures_test.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrCreateDir">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/web/git_fs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrDiffLength">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/definition.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrFailCloseDef">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/node_parser.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrFailOpenDef">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/node_parser.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrFailReadDir">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/node_parser.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrFailReadPortGroup">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/port_group.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrFailedStat">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/parser.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrMergeConflict">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/definition.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrNonexistentNode">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/node.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrParseHostFail">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/network.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrParseNetworkConf">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/network.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrParsePortGroup">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/port_group.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrParseTemplates">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/fixtures_test.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrPortGroupEmpty">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/port_group.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrReadHostDir">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/network.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrReadHostFail">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/network.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrReadNetworkConf">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/network.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrReadNetworks">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/abstraction/network.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrUnmatchedDynamicNode">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/definition.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrUnsupportedTemplates">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/parser.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ErrWriteNode">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/fixtures_test.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="FileInfo">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/utils/fs_factory.go" />
+            </set>
+          </value>
+        </entry>
         <entry key="FirewallConnection">
           <value>
             <set>
               <option value="file://$PROJECT_DIR$/abstraction/structs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="FsFactory">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/utils/fs_factory.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="FsWrapper">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/mocks/fs_factory.go" />
+              <option value="file://$PROJECT_DIR$/utils/fs_factory.go" />
             </set>
           </value>
         </entry>
@@ -105,6 +302,21 @@
           <value>
             <set>
               <option value="file://$PROJECT_DIR$/config/config.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="MockDirEntry">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/mocks/fs_factory.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="MockFileInfo">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/mocks/fs_factory.go" />
+              <option value="file://$PROJECT_DIR$/utils/fs_factory.go" />
             </set>
           </value>
         </entry>
@@ -147,6 +359,27 @@
           <value>
             <set>
               <option value="file://$PROJECT_DIR$/abstraction/structs.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="UbiConfGenError">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/utils/errors.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="UbiConfGenStrError">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/utils/errors.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="UbiConfGenStringError">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/utils/errors.go" />
             </set>
           </value>
         </entry>
@@ -206,6 +439,20 @@
             </set>
           </value>
         </entry>
+        <entry key="diffLength">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/vyos/definition.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="errFake">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/utils/errors_test.go" />
+            </set>
+          </value>
+        </entry>
         <entry key="installation">
           <value>
             <set>
@@ -234,28 +481,28 @@
         <entry key="file://$PROJECT_DIR$/abstraction/network.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706033775207" />
+              <option name="lastModified" value="1709848319738" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/abstraction/network_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706033949767" />
+              <option name="lastModified" value="1709692870607" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/abstraction/port_group.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1705960751475" />
+              <option name="lastModified" value="1709684973158" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/abstraction/port_group_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1705960751479" />
+              <option name="lastModified" value="1709680522658" />
             </ScannedPath>
           </value>
         </entry>
@@ -299,7 +546,7 @@
         <entry key="file://$PROJECT_DIR$/config/config.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706049767058" />
+              <option name="lastModified" value="1709694576700" />
               <option name="schema">
                 <list>
                   <option value="Config" />
@@ -314,7 +561,21 @@
         <entry key="file://$PROJECT_DIR$/config/config_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706049847295" />
+              <option name="lastModified" value="1709688535477" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/config/device_config.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1709853571041" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/config/device_config_test.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1709854014250" />
             </ScannedPath>
           </value>
         </entry>
@@ -349,14 +610,14 @@
         <entry key="file://$PROJECT_DIR$/db/connection.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706049884450" />
+              <option name="lastModified" value="1709693550725" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/db/models.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706049884450" />
+              <option name="lastModified" value="1708889750581" />
               <option name="schema">
                 <list>
                   <option value="CommitCheck" />
@@ -371,11 +632,90 @@
         <entry key="file://$PROJECT_DIR$/main.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706648184853" />
+              <option name="lastModified" value="1708891057029" />
             </ScannedPath>
           </value>
         </entry>
-        <entry key="file://$PROJECT_DIR$/utils/slices.go">
+        <entry key="file://$PROJECT_DIR$/mocks/fs_factory.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1709852238405" />
+              <option name="schema">
+                <list>
+                  <option value="FsWrapper" />
+                  <option value="MockFileInfo" />
+                  <option value="MockDirEntry" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/mocks/function_mock.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1709851903293" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/mocks/function_mock_test.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1709851903289" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/utils/errors.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1709850075198" />
+              <option name="schema">
+                <list>
+                  <option value="UbiConfGenError" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/utils/errors_test.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1709850455762" />
+              <option name="schema">
+                <list>
+                  <option value="errFake" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/utils/fs_factory.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1709851857620" />
+              <option name="schema">
+                <list>
+                  <option value="FsWrapper" />
+                  <option value="MockFileInfo" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/utils/function_mock.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1709848788591" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/utils/function_mock_test.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1709848805523" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/utils/slice.go">
           <value>
             <ScannedPath>
               <option name="lastModified" value="1708673184083" />
@@ -398,28 +738,28 @@
         <entry key="file://$PROJECT_DIR$/validation/ip_address.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706049884451" />
+              <option name="lastModified" value="1709679719120" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/validation/ip_address_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706049884451" />
+              <option name="lastModified" value="1709679762750" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/vyos/abstraction.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1708673143577" />
+              <option name="lastModified" value="1709687337844" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/vyos/abstraction_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1708673043724" />
+              <option name="lastModified" value="1708927081772" />
             </ScannedPath>
           </value>
         </entry>
@@ -433,14 +773,14 @@
         <entry key="file://$PROJECT_DIR$/vyos/boot_parser_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1708621599077" />
+              <option name="lastModified" value="1708927136181" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/vyos/definition.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1708671705795" />
+              <option name="lastModified" value="1709840203718" />
               <option name="schema">
                 <list>
                   <option value="Definition" />
@@ -454,21 +794,28 @@
         <entry key="file://$PROJECT_DIR$/vyos/definition_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1708621599081" />
+              <option name="lastModified" value="1708928631132" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/vyos/fixtures_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706586550873" />
+              <option name="lastModified" value="1709680113448" />
+              <option name="schema">
+                <list>
+                  <option value="ErrParseTemplates" />
+                  <option value="ErrConvertNode" />
+                  <option value="ErrWriteNode" />
+                </list>
+              </option>
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/vyos/node.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1708620398597" />
+              <option name="lastModified" value="1709840074534" />
               <option name="schema">
                 <list>
                   <option value="Node" />
@@ -481,14 +828,14 @@
         <entry key="file://$PROJECT_DIR$/vyos/node_parser.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706648706674" />
+              <option name="lastModified" value="1709848390572" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/vyos/node_parser_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706648304259" />
+              <option name="lastModified" value="1709693887916" />
             </ScannedPath>
           </value>
         </entry>
@@ -502,35 +849,35 @@
         <entry key="file://$PROJECT_DIR$/vyos/parser.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706648184843" />
+              <option name="lastModified" value="1709848335365" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/vyos/parser_test.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706586768580" />
+              <option name="lastModified" value="1709694463991" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/web/checkrun.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706648185810" />
+              <option name="lastModified" value="1708899831832" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/web/checksuite.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706648185807" />
+              <option name="lastModified" value="1708890287239" />
             </ScannedPath>
           </value>
         </entry>
         <entry key="file://$PROJECT_DIR$/web/git_api.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706049884454" />
+              <option name="lastModified" value="1709693671401" />
               <option name="schema">
                 <list>
                   <option value="installationsResponse" />
@@ -544,7 +891,7 @@
         <entry key="file://$PROJECT_DIR$/web/git_fs.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706049884455" />
+              <option name="lastModified" value="1709848357239" />
             </ScannedPath>
           </value>
         </entry>
@@ -565,7 +912,7 @@
         <entry key="file://$PROJECT_DIR$/web/server.go">
           <value>
             <ScannedPath>
-              <option name="lastModified" value="1706049884455" />
+              <option name="lastModified" value="1708893149715" />
             </ScannedPath>
           </value>
         </entry>
@@ -612,13 +959,45 @@
         <entry key="deployment" value="deployment" />
         <entry key="deployment_log" value="DeploymentLog" />
         <entry key="device_config" value="DeviceConfig" />
+        <entry key="diff_length" value="diffLength" />
+        <entry key="err_abs_path" value="ErrAbsPath" />
+        <entry key="err_check_host_subnet" value="ErrCheckHostSubnet" />
+        <entry key="err_clone_repo" value="ErrCloneRepo" />
+        <entry key="err_convert_node" value="ErrConvertNode" />
+        <entry key="err_create_dir" value="ErrCreateDir" />
+        <entry key="err_diff_length" value="ErrDiffLength" />
+        <entry key="err_fail_close_def" value="ErrFailCloseDef" />
+        <entry key="err_fail_open_def" value="ErrFailOpenDef" />
+        <entry key="err_fail_read_dir" value="ErrFailReadDir" />
+        <entry key="err_fail_read_port_group" value="ErrFailReadPortGroup" />
+        <entry key="err_failed_stat" value="ErrFailedStat" />
+        <entry key="err_fake" value="errFake" />
+        <entry key="err_merge_conflict" value="ErrMergeConflict" />
+        <entry key="err_nonexistent_node" value="ErrNonexistentNode" />
+        <entry key="err_parse_host_fail" value="ErrParseHostFail" />
+        <entry key="err_parse_network_conf" value="ErrParseNetworkConf" />
+        <entry key="err_parse_port_group" value="ErrParsePortGroup" />
+        <entry key="err_parse_templates" value="ErrParseTemplates" />
+        <entry key="err_port_group_empty" value="ErrPortGroupEmpty" />
+        <entry key="err_read_host_dir" value="ErrReadHostDir" />
+        <entry key="err_read_host_fail" value="ErrReadHostFail" />
+        <entry key="err_read_network_conf" value="ErrReadNetworkConf" />
+        <entry key="err_read_networks" value="ErrReadNetworks" />
+        <entry key="err_unmatched_dynamic_node" value="ErrUnmatchedDynamicNode" />
+        <entry key="err_unsupported_templates" value="ErrUnsupportedTemplates" />
+        <entry key="err_write_node" value="ErrWriteNode" />
+        <entry key="file_info" value="FileInfo" />
         <entry key="firewall_connection" value="FirewallConnection" />
+        <entry key="fs_factory" value="FsFactory" />
+        <entry key="fs_wrapper" value="FsWrapper" />
         <entry key="git_config" value="GitConfig" />
         <entry key="host" value="Host" />
         <entry key="installation" value="installation" />
         <entry key="installations_response" value="installationsResponse" />
         <entry key="interface" value="Interface" />
         <entry key="logging_config" value="LoggingConfig" />
+        <entry key="mock_dir_entry" value="MockDirEntry" />
+        <entry key="mock_file_info" value="MockFileInfo" />
         <entry key="network" value="Network" />
         <entry key="node" value="Node" />
         <entry key="node_constraint" value="NodeConstraint" />
@@ -626,10 +1005,13 @@
         <entry key="repository" value="repository" />
         <entry key="rule_counter" value="RuleCounter" />
         <entry key="subnet" value="Subnet" />
+        <entry key="ubi_conf_gen_error" value="UbiConfGenError" />
+        <entry key="ubi_conf_gen_str_error" value="UbiConfGenStrError" />
+        <entry key="ubi_conf_gen_string_error" value="UbiConfGenStringError" />
         <entry key="vyos_path" value="VyosPath" />
         <entry key="vyos_path_component" value="VyosPathComponent" />
       </map>
     </option>
-    <option name="lastTimeChecked" value="1708615955498" />
+    <option name="lastTimeChecked" value="1709101555063" />
   </component>
 </project>

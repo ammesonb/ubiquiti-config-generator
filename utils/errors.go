@@ -35,13 +35,10 @@ func (e UbiConfGenError) Unwrap() error {
 func (e UbiConfGenError) Is(target error) bool {
 	return e.Matches(target)
 }
-func (e UbiConfGenError) As(target any) bool {
-	return errors.As(e, &target)
-}
 
 func (e UbiConfGenError) Matches(err error) bool {
 	// Must be the correct type
-	ubiErr := UbiConfGenError{}
+	var ubiErr UbiConfGenError
 	if !errors.As(err, &ubiErr) {
 		return false
 	}

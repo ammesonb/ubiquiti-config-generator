@@ -23,6 +23,8 @@ type Definition struct {
 	ParentNode *Node
 }
 
+var errMergeConflict = "got %d differences between nodes at path %s: %s"
+
 // ParentPath returns a slash-joined version of the path to the definition's parent
 // Dynamic nodes are an essential part of the configuration path, so do not need to skip those
 func (definition *Definition) ParentPath() string {
@@ -355,7 +357,7 @@ func (definitions *Definitions) ensureTree(nodes *Node, path *utils.VyosPath) er
 		// Identify this node, and update the last dynamic state based on its configuration
 		node := nodes.FindChild(childNodePath)
 		if node == nil {
-			return ErrNonexistentNode{nodePath: fullNodePath}
+			return utils.ErrWithCtx(errNonexistentNode, fullNodePath)
 		} else if node.IsTag {
 			lastDynamic = true
 			if len(path.Path) == idx {
@@ -451,25 +453,11 @@ func (definitions *Definitions) merge(other *Definitions) error {
 	return nil
 }
 
-type ErrMergeConflict struct {
-	diffs          []string
-	definitionPath string
-}
-
-func (e ErrMergeConflict) Error() string {
-	return fmt.Sprintf(
-		"got %d differences between nodes at path %s: %s",
-		len(e.diffs),
-		e.definitionPath,
-		strings.Join(e.diffs, "\n"),
-	)
-}
-
 func (definition *Definition) merge(definitions *Definitions, other *Definition) error {
 	diffs := definition.diffDefinition(other)
 	// Make sure the attributes on the definition are the same, otherwise they are not compatible
 	if len(diffs) > 0 {
-		return ErrMergeConflict{diffs: diffs, definitionPath: definition.FullPath()}
+		return utils.ErrWithVarCtx(errMergeConflict, len(diffs), definition.FullPath(), strings.Join(diffs, "\n"))
 	}
 
 	for _, child := range other.Children {

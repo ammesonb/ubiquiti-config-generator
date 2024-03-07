@@ -12,17 +12,19 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
-var errCreateTempDir = "failed to create temporary directory"
-var errCloneRepo = "failed to clone repository at %s"
-var errOpenRepo = "failed to open repository at %s"
-var errGetWorktree = "failed to get repository %s worktree"
-var errGetHead = "failed to get repository %s head"
-var errGetRemotes = "failed to get repository remotes for 'origin'"
-var errFetchRemotes = "failed to fetch repository origin remotes"
-var errHeadCommit = "failed to get head commit for path and hash: %+v"
-var errTreeHead = "failed to get current tree head for path and hash: %+v"
-var errCheckoutAfterFetch = "failed to checkout branch %s after fetch"
-var errDiffTrees = "failed to diff trees at %s"
+var (
+	errCreateTempDir      = "failed to create temporary directory"
+	errCloneRepo          = "failed to clone repository at %s"
+	errOpenRepo           = "failed to open repository at %s"
+	errGetWorktree        = "failed to get repository %s worktree"
+	errGetHead            = "failed to get repository %s head"
+	errGetRemotes         = "failed to get repository remotes for 'origin'"
+	errFetchRemotes       = "failed to fetch repository origin remotes"
+	errHeadCommit         = "failed to get head commit for path and hash: %+v"
+	errTreeHead           = "failed to get current tree head for path and hash: %+v"
+	errCheckoutAfterFetch = "failed to checkout branch %s after fetch"
+	errDiffTrees          = "failed to diff trees at %s"
+)
 
 // cloneRepo will clone a repository and return the folder it was cloned to plus the main branch's ref
 func cloneRepo(url string, branch string) (string, *plumbing.Hash, error) {

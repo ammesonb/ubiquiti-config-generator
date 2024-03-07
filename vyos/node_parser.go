@@ -35,9 +35,11 @@ import (
       e.g. interfaces/switch/node.tag/switch-port/interface/node.def
 */
 
-var errReadNodeDir = "failed to read node files in %s"
-var errOpenNodeDef = "failed opening node definition in %s"
-var errCloseNodeDef = "failed to close definition file: %s"
+var (
+	errReadNodeDir  = "failed to read node files in %s"
+	errOpenNodeDef  = "failed opening node definition in %s"
+	errCloseNodeDef = "failed to close definition file: %s"
+)
 
 // ParseNodeDef takes a template path and converts it into a list of nodes for analysis/validation
 func ParseNodeDef(templatesPath string) (*Node, error) {

@@ -9,8 +9,10 @@ import (
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 )
 
-var errUnsupportedType = "unsupported type for templates directory: %s"
-var errFailedStat = "failed to stat file %s"
+var (
+	errUnsupportedType = "unsupported type for templates directory: %s"
+	errFailedStat      = "failed to stat file %s"
+)
 
 type tStatFunc func(string) (os.FileInfo, error)
 
