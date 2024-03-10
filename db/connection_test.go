@@ -15,7 +15,7 @@ func getTestDB() (*gorm.DB, error) {
 
 func TestOpenDB(t *testing.T) {
 	// Try an invalid data source connection string
-	db, err := OpenDB("file::invalid")
+	db, err := OpenDB("file::invalid??some-invalid-arg")
 	assert.Nil(t, db, "No DB for bad connection string")
 	assert.ErrorIs(t, err, utils.Err(errConnect))
 
