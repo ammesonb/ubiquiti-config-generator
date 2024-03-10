@@ -42,6 +42,14 @@ func TestFromPortGroupAbstraction(t *testing.T) {
 	assert.Equal(t, description, defs.FindChild(append(groupPath, "description")).Value)
 	assert.Len(t, defs.FindChild(append(groupPath, "port")).Values, 3)
 	assert.ElementsMatch(t, []int{123, 53, 80}, defs.FindChild(append(groupPath, "port")).Values)
+
+	groupN := nodes.FindChild([]string{"firewall", "group"})
+	portGroup := groupN.ChildNodes["port-group"]
+	delete(groupN.ChildNodes, "port-group")
+	defs, err = FromPortGroupAbstraction(nodes, group)
+	assert.ErrorIs(t, err, utils.ErrWithCtx(errGenPortGroupTree, name))
+	assert.ErrorIs(t, err, utils.ErrWithCtx(errNonexistentNode, "firewall/group/port-group"))
+	groupN.ChildNodes["port-group"] = portGroup
 }
 
 func getSampleNetwork() abstraction.Network {
@@ -86,7 +94,7 @@ func getSampleNetwork() abstraction.Network {
 				DHCPStart:     "10.0.0.240",
 				DHCPEnd:       "10.0.0.255",
 				Extra: map[string]any{
-					"time-server": "10.0.0.1",
+					"time-server": []any{"10.0.0.1", "10.0.0.2"},
 				},
 				Hosts: []*abstraction.Host{
 					{
@@ -349,7 +357,7 @@ func TestFromNetworkAbstraction(t *testing.T) {
 	expected.addValue(nodes, zeroSubnet, "domain-name", "home.lan")
 	expected.addValue(nodes, zeroSubnet, "default-router", "10.0.0.1")
 	expected.addValue(nodes, zeroSubnet, "lease", int32(86400))
-	expected.addValue(nodes, zeroSubnet, "time-server", "10.0.0.1")
+	expected.addListValue(nodes, zeroSubnet, "time-server", []any{"10.0.0.1", "10.0.0.2"})
 	expected.addListValue(nodes, zeroSubnet, "dns-server", []any{"8.8.8.8", "8.8.4.4"})
 	zeroStartPath := zeroSubnet.Extend(
 		utils.MakeVyosPC("start"),
@@ -377,8 +385,11 @@ func TestFromNetworkAbstraction(t *testing.T) {
 	expected.addValue(nodes, oneSubnet, "domain-name", "guest.lan")
 	expected.addValue(nodes, oneSubnet, "default-router", "10.0.0.1")
 	expected.addValue(nodes, oneSubnet, "lease", int32(86400))
-	expected.addValue(nodes, oneSubnet, "time-server", "10.0.0.1")
 	expected.addListValue(nodes, oneSubnet, "dns-server", []any{"8.8.8.8", "8.8.4.4"})
+
+	oneStartPath := oneSubnet.Extend(utils.MakeVyosPC("start"), utils.MakeVyosDynamicPC("10.1.0.100"))
+	assert.NoError(t, expected.ensureTree(nodes, oneStartPath))
+	expected.addValue(nodes, oneStartPath, "stop", "10.1.0.255")
 
 	nat := utils.MakeVyosPath()
 	nat.Append(
@@ -503,6 +514,133 @@ func TestFromNetworkAbstraction(t *testing.T) {
 	}
 }
 
+func TestFromNetworkAbstractionErrors(t *testing.T) {
+	nodes := GetGeneratedNodes(t)
+
+	network := getSampleNetwork()
+
+	for _, firewall := range []string{
+		network.Interface.InboundFirewall,
+		network.Interface.OutboundFirewall,
+		network.Interface.LocalFirewall,
+		abstraction.NAT_COUNTER,
+	} {
+		abstraction.MakeCounter(firewall, network.FirewallRuleNumberStart, network.FirewallRuleNumberStep)
+	}
+
+	checkErrors := func(hasResult bool, expectedErrors [][]error) {
+		generated, actualErrs := FromNetworkAbstraction(nodes, &network)
+		if hasResult {
+			assert.NotNil(t, generated)
+		} else {
+			assert.Nil(t, generated)
+		}
+		assert.Len(t, actualErrs, len(expectedErrors))
+		for idx, errs := range expectedErrors {
+			// Only test for errors we can check
+			if idx > len(actualErrs) {
+				break
+			}
+
+			for _, err := range errs {
+				assert.ErrorIs(t, actualErrs[idx], err)
+			}
+		}
+	}
+	service := nodes.ChildNodes["service"]
+	delete(nodes.ChildNodes, "service")
+	checkErrors(false, [][]error{
+		{
+			utils.Err(errGenDHCPTree),
+			utils.ErrWithCtx(errNonexistentNode, "service"),
+		},
+	})
+	nodes.ChildNodes["service"] = service
+
+	interfaces := nodes.ChildNodes["interfaces"]
+	delete(nodes.ChildNodes, "interfaces")
+	checkErrors(false, [][]error{
+		{
+			utils.Err(errConfigInterface),
+			utils.ErrWithCtx(errGenInterfaceTree, "eth1"),
+			utils.ErrWithCtx(errNonexistentNode, "interfaces"),
+		},
+	})
+	nodes.ChildNodes["interfaces"] = interfaces
+
+	ifaces := nodes.FindChild([]string{"interfaces", "ethernet", utils.DYNAMIC_NODE})
+	vif := ifaces.ChildNodes["vif"]
+	delete(ifaces.ChildNodes, "vif")
+	checkErrors(false, [][]error{
+		{
+			utils.Err(errConfigInterface),
+			utils.ErrWithVarCtx(errGenEthVifTree, "eth1", 10),
+			utils.ErrWithCtx(errNonexistentNode, "interfaces/ethernet/"+utils.DYNAMIC_NODE+"/vif"),
+		},
+	})
+	ifaces.ChildNodes["vif"] = vif
+
+	fw := vif.ChildNodes[utils.DYNAMIC_NODE].ChildNodes["firewall"]
+	for dir, err := range map[string]string{
+		"in":    errGenInFwTree,
+		"out":   errGenOutFwTree,
+		"local": errGenLocalFwTree,
+	} {
+		node := fw.ChildNodes[dir]
+		delete(fw.ChildNodes, dir)
+		checkErrors(false, [][]error{
+			{
+				utils.Err(errConfigInterface),
+				utils.Err(err),
+			},
+		})
+		fw.ChildNodes[dir] = node
+	}
+
+	dhcp := service.FindChild([]string{"dhcp-server", "shared-network-name", utils.DYNAMIC_NODE})
+	subnet := dhcp.ChildNodes["subnet"]
+	delete(dhcp.ChildNodes, "subnet")
+	checkErrors(true, [][]error{
+		{
+			utils.ErrWithCtx(errGenSubnetTree, "10.0.0.0/24"),
+			utils.ErrWithCtx(
+				errNonexistentNode,
+				"service/dhcp-server/shared-network-name/"+utils.DYNAMIC_NODE+"/subnet",
+			),
+		},
+		{
+			utils.ErrWithCtx(errGenSubnetTree, "10.1.0.0/24"),
+			utils.ErrWithCtx(
+				errNonexistentNode,
+				"service/dhcp-server/shared-network-name/"+utils.DYNAMIC_NODE+"/subnet",
+			),
+		},
+	})
+	dhcp.ChildNodes["subnet"] = subnet
+
+	host := subnet.FindChild([]string{utils.DYNAMIC_NODE})
+	static := host.ChildNodes["static-mapping"]
+	delete(host.ChildNodes, "static-mapping")
+	path := "service/dhcp-server/shared-network-name/" + utils.DYNAMIC_NODE + "/subnet/" + utils.DYNAMIC_NODE + "/static-mapping"
+	checkErrors(true, [][]error{
+		{
+			utils.ErrWithCtx(errGenHostTree, "host-1"),
+			utils.ErrWithCtx(
+				errNonexistentNode,
+				path,
+			),
+		},
+		{
+			utils.ErrWithCtx(errGenHostTree, "host-2"),
+			utils.ErrWithCtx(
+				errNonexistentNode,
+				path,
+			),
+		},
+	})
+	host.ChildNodes["static-mapping"] = static
+}
+
 func addFirewallRule(
 	t *testing.T,
 	definitions *Definitions,
@@ -566,4 +704,213 @@ func addFirewallRule(
 		}
 
 	}
+}
+
+func TestGetConnectionFirewall(t *testing.T) {
+	inbound := "inbound"
+	outbound := "outbound"
+	local := "local"
+	network := abstraction.Network{Interface: &abstraction.Interface{
+		InboundFirewall:  inbound,
+		OutboundFirewall: outbound,
+		LocalFirewall:    local,
+	}}
+	subnet := abstraction.Subnet{CIDR: "10.0.0.0/24"}
+	host := abstraction.Host{AddressGroups: []string{"address1", "address2"}}
+	addr := "10.0.0.24"
+	addr2 := "address2"
+
+	conn := abstraction.FirewallConnection{}
+	assert.Equal(t, "", getConnectionFirewall(&network, &subnet, &host, conn), "Unknown firewall")
+
+	conn.Source = &abstraction.ConnectionDetail{Address: &addr}
+	assert.Equal(t, inbound, getConnectionFirewall(&network, &subnet, &host, conn), "Inbound address")
+	conn.Source.Address = &addr2
+	assert.Equal(t, inbound, getConnectionFirewall(&network, &subnet, &host, conn), "Inbound address group")
+
+	conn.Source = nil
+	conn.Destination = &abstraction.ConnectionDetail{Address: &addr}
+	assert.Equal(t, outbound, getConnectionFirewall(&network, &subnet, &host, conn), "Outbound address")
+	conn.Destination.Address = &addr2
+	assert.Equal(t, outbound, getConnectionFirewall(&network, &subnet, &host, conn), "Outbound address group")
+
+	conn.Source = &abstraction.ConnectionDetail{Address: &addr}
+	assert.Equal(t, local, getConnectionFirewall(&network, &subnet, &host, conn), "Local address")
+	conn.Source.Address = &addr2
+	assert.Equal(t, local, getConnectionFirewall(&network, &subnet, &host, conn), "Local address group")
+
+}
+
+func TestAddHostToAddressGroups(t *testing.T) {
+	nodes := GetGeneratedNodes(t)
+	definitions := initDefinitions()
+	host := &abstraction.Host{}
+	assert.Empty(t, addHostToAddressGroups(nodes, definitions, host))
+	host.AddressGroups = []string{"address1", "address2"}
+
+	group := nodes.FindChild([]string{"firewall", "group"})
+	addrGroup := group.ChildNodes["address-group"]
+	delete(group.ChildNodes, "address-group")
+
+	errs := addHostToAddressGroups(nodes, definitions, host)
+	assert.Len(t, errs, 2)
+	assert.ErrorIs(t, errs[0], utils.ErrWithCtx(errGenAddrGroupTree, "address1"))
+	assert.ErrorIs(t, errs[1], utils.ErrWithCtx(errGenAddrGroupTree, "address2"))
+
+	group.ChildNodes["address-group"] = addrGroup
+}
+
+func TestAddFirewallRules(t *testing.T) {
+	nodes := GetGeneratedNodes(t)
+	definitions := initDefinitions()
+	network := abstraction.Network{Name: "test-network"}
+	subnet := abstraction.Subnet{CIDR: "10.0.0.0/24"}
+	addr := "10.0.0.10"
+	host := abstraction.Host{
+		Name:         "a-host",
+		Address:      addr,
+		ForwardPorts: map[int32]int32{80: 80, 443: 443},
+		Connections:  make([]abstraction.FirewallConnection, 1),
+	}
+	errs := addFirewallRules(nodes, definitions, &network, &subnet, &host)
+	assert.Len(t, errs, 1)
+	assert.ErrorIs(t, errs[0], utils.ErrWithVarCtx(errFwRequiresInterface, "test-network", "a-host"))
+
+	nat := nodes.FindChild([]string{"service", "nat"})
+	rule := nat.ChildNodes["rule"]
+	delete(nat.ChildNodes, "rule")
+
+	errs = addFirewallRules(nodes, definitions, &network, &subnet, &host)
+	assert.Len(t, errs, 3)
+	assert.ErrorIs(t, errs[0], utils.ErrWithVarCtx(errGenNatRuleTree, 80, "a-host"))
+	assert.ErrorIs(t, errs[1], utils.ErrWithVarCtx(errGenNatRuleTree, 443, "a-host"))
+	assert.ErrorIs(t, errs[2], utils.ErrWithVarCtx(errFwRequiresInterface, "test-network", "a-host"))
+	nat.ChildNodes["rule"] = rule
+
+	network.Interface = &abstraction.Interface{
+		InboundFirewall:  "inbound",
+		OutboundFirewall: "outbound",
+		LocalFirewall:    "local",
+	}
+	abstraction.MakeCounter("inbound", 100, 10)
+	abstraction.MakeCounter("outbound", 100, 10)
+	abstraction.MakeCounter("local", 100, 10)
+
+	port1 := "80"
+	port2 := "443"
+	host.Connections = []abstraction.FirewallConnection{
+		{Description: "port 80", Source: &abstraction.ConnectionDetail{Port: &port1}},
+	}
+	errs = addFirewallRules(nodes, definitions, &network, &subnet, &host)
+	assert.Len(t, errs, 1)
+	assert.ErrorIs(t, errs[0], utils.ErrWithVarCtx(errUnknownFirewall, "port 80", "a-host"))
+
+	fw := nodes.FindChild([]string{"firewall", "name", utils.DYNAMIC_NODE})
+	rule = fw.ChildNodes["rule"]
+	delete(fw.ChildNodes, "rule")
+	host.Connections = []abstraction.FirewallConnection{
+		{Description: "port 80", Source: &abstraction.ConnectionDetail{Address: &addr, Port: &port1}},
+		{Description: "port 443", Source: &abstraction.ConnectionDetail{Address: &addr, Port: &port2}},
+	}
+	errs = addFirewallRules(nodes, definitions, &network, &subnet, &host)
+	assert.Len(t, errs, 2)
+	assert.ErrorIs(t, errs[0], utils.ErrWithVarCtx(errGenFwRuleTree, "inbound", 100))
+	assert.ErrorIs(t, errs[1], utils.ErrWithVarCtx(errGenFwRuleTree, "inbound", 110))
+
+	fw.ChildNodes["rule"] = rule
+}
+
+func TestAddForwardPortErrors(t *testing.T) {
+	nodes := GetGeneratedNodes(t)
+	definitions := initDefinitions()
+	host := abstraction.Host{
+		Name:         "a-host",
+		ForwardPorts: map[int32]int32{80: 80, 443: 443},
+		Connections:  make([]abstraction.FirewallConnection, 1),
+	}
+
+	nat := nodes.FindChild([]string{"service", "nat"})
+	rule := nat.ChildNodes["rule"]
+	delete(nat.ChildNodes, "rule")
+
+	err := addForwardPort(nodes, definitions, &host, "inbound", 80, 80)
+	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenNatRuleTree, 80, "a-host"))
+
+	nat.ChildNodes["rule"] = rule
+
+	ruleEntry := rule.ChildNodes[utils.DYNAMIC_NODE]
+	dest := ruleEntry.ChildNodes["destination"]
+	delete(ruleEntry.ChildNodes, "destination")
+
+	err = addForwardPort(nodes, definitions, &host, "inbound", 80, 443)
+	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenDestinationNatTree, 80, "a-host"))
+
+	ruleEntry.ChildNodes["destination"] = dest
+
+	addr := ruleEntry.ChildNodes["inside-address"]
+	delete(ruleEntry.ChildNodes, "inside-address")
+
+	err = addForwardPort(nodes, definitions, &host, "inbound", 80, 443)
+	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenInsideNatTree, 80, "a-host"))
+
+	ruleEntry.ChildNodes["inside-address"] = addr
+}
+
+func TestAddConnectionErrors(t *testing.T) {
+	nodes := GetGeneratedNodes(t)
+	definitions := initDefinitions()
+	abstraction.MakeCounter("inbound", 100, 10)
+
+	fw := nodes.FindChild([]string{"firewall", "name", utils.DYNAMIC_NODE})
+	rule := fw.ChildNodes["rule"]
+	delete(fw.ChildNodes, "rule")
+
+	conn := abstraction.FirewallConnection{
+		Description: "test rule",
+		Source:      &abstraction.ConnectionDetail{},
+		Destination: &abstraction.ConnectionDetail{},
+	}
+	err := addConnection(nodes, definitions, "inbound", conn)
+	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenFwRuleTree, "inbound", 100))
+
+	fw.ChildNodes["rule"] = rule
+
+	ruleEntry := rule.ChildNodes[utils.DYNAMIC_NODE]
+	src := ruleEntry.ChildNodes["source"]
+	delete(ruleEntry.ChildNodes, "source")
+
+	err = addConnection(nodes, definitions, "inbound", conn)
+	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenFwSrcTree, "inbound", 110, "test rule"))
+
+	ruleEntry.ChildNodes["source"] = src
+
+	dst := ruleEntry.ChildNodes["destination"]
+	delete(ruleEntry.ChildNodes, "destination")
+
+	err = addConnection(nodes, definitions, "inbound", conn)
+	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenFwDestTree, "inbound", 120, "test rule"))
+
+	ruleEntry.ChildNodes["destination"] = dst
+
+	fwGroup := "fw-group"
+	conn.Source.Address = &fwGroup
+	conn.Destination.Port = &fwGroup
+
+	addrGroup := src.ChildNodes["group"]
+	delete(src.ChildNodes, "group")
+
+	err = addConnection(nodes, definitions, "inbound", conn)
+	assert.ErrorIs(t, err, utils.ErrWithCtx(errGenFwAddrGroupTree, "fw-group"))
+	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenFwSrcTree, "inbound", 130, "test rule"))
+
+	src.ChildNodes["group"] = addrGroup
+
+	portGroup := dst.ChildNodes["group"]
+	delete(dst.ChildNodes, "group")
+
+	err = addConnection(nodes, definitions, "inbound", conn)
+	assert.ErrorIs(t, err, utils.ErrWithCtx(errGenFwPortGroupTree, "fw-group"))
+	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenFwDestTree, "inbound", 140, "test rule"))
+
+	dst.ChildNodes["group"] = portGroup
 }

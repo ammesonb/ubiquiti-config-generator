@@ -3,6 +3,7 @@ package vyos
 import (
 	"bytes"
 	"fmt"
+	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"github.com/stretchr/testify/assert"
 	"io"
@@ -1158,7 +1159,7 @@ syntax:expression: exec "if ! /usr/sbin/ubnt-fw validate-protocol '$VAR(@)' ;
 }
 
 func TestParseNodeDef(t *testing.T) {
-	node, err := ParseNodeDef("/nonexistent")
+	node, err := ParseNodeDef("/nonexistent", mocks.GetFsWrapper())
 	assert.Nil(t, node)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, utils.ErrWithCtx(errReadNodeDir, "/nonexistent"))

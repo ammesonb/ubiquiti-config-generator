@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -56,8 +57,8 @@ func Exists(logDB *gorm.DB, model interface{}, idCol string, idVal interface{}) 
 
 	err := logDB.
 		Model(model).
-		Select("SELECT COUNT(*) > 0").
-		Where("%s = ?", idCol, idVal).
+		Select("COUNT(*) > 0").
+		Where(fmt.Sprintf("%s = ?", idCol), idVal).
 		Find(&exists).
 		Error
 

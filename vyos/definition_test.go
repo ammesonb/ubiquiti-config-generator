@@ -895,4 +895,26 @@ func TestEnsureTree(t *testing.T) {
 		utils.MakeVyosDynamicPC("100"),
 	)
 	assert.Nil(t, defs.ensureTree(nodes, goodPath))
+
+	badPath := utils.MakeVyosPath()
+	badPath.Append(
+		utils.MakeVyosPC("firewall"),
+		utils.MakeVyosPC("name"),
+	)
+	assert.ErrorIs(
+		t,
+		defs.ensureTree(nodes, badPath),
+		utils.ErrWithCtx(errUnmatchedDynamicNode, "firewall/name"),
+	)
+	assert.ErrorIs(
+		t,
+		defs.ensureTree(&Node{}, badPath),
+		utils.ErrWithCtx(errNonexistentNode, "firewall"),
+	)
+	badPath.Path = append(badPath.Path, "foo")
+	assert.ErrorIs(
+		t,
+		defs.ensureTree(nodes, badPath),
+		utils.ErrWithVarCtx(errDiffLength, 3, 2),
+	)
 }

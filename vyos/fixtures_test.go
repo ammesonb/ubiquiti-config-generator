@@ -3,6 +3,7 @@ package vyos
 import (
 	"errors"
 	"fmt"
+	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -74,7 +75,7 @@ func generateNodeFixtures(templateDir string, outputFile string) error {
 	}
 
 	fmt.Printf("Parsing templates from %s\n", templatePath)
-	node, err := Parse(templateDir)
+	node, err := Parse(templateDir, mocks.GetFsWrapper())
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrParseTemplates{templatePath: templatePath}, err)
 	}

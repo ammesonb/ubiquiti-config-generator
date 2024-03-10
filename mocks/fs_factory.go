@@ -12,6 +12,7 @@ type statFunc func(filename string) (os.FileInfo, error)
 type FsWrapper struct {
 	Stat    statFunc
 	ReadDir func(dir string) ([]os.DirEntry, error)
+	Open    func(filename string) (*os.File, error)
 }
 
 var fsWrapper *FsWrapper
@@ -67,7 +68,11 @@ func (e MockDirEntry) Info() (os.FileInfo, error) {
 // GetFsWrapper returns default implementations for FS functions
 func GetFsWrapper() *FsWrapper {
 	if fsWrapper == nil {
-		fsWrapper = &FsWrapper{Stat: os.Stat, ReadDir: os.ReadDir}
+		fsWrapper = &FsWrapper{
+			Stat:    os.Stat,
+			ReadDir: os.ReadDir,
+			Open:    os.Open,
+		}
 	}
 	return fsWrapper
 }

@@ -2,6 +2,7 @@ package vyos
 
 import (
 	"errors"
+	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"os"
 	"path/filepath"
@@ -32,13 +33,13 @@ func isNodeDef(templatesPath string, statFunc tStatFunc) (bool, error) {
 }
 
 // Parse converts the provided templates path into an analyzable list of nodes
-func Parse(templatesPath string) (*Node, error) {
+func Parse(templatesPath string, fsWrapper *mocks.FsWrapper) (*Node, error) {
 	isNode, err := isNodeDef(templatesPath, os.Stat)
 	if err != nil {
 		return nil, err
 	} else if isNode {
 		console_logger.DefaultLogger().Info("Detected node templates definitions")
-		return ParseNodeDef(templatesPath)
+		return ParseNodeDef(templatesPath, fsWrapper)
 	}
 
 	return nil, utils.ErrWithCtx(errUnsupportedType, templatesPath)

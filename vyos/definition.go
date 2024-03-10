@@ -360,7 +360,7 @@ func (definitions *Definitions) ensureTree(nodes *Node, path *utils.VyosPath) er
 			return utils.ErrWithCtx(errNonexistentNode, fullNodePath)
 		} else if node.IsTag {
 			lastDynamic = true
-			if len(path.Path) == idx {
+			if len(path.Path) == idx+1 {
 				return utils.ErrWithCtx(errUnmatchedDynamicNode, fullPath)
 			}
 			// Add the next path definition name to the string path, so when we check if the given definition is already

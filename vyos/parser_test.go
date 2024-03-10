@@ -2,6 +2,7 @@ package vyos
 
 import (
 	"fmt"
+	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -10,17 +11,18 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	nodes, err := Parse("./test-files/node")
+	wrapper := mocks.GetFsWrapper()
+	nodes, err := Parse("./test-files/node", wrapper)
 	assert.NoError(t, err)
 	assert.NotNil(t, nodes, "Node definitions should parse successfully")
 	assert.NotNil(t, nodes.FindChild([]string{"firewall"}), "Firewall node parsed")
 
-	nodes, err = Parse("./test-files/xml")
+	nodes, err = Parse("./test-files/xml", wrapper)
 	assert.Nil(t, nodes, "No XML nodes generated")
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, utils.ErrWithCtx(errUnsupportedType, "./test-files/xml"))
 
-	nodes, err = Parse("./test-files/invalid-node-dir")
+	nodes, err = Parse("./test-files/invalid-node-dir", wrapper)
 	assert.Nil(t, nodes, "No nodes generated")
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, utils.ErrWithCtx(errUnsupportedType, "./test-files/invalid-node-dir"))

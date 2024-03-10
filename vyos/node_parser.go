@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
+	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"io"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -42,10 +42,10 @@ var (
 )
 
 // ParseNodeDef takes a template path and converts it into a list of nodes for analysis/validation
-func ParseNodeDef(templatesPath string) (*Node, error) {
+func ParseNodeDef(templatesPath string, fsWrapper *mocks.FsWrapper) (*Node, error) {
 	// ReadDir returns relative paths, so /etc will return hosts, passwd, shadow, etc
 	// Not including the parent `/etc/` prefix
-	entries, err := os.ReadDir(templatesPath)
+	entries, err := fsWrapper.ReadDir(templatesPath)
 	logger := console_logger.DefaultLogger()
 	if err != nil {
 		return nil, utils.ErrWithCtxParent(errReadNodeDir, templatesPath, err)
@@ -67,7 +67,7 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 		if entry.Name() == "node.def" && !entry.IsDir() {
 			// Parse node definition files only
 			fullFilePath := filepath.Join(templatesPath, entry.Name())
-			reader, err := openDefinitionFile(fullFilePath)
+			reader, err := fsWrapper.Open(fullFilePath)
 			if err != nil {
 				return nil, utils.ErrWithCtxParent(errOpenNodeDef, fullFilePath, err)
 			}
@@ -86,7 +86,7 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 		}
 
 		// For other directories, continuing recursing
-		childNode, err := ParseNodeDef(filepath.Join(templatesPath, entry.Name()))
+		childNode, err := ParseNodeDef(filepath.Join(templatesPath, entry.Name()), fsWrapper)
 		if err != nil {
 			return nil, err
 		}
@@ -95,10 +95,6 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 	}
 
 	return node, nil
-}
-
-func openDefinitionFile(path string) (io.ReadCloser, error) {
-	return os.Open(path)
 }
 
 func parseDefinition(reader io.Reader, logger *log.Logger, node *Node) error {
