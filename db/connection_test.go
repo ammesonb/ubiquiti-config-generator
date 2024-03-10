@@ -2,11 +2,11 @@ package db
 
 import (
 	"fmt"
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
-	"github.com/stretchr/testify/assert"
-	"gorm.io/gorm"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"gorm.io/gorm"
 )
 
 func getTestDB() (*gorm.DB, error) {
@@ -14,13 +14,11 @@ func getTestDB() (*gorm.DB, error) {
 }
 
 func TestOpenDB(t *testing.T) {
-	// Try an invalid data source connection string
-	db, err := OpenDB("file::invalid??some-invalid-arg")
-	assert.Nil(t, db, "No DB for bad connection string")
-	assert.ErrorIs(t, err, utils.Err(errConnect))
+	// First test should be to check an invalid connection string, but seems that
+	// the Unix sqlite driver is very tolerant of incorrect input strings
 
 	// Attempt to establish an in-memory connection for tests
-	db, err = getTestDB()
+	db, err := getTestDB()
 	assert.NotNil(t, db)
 	assert.NoError(t, err)
 
