@@ -1,4 +1,4 @@
-package utils
+package slices
 
 // Last returns the final element of a given slice
 func Last[T interface{}](slice []T) T {

@@ -3,8 +3,8 @@ package vyos
 import (
 	"errors"
 	"fmt"
+	errors2 "github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/ammesonb/ubiquiti-config-generator/mocks"
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
@@ -71,7 +71,7 @@ var errAbsPath = "failed to get absolute system path to %s"
 func generateNodeFixtures(templateDir string, outputFile string) error {
 	templatePath, err := filepath.Abs(templateDir)
 	if err != nil {
-		return utils.ErrWithCtxParent(errAbsPath, templateDir, err)
+		return errors2.ErrWithCtxParent(errAbsPath, templateDir, err)
 	}
 
 	fmt.Printf("Parsing templates from %s\n", templatePath)
@@ -88,7 +88,7 @@ func generateNodeFixtures(templateDir string, outputFile string) error {
 
 	outputPath, err := filepath.Abs(outputFile)
 	if err != nil {
-		return utils.ErrWithCtxParent(errAbsPath, outputPath, err)
+		return errors2.ErrWithCtxParent(errAbsPath, outputPath, err)
 	}
 	if err = os.WriteFile(outputPath, res, 0o644); err != nil {
 		return fmt.Errorf("%w: %w", ErrWriteNode{output: outputPath}, err)

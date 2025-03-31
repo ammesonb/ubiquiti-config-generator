@@ -1,12 +1,81 @@
 package config
 
 import (
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/test_helpers"
 	"github.com/ammesonb/ubiquiti-config-generator/mocks"
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 )
+
+func TestGetDeviceConfigs(t *testing.T) {
+	t.Run("Invalid YAML", func(t *testing.T) {
+		devices, err := GetDeviceConfigs([]byte("invalid[yaml"))
+		assert.Empty(t, devices)
+		assert.Error(t, err)
+	})
+
+	t.Run("Explicit device values are not overwritten", func(t *testing.T) {
+		deviceYAML := []byte(`
+- name: dev1
+  address: 1.2.3.4
+  keyfile: /etc/keyfile
+- name: dev2
+  address: 5.6.7.8
+`)
+		devices, err := GetDeviceConfigs(deviceYAML)
+		assert.NoError(t, err)
+
+		if len(devices) != 2 {
+			t.Fatalf("expected 2 devices, got %d", len(devices))
+		}
+
+		tracker := test_helpers.NewAssertionTracker(t)
+		tracker.Expect("dev1 name", "dev1", devices[0].Name)
+		tracker.Expect("dev1 address", "1.2.3.4", devices[0].Address)
+		tracker.Expect("dev1 keyfile", "/etc/keyfile", devices[0].KeyFile)
+		tracker.Expect("dev2 name", "dev2", devices[1].Name)
+		tracker.Expect("dev2 address", "5.6.7.8", devices[1].Address)
+		tracker.Expect("dev2 keyfile", "", devices[1].KeyFile)
+	})
+
+	t.Run("Environment values are loaded", func(t *testing.T) {
+		envValues := map[string]string{
+			"dev1_address": "1.2.3.4",
+			"dev1_keyfile": "/etc/keyfile",
+			"dev2_address": "5.6.7.8",
+		}
+
+		for k, v := range envValues {
+			t.Setenv(k, v)
+		}
+
+		deviceYAML := []byte(`
+- name: dev1
+  address: $dev1_address
+  keyfile: $dev1_keyfile
+- name: dev2
+  address: $dev2_address
+  port: 80
+`)
+		devices, err := GetDeviceConfigs(deviceYAML)
+		assert.NoError(t, err)
+
+		if len(devices) != 2 {
+			t.Fatalf("expected 2 devices, got %d", len(devices))
+		}
+
+		tracker := test_helpers.NewAssertionTracker(t)
+		tracker.Expect("dev1 name", "dev1", devices[0].Name)
+		tracker.Expect("dev1 address", envValues["dev1_address"], devices[0].Address)
+		tracker.Expect("dev1 keyfile", envValues["dev1_keyfile"], devices[0].KeyFile)
+		tracker.Expect("dev2 name", "dev2", devices[1].Name)
+		tracker.Expect("dev2 address", envValues["dev2_address"], devices[1].Address)
+		tracker.Expect("dev2 keyfile", "", devices[1].KeyFile)
+		tracker.Expect("dev2 keyfile", "80", devices[1].Port)
+	})
+}
 
 func TestEnumerateConfigFiles(t *testing.T) {
 	readName := "read"
@@ -33,7 +102,7 @@ func TestEnumerateConfigFiles(t *testing.T) {
 	files, errs := EnumerateConfigFiles(fsWrap, config, "/")
 	assert.Empty(t, files, "No files if read dir fails")
 	assert.Len(t, errs, 1, "Does not continue after read fail")
-	assert.ErrorIs(t, errs[0], utils.ErrWithCtx(errReadDir, "/"))
+	assert.ErrorIs(t, errs[0], errors.ErrWithCtx(errReadDir, "/"))
 
 	assert.NoError(
 		t,

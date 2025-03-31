@@ -8,7 +8,7 @@ import (
 
 func TestExists(t *testing.T) {
 	// Ensure connection can be opened
-	db, err := getTestDB()
+	db, err := GetTestDB()
 	assert.NotNil(t, db)
 	assert.NoError(t, err)
 	if db == nil {
@@ -36,7 +36,7 @@ func TestExists(t *testing.T) {
 	assert.False(t, exists, "Check does not exist for bad ID column")
 
 	// Open a new connection, and make sure the memory DB is shared between them
-	db2, err := getTestDB()
+	db2, err := GetTestDB()
 	assert.NotNil(t, db2)
 	assert.NoError(t, err)
 

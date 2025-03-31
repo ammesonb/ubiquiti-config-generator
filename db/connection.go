@@ -1,8 +1,7 @@
 package db
 
 import (
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
-
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -17,7 +16,7 @@ var (
 func OpenDB(dbName string) (*gorm.DB, error) {
 	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
 	if err != nil {
-		return nil, utils.ErrWithParent(errConnect, err)
+		return nil, errors.ErrWithParent(errConnect, err)
 	}
 
 	structures := map[string]any{
@@ -29,9 +28,14 @@ func OpenDB(dbName string) (*gorm.DB, error) {
 
 	for name, structure := range structures {
 		if err = db.AutoMigrate(structure); err != nil {
-			return nil, utils.ErrWithCtxParent(errMigrate, name, err)
+			return nil, errors.ErrWithCtxParent(errMigrate, name, err)
 		}
 	}
 
 	return db, nil
+}
+
+// GetTestDB creates a test database in memory.
+func GetTestDB() (*gorm.DB, error) {
+	return OpenDB("file::memory:?cache=shared")
 }

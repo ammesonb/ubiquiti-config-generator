@@ -4,7 +4,7 @@ import (
 	"os"
 	"os/signal"
 
-	config2 "github.com/ammesonb/ubiquiti-config-generator/config"
+	"github.com/ammesonb/ubiquiti-config-generator/config"
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 	"github.com/ammesonb/ubiquiti-config-generator/web"
 )
@@ -64,12 +64,21 @@ func main() {
 	log := console_logger.DefaultLogger()
 
 	log.Debug("Reading settings")
-	configData, err := config2.ReadConfig("./config.yaml")
+	configData, err := config.ReadConfig("./config.yaml")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	config, err := config2.LoadConfig(configData)
+	cfg, err := config.LoadConfig(configData)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	deviceData, err := config.ReadConfig(cfg.DevicesFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.Devices, err = config.GetDeviceConfigs(deviceData)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -81,5 +90,5 @@ func main() {
 	// SIGKILL, SIGQUIT or SIGTERM (Ctrl+/) will not be caught.
 	signal.Notify(shutdownChannel, os.Interrupt)
 
-	web.StartWebhookServer(log, config, shutdownChannel)
+	web.StartWebhookServer(log, cfg, shutdownChannel)
 }

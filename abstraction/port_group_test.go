@@ -1,7 +1,7 @@
 package abstraction
 
 import (
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"reflect"
 	"testing"
 
@@ -11,8 +11,8 @@ import (
 func TestLoadPortGroups(t *testing.T) {
 	groups, errs := LoadPortGroups("./test-files/port-groups")
 	assert.Len(t, errs, 2, "Should have two errors")
-	assert.ErrorIs(t, errs[0], utils.ErrWithCtx(errPortGroupEmpty, "blank"))
-	assert.ErrorIs(t, errs[1], utils.ErrWithCtx(errParsePortGroup, "test-files/port-groups/invalid.yaml"))
+	assert.ErrorIs(t, errs[0], errors.ErrWithCtx(errPortGroupEmpty, "blank"))
+	assert.ErrorIs(t, errs[1], errors.ErrWithCtx(errParsePortGroup, "test-files/port-groups/invalid.yaml"))
 
 	assert.Len(t, groups, 2, "Expected 2 port groups loaded")
 
@@ -52,5 +52,5 @@ func TestNonexistentPath(t *testing.T) {
 
 	group, err := makePortGroup("/nonexistent", "group")
 	assert.Nil(t, group, "Group should be null if file does not exist")
-	assert.ErrorIs(t, err, utils.ErrWithCtx(errReadPortGroup, "/nonexistent"))
+	assert.ErrorIs(t, err, errors.ErrWithCtx(errReadPortGroup, "/nonexistent"))
 }

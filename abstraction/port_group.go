@@ -1,7 +1,7 @@
 package abstraction
 
 import (
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
+	errors2 "github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"os"
 	"path"
 	"regexp"
@@ -22,7 +22,7 @@ func LoadPortGroups(portGroupsPath string) ([]PortGroup, []error) {
 	entries, err := os.ReadDir(portGroupsPath)
 	if err != nil {
 		return portGroups,
-			[]error{utils.ErrWithCtxParent(failReadPortGroup, portGroupsPath, err)}
+			[]error{errors2.ErrWithCtxParent(failReadPortGroup, portGroupsPath, err)}
 	}
 
 	for _, entry := range entries {
@@ -41,7 +41,7 @@ func LoadPortGroups(portGroupsPath string) ([]PortGroup, []error) {
 			} else if len(group.Ports) > 0 {
 				portGroups = append(portGroups, *group)
 			} else {
-				errors = append(errors, utils.ErrWithCtx(errPortGroupEmpty, group.Name))
+				errors = append(errors, errors2.ErrWithCtx(errPortGroupEmpty, group.Name))
 			}
 		}
 	}
@@ -52,11 +52,11 @@ func LoadPortGroups(portGroupsPath string) ([]PortGroup, []error) {
 func makePortGroup(filepath string, groupName string) (*PortGroup, error) {
 	groupData, err := os.ReadFile(filepath)
 	if err != nil {
-		return nil, utils.ErrWithCtxParent(errReadPortGroup, filepath, err)
+		return nil, errors2.ErrWithCtxParent(errReadPortGroup, filepath, err)
 	}
 	group := PortGroup{Name: groupName}
 	if err = yaml.Unmarshal(groupData, &group); err != nil {
-		return nil, utils.ErrWithCtxParent(errParsePortGroup, filepath, err)
+		return nil, errors2.ErrWithCtxParent(errParsePortGroup, filepath, err)
 	}
 
 	return &group, nil

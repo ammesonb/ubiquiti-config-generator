@@ -2,7 +2,7 @@ package vyos
 
 import (
 	"bufio"
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
 	"io"
 	"regexp"
 	"strings"
@@ -35,7 +35,7 @@ func ParseBootDefinitions(reader io.Reader, definitions *Definitions, rootNode *
 		if len(line) == 0 {
 			continue
 		} else if lineIsComment(line) {
-			utils.Last(definitionStack).Comment = line
+			slices.Last(definitionStack).Comment = line
 		} else if lineCreatesNode(line) {
 			openScope(line, rootNode, definitions, &definitionStack, &nodeStack, logger)
 		} else if lineEndsNode(line) {
@@ -94,11 +94,11 @@ func openScope(
 	nodeStack *[]*Node,
 	logger *log.Logger,
 ) {
-	parentNode := utils.Last(*nodeStack)
+	parentNode := slices.Last(*nodeStack)
 	// Parent definition may not be set
 	var parentDefinition *Definition = nil
 	if parentNode != rootNode {
-		parentDefinition = utils.Last(*definitionStack)
+		parentDefinition = slices.Last(*definitionStack)
 	}
 
 	logger.Debugf("Adding new scope: %s", getDefinitionName(line))
@@ -135,13 +135,13 @@ func closeScope(
 	nodeStack *[]*Node,
 	logger *log.Logger,
 ) {
-	logger.Debugf("Closing out scope: %s", utils.Last(*definitionStack).FullPath())
+	logger.Debugf("Closing out scope: %s", slices.Last(*definitionStack).FullPath())
 	*definitionStack = (*definitionStack)[:len(*definitionStack)-1]
 	*nodeStack = (*nodeStack)[:len(*nodeStack)-1]
 	// If top of stack is a tag, then we'll need to skip that one too
 	// since when opening the tag we appended two nodes
-	if len(*nodeStack) > 0 && utils.Last(*nodeStack).IsTag {
-		logger.Debugf("Scope was tag node, also closing: %s", utils.Last(*nodeStack).Name)
+	if len(*nodeStack) > 0 && slices.Last(*nodeStack).IsTag {
+		logger.Debugf("Scope was tag node, also closing: %s", slices.Last(*nodeStack).Name)
 		*nodeStack = (*nodeStack)[:len(*nodeStack)-1]
 	}
 }
@@ -158,10 +158,10 @@ func setValue(
 		"Detected value '%v' for attribute '%s' on path %s",
 		value,
 		attribute,
-		utils.Last(definitionStack).FullPath(),
+		slices.Last(definitionStack).FullPath(),
 	)
 
-	definition := makeNewDefinition(utils.Last(nodeStack).Children(), utils.Last(definitionStack), attribute)
+	definition := makeNewDefinition(slices.Last(nodeStack).Children(), slices.Last(definitionStack), attribute)
 	if _, ok := definitions.DefinitionByPath[definition.FullPath()]; definition.Node.Multi && ok {
 		definitions.DefinitionByPath[definition.FullPath()].Values = append(
 			definitions.DefinitionByPath[definition.FullPath()].Values,
@@ -186,14 +186,14 @@ func handleUnknown(
 	logger *log.Logger,
 ) {
 	// Try to get a definition anyways
-	definition := makeNewDefinition(utils.Last(nodeStack).Children(), utils.Last(definitionStack), strings.TrimSpace(line))
+	definition := makeNewDefinition(slices.Last(nodeStack).Children(), slices.Last(definitionStack), strings.TrimSpace(line))
 
 	// If a node is not found, or has a type, then there should be a value set
 	// so should not be here
 	if definition.Node == nil || len(definition.Node.Type) > 0 {
 		logger.Warnf("Could not determine purpose of line: '%s'", line)
 	} else if len(definition.Node.Type) == 0 {
-		logger.Debugf("Found implicit boolean attribute on path %s", utils.Last(definitionStack).FullPath())
+		logger.Debugf("Found implicit boolean attribute on path %s", slices.Last(definitionStack).FullPath())
 		// Otherwise, this is an implicit boolean by being present and we should
 		// keep the definition
 		definitions.add(&definition)

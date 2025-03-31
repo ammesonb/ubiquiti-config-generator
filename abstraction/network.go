@@ -1,7 +1,7 @@
 package abstraction
 
 import (
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"os"
 	"path"
 	"regexp"
@@ -26,7 +26,7 @@ func LoadNetworks(networksPath string) ([]Network, []error) {
 
 	entries, err := os.ReadDir(networksPath)
 	if err != nil {
-		return nil, []error{utils.ErrWithCtxParent(errReadNetworks, networksPath, err)}
+		return nil, []error{errors.ErrWithCtxParent(errReadNetworks, networksPath, err)}
 	}
 
 	var errors []error
@@ -48,12 +48,12 @@ func LoadNetworks(networksPath string) ([]Network, []error) {
 func loadNetwork(networkPath string) (*Network, []error) {
 	config, err := os.ReadFile(path.Join(networkPath, "config.yaml"))
 	if err != nil {
-		return nil, []error{utils.ErrWithCtxParent(errReadNetworkConf, networkPath, err)}
+		return nil, []error{errors.ErrWithCtxParent(errReadNetworkConf, networkPath, err)}
 	}
 	var network Network
 
 	if err = yaml.Unmarshal(config, &network); err != nil {
-		return nil, []error{utils.ErrWithCtxParent(errParseNetworkConf, networkPath, err)}
+		return nil, []error{errors.ErrWithCtxParent(errParseNetworkConf, networkPath, err)}
 	}
 
 	if errs := loadHosts(&network, networkPath); len(errs) > 0 {
@@ -88,7 +88,7 @@ func loadHosts(network *Network, networkPath string) []error {
 	hostDir := path.Join(networkPath, "hosts")
 	hostFiles, err := os.ReadDir(hostDir)
 	if err != nil {
-		return []error{utils.ErrWithCtxParent(errReadHostDir, hostDir, err)}
+		return []error{errors.ErrWithCtxParent(errReadHostDir, hostDir, err)}
 	}
 
 	errors := make([]error, 0)
@@ -111,7 +111,7 @@ func loadHosts(network *Network, networkPath string) []error {
 func loadHost(hostPath string, network *Network) error {
 	hostYAML, err := os.ReadFile(hostPath)
 	if err != nil {
-		return utils.ErrWithCtxParent(errReadHost, hostPath, err)
+		return errors.ErrWithCtxParent(errReadHost, hostPath, err)
 	}
 
 	nameExtract := regexp.MustCompile(`^.*/(.*)\.ya?ml$`)
@@ -126,13 +126,13 @@ func loadHost(hostPath string, network *Network) error {
 	}
 
 	if err = yaml.Unmarshal(hostYAML, &host); err != nil {
-		return utils.ErrWithCtxParent(errParseHost, hostPath, err)
+		return errors.ErrWithCtxParent(errParseHost, hostPath, err)
 	}
 
 	for _, subnet := range network.Subnets {
 		inSubnet, err := validation.IsAddressInSubnet(host.Address, subnet.CIDR)
 		if err != nil {
-			return utils.ErrWithCtxParent(errCheckHostSubnet, hostPath, err)
+			return errors.ErrWithCtxParent(errCheckHostSubnet, hostPath, err)
 		} else if inSubnet {
 			subnet.Hosts = append(subnet.Hosts, &host)
 		}

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/ammesonb/ubiquiti-config-generator/abstraction"
 	"github.com/ammesonb/ubiquiti-config-generator/config"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
 	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"github.com/ammesonb/ubiquiti-config-generator/validation"
 	"github.com/stretchr/testify/assert"
@@ -47,8 +49,8 @@ func TestFromPortGroupAbstraction(t *testing.T) {
 	portGroup := groupN.ChildNodes["port-group"]
 	delete(groupN.ChildNodes, "port-group")
 	defs, err = FromPortGroupAbstraction(nodes, group)
-	assert.ErrorIs(t, err, utils.ErrWithCtx(errGenPortGroupTree, name))
-	assert.ErrorIs(t, err, utils.ErrWithCtx(errNonexistentNode, "firewall/group/port-group"))
+	assert.ErrorIs(t, err, errors.ErrWithCtx(errGenPortGroupTree, name))
+	assert.ErrorIs(t, err, errors.ErrWithCtx(errNonexistentNode, "firewall/group/port-group"))
 	groupN.ChildNodes["port-group"] = portGroup
 }
 
@@ -234,23 +236,23 @@ func TestFromNetworkAbstraction(t *testing.T) {
 		expected.add(&Definition{
 			Name:       "description",
 			Path:       ethPath.Path,
-			Node:       nodes.FindChild(utils.CopySliceWith(ethPath.NodePath, "description")),
+			Node:       nodes.FindChild(slices.CopySliceWith(ethPath.NodePath, "description")),
 			Value:      "CARRIER",
-			ParentNode: nodes.FindChild(utils.AllExcept(ethPath.NodePath, 1)),
+			ParentNode: nodes.FindChild(slices.AllExcept(ethPath.NodePath, 1)),
 		})
 		expected.add(&Definition{
 			Name:       "duplex",
 			Path:       ethPath.Path,
-			Node:       nodes.FindChild(utils.CopySliceWith(ethPath.NodePath, "duplex")),
+			Node:       nodes.FindChild(slices.CopySliceWith(ethPath.NodePath, "duplex")),
 			Value:      "auto",
-			ParentNode: nodes.FindChild(utils.AllExcept(ethPath.NodePath, 1)),
+			ParentNode: nodes.FindChild(slices.AllExcept(ethPath.NodePath, 1)),
 		})
 		expected.add(&Definition{
 			Name:       "speed",
 			Path:       ethPath.Path,
-			Node:       nodes.FindChild(utils.CopySliceWith(ethPath.NodePath, "speed")),
+			Node:       nodes.FindChild(slices.CopySliceWith(ethPath.NodePath, "speed")),
 			Value:      "auto",
-			ParentNode: nodes.FindChild(utils.AllExcept(ethPath.NodePath, 1)),
+			ParentNode: nodes.FindChild(slices.AllExcept(ethPath.NodePath, 1)),
 		})
 	}
 
@@ -262,68 +264,68 @@ func TestFromNetworkAbstraction(t *testing.T) {
 		expected.add(&Definition{
 			Name:       "description",
 			Path:       vifPath.Path,
-			Node:       nodes.FindChild(utils.CopySliceWith(vifPath.NodePath, "description")),
+			Node:       nodes.FindChild(slices.CopySliceWith(vifPath.NodePath, "description")),
 			Value:      "first port",
-			ParentNode: nodes.FindChild(utils.AllExcept(vifPath.NodePath, 1)),
+			ParentNode: nodes.FindChild(slices.AllExcept(vifPath.NodePath, 1)),
 		})
 		expected.add(&Definition{
 			Name:       "address",
 			Path:       vifPath.Path,
-			Node:       nodes.FindChild(utils.CopySliceWith(vifPath.NodePath, "address")),
+			Node:       nodes.FindChild(slices.CopySliceWith(vifPath.NodePath, "address")),
 			Value:      "10.0.0.1",
-			ParentNode: nodes.FindChild(utils.AllExcept(vifPath.NodePath, 1)),
+			ParentNode: nodes.FindChild(slices.AllExcept(vifPath.NodePath, 1)),
 		})
 		expected.add(&Definition{
 			Name:       "disable-link-detect",
 			Path:       vifPath.Path,
-			Node:       nodes.FindChild(utils.CopySliceWith(vifPath.NodePath, "disable-link-detect")),
+			Node:       nodes.FindChild(slices.CopySliceWith(vifPath.NodePath, "disable-link-detect")),
 			Value:      "on",
-			ParentNode: nodes.FindChild(utils.AllExcept(vifPath.NodePath, 1)),
+			ParentNode: nodes.FindChild(slices.AllExcept(vifPath.NodePath, 1)),
 		})
 		expected.add(&Definition{
 			Name: "in",
-			Path: utils.CopySliceWith(vifPath.Path, "firewall"),
-			Node: nodes.FindChild(utils.CopySliceWith(vifPath.NodePath, "firewall", "in")),
+			Path: slices.CopySliceWith(vifPath.Path, "firewall"),
+			Node: nodes.FindChild(slices.CopySliceWith(vifPath.NodePath, "firewall", "in")),
 			Children: []*Definition{
 				{
 					Name:       "name",
-					Path:       utils.CopySliceWith(vifPath.Path, "firewall", "in"),
-					Node:       nodes.FindChild(utils.CopySliceWith(vifPath.NodePath, "firewall", "in", "name")),
+					Path:       slices.CopySliceWith(vifPath.Path, "firewall", "in"),
+					Node:       nodes.FindChild(slices.CopySliceWith(vifPath.NodePath, "firewall", "in", "name")),
 					Value:      "test-inbound",
-					ParentNode: nodes.FindChild(utils.CopySliceWith(vifPath.NodePath, "firewall", "in")),
+					ParentNode: nodes.FindChild(slices.CopySliceWith(vifPath.NodePath, "firewall", "in")),
 				},
 			},
-			ParentNode: nodes.FindChild(utils.CopySliceWith(vifPath.NodePath, "firewall")),
+			ParentNode: nodes.FindChild(slices.CopySliceWith(vifPath.NodePath, "firewall")),
 		})
 		expected.add(&Definition{
 			Name: "out",
-			Path: utils.CopySliceWith(vifPath.Path, "firewall"),
-			Node: nodes.FindChild(utils.CopySliceWith(vifPath.NodePath, "firewall", "out")),
+			Path: slices.CopySliceWith(vifPath.Path, "firewall"),
+			Node: nodes.FindChild(slices.CopySliceWith(vifPath.NodePath, "firewall", "out")),
 			Children: []*Definition{
 				{
 					Name:       "name",
-					Path:       utils.CopySliceWith(vifPath.Path, "firewall", "out"),
-					Node:       nodes.FindChild(utils.CopySliceWith(vifPath.NodePath, "firewall", "out", "name")),
+					Path:       slices.CopySliceWith(vifPath.Path, "firewall", "out"),
+					Node:       nodes.FindChild(slices.CopySliceWith(vifPath.NodePath, "firewall", "out", "name")),
 					Value:      "test-outbound",
-					ParentNode: nodes.FindChild(utils.CopySliceWith(vifPath.NodePath, "firewall", "out")),
+					ParentNode: nodes.FindChild(slices.CopySliceWith(vifPath.NodePath, "firewall", "out")),
 				},
 			},
-			ParentNode: nodes.FindChild(utils.CopySliceWith(vifPath.NodePath, "firewall")),
+			ParentNode: nodes.FindChild(slices.CopySliceWith(vifPath.NodePath, "firewall")),
 		})
 		expected.add(&Definition{
 			Name: "local",
-			Path: utils.CopySliceWith(vifPath.Path, "firewall"),
-			Node: nodes.FindChild(utils.CopySliceWith(vifPath.NodePath, "firewall", "local")),
+			Path: slices.CopySliceWith(vifPath.Path, "firewall"),
+			Node: nodes.FindChild(slices.CopySliceWith(vifPath.NodePath, "firewall", "local")),
 			Children: []*Definition{
 				{
 					Name:       "name",
-					Path:       utils.CopySliceWith(vifPath.Path, "firewall", "local"),
-					Node:       nodes.FindChild(utils.CopySliceWith(vifPath.NodePath, "firewall", "local", "name")),
+					Path:       slices.CopySliceWith(vifPath.Path, "firewall", "local"),
+					Node:       nodes.FindChild(slices.CopySliceWith(vifPath.NodePath, "firewall", "local", "name")),
 					Value:      "test-local",
-					ParentNode: nodes.FindChild(utils.CopySliceWith(vifPath.NodePath, "firewall", "local")),
+					ParentNode: nodes.FindChild(slices.CopySliceWith(vifPath.NodePath, "firewall", "local")),
 				},
 			},
-			ParentNode: nodes.FindChild(utils.CopySliceWith(vifPath.NodePath, "firewall")),
+			ParentNode: nodes.FindChild(slices.CopySliceWith(vifPath.NodePath, "firewall")),
 		})
 	}
 
@@ -551,8 +553,8 @@ func TestFromNetworkAbstractionErrors(t *testing.T) {
 	delete(nodes.ChildNodes, "service")
 	checkErrors(false, [][]error{
 		{
-			utils.Err(errGenDHCPTree),
-			utils.ErrWithCtx(errNonexistentNode, "service"),
+			errors.Err(errGenDHCPTree),
+			errors.ErrWithCtx(errNonexistentNode, "service"),
 		},
 	})
 	nodes.ChildNodes["service"] = service
@@ -561,9 +563,9 @@ func TestFromNetworkAbstractionErrors(t *testing.T) {
 	delete(nodes.ChildNodes, "interfaces")
 	checkErrors(false, [][]error{
 		{
-			utils.Err(errConfigInterface),
-			utils.ErrWithCtx(errGenInterfaceTree, "eth1"),
-			utils.ErrWithCtx(errNonexistentNode, "interfaces"),
+			errors.Err(errConfigInterface),
+			errors.ErrWithCtx(errGenInterfaceTree, "eth1"),
+			errors.ErrWithCtx(errNonexistentNode, "interfaces"),
 		},
 	})
 	nodes.ChildNodes["interfaces"] = interfaces
@@ -573,9 +575,9 @@ func TestFromNetworkAbstractionErrors(t *testing.T) {
 	delete(ifaces.ChildNodes, "vif")
 	checkErrors(false, [][]error{
 		{
-			utils.Err(errConfigInterface),
-			utils.ErrWithVarCtx(errGenEthVifTree, "eth1", 10),
-			utils.ErrWithCtx(errNonexistentNode, "interfaces/ethernet/"+utils.DYNAMIC_NODE+"/vif"),
+			errors.Err(errConfigInterface),
+			errors.ErrWithVarCtx(errGenEthVifTree, "eth1", 10),
+			errors.ErrWithCtx(errNonexistentNode, "interfaces/ethernet/"+utils.DYNAMIC_NODE+"/vif"),
 		},
 	})
 	ifaces.ChildNodes["vif"] = vif
@@ -590,8 +592,8 @@ func TestFromNetworkAbstractionErrors(t *testing.T) {
 		delete(fw.ChildNodes, dir)
 		checkErrors(false, [][]error{
 			{
-				utils.Err(errConfigInterface),
-				utils.Err(err),
+				errors.Err(errConfigInterface),
+				errors.Err(err),
 			},
 		})
 		fw.ChildNodes[dir] = node
@@ -602,15 +604,15 @@ func TestFromNetworkAbstractionErrors(t *testing.T) {
 	delete(dhcp.ChildNodes, "subnet")
 	checkErrors(true, [][]error{
 		{
-			utils.ErrWithCtx(errGenSubnetTree, "10.0.0.0/24"),
-			utils.ErrWithCtx(
+			errors.ErrWithCtx(errGenSubnetTree, "10.0.0.0/24"),
+			errors.ErrWithCtx(
 				errNonexistentNode,
 				"service/dhcp-server/shared-network-name/"+utils.DYNAMIC_NODE+"/subnet",
 			),
 		},
 		{
-			utils.ErrWithCtx(errGenSubnetTree, "10.1.0.0/24"),
-			utils.ErrWithCtx(
+			errors.ErrWithCtx(errGenSubnetTree, "10.1.0.0/24"),
+			errors.ErrWithCtx(
 				errNonexistentNode,
 				"service/dhcp-server/shared-network-name/"+utils.DYNAMIC_NODE+"/subnet",
 			),
@@ -624,15 +626,15 @@ func TestFromNetworkAbstractionErrors(t *testing.T) {
 	path := "service/dhcp-server/shared-network-name/" + utils.DYNAMIC_NODE + "/subnet/" + utils.DYNAMIC_NODE + "/static-mapping"
 	checkErrors(true, [][]error{
 		{
-			utils.ErrWithCtx(errGenHostTree, "host-1"),
-			utils.ErrWithCtx(
+			errors.ErrWithCtx(errGenHostTree, "host-1"),
+			errors.ErrWithCtx(
 				errNonexistentNode,
 				path,
 			),
 		},
 		{
-			utils.ErrWithCtx(errGenHostTree, "host-2"),
-			utils.ErrWithCtx(
+			errors.ErrWithCtx(errGenHostTree, "host-2"),
+			errors.ErrWithCtx(
 				errNonexistentNode,
 				path,
 			),
@@ -754,8 +756,8 @@ func TestAddHostToAddressGroups(t *testing.T) {
 
 	errs := addHostToAddressGroups(nodes, definitions, host)
 	assert.Len(t, errs, 2)
-	assert.ErrorIs(t, errs[0], utils.ErrWithCtx(errGenAddrGroupTree, "address1"))
-	assert.ErrorIs(t, errs[1], utils.ErrWithCtx(errGenAddrGroupTree, "address2"))
+	assert.ErrorIs(t, errs[0], errors.ErrWithCtx(errGenAddrGroupTree, "address1"))
+	assert.ErrorIs(t, errs[1], errors.ErrWithCtx(errGenAddrGroupTree, "address2"))
 
 	group.ChildNodes["address-group"] = addrGroup
 }
@@ -774,7 +776,7 @@ func TestAddFirewallRules(t *testing.T) {
 	}
 	errs := addFirewallRules(nodes, definitions, &network, &subnet, &host)
 	assert.Len(t, errs, 1)
-	assert.ErrorIs(t, errs[0], utils.ErrWithVarCtx(errFwRequiresInterface, "test-network", "a-host"))
+	assert.ErrorIs(t, errs[0], errors.ErrWithVarCtx(errFwRequiresInterface, "test-network", "a-host"))
 
 	nat := nodes.FindChild([]string{"service", "nat"})
 	rule := nat.ChildNodes["rule"]
@@ -782,9 +784,9 @@ func TestAddFirewallRules(t *testing.T) {
 
 	errs = addFirewallRules(nodes, definitions, &network, &subnet, &host)
 	assert.Len(t, errs, 3)
-	assert.ErrorIs(t, errs[0], utils.ErrWithVarCtx(errGenNatRuleTree, 80, "a-host"))
-	assert.ErrorIs(t, errs[1], utils.ErrWithVarCtx(errGenNatRuleTree, 443, "a-host"))
-	assert.ErrorIs(t, errs[2], utils.ErrWithVarCtx(errFwRequiresInterface, "test-network", "a-host"))
+	assert.ErrorIs(t, errs[0], errors.ErrWithVarCtx(errGenNatRuleTree, 80, "a-host"))
+	assert.ErrorIs(t, errs[1], errors.ErrWithVarCtx(errGenNatRuleTree, 443, "a-host"))
+	assert.ErrorIs(t, errs[2], errors.ErrWithVarCtx(errFwRequiresInterface, "test-network", "a-host"))
 	nat.ChildNodes["rule"] = rule
 
 	network.Interface = &abstraction.Interface{
@@ -803,7 +805,7 @@ func TestAddFirewallRules(t *testing.T) {
 	}
 	errs = addFirewallRules(nodes, definitions, &network, &subnet, &host)
 	assert.Len(t, errs, 1)
-	assert.ErrorIs(t, errs[0], utils.ErrWithVarCtx(errUnknownFirewall, "port 80", "a-host"))
+	assert.ErrorIs(t, errs[0], errors.ErrWithVarCtx(errUnknownFirewall, "port 80", "a-host"))
 
 	fw := nodes.FindChild([]string{"firewall", "name", utils.DYNAMIC_NODE})
 	rule = fw.ChildNodes["rule"]
@@ -814,8 +816,8 @@ func TestAddFirewallRules(t *testing.T) {
 	}
 	errs = addFirewallRules(nodes, definitions, &network, &subnet, &host)
 	assert.Len(t, errs, 2)
-	assert.ErrorIs(t, errs[0], utils.ErrWithVarCtx(errGenFwRuleTree, "inbound", 100))
-	assert.ErrorIs(t, errs[1], utils.ErrWithVarCtx(errGenFwRuleTree, "inbound", 110))
+	assert.ErrorIs(t, errs[0], errors.ErrWithVarCtx(errGenFwRuleTree, "inbound", 100))
+	assert.ErrorIs(t, errs[1], errors.ErrWithVarCtx(errGenFwRuleTree, "inbound", 110))
 
 	fw.ChildNodes["rule"] = rule
 }
@@ -834,7 +836,7 @@ func TestAddForwardPortErrors(t *testing.T) {
 	delete(nat.ChildNodes, "rule")
 
 	err := addForwardPort(nodes, definitions, &host, "inbound", 80, 80)
-	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenNatRuleTree, 80, "a-host"))
+	assert.ErrorIs(t, err, errors.ErrWithVarCtx(errGenNatRuleTree, 80, "a-host"))
 
 	nat.ChildNodes["rule"] = rule
 
@@ -843,7 +845,7 @@ func TestAddForwardPortErrors(t *testing.T) {
 	delete(ruleEntry.ChildNodes, "destination")
 
 	err = addForwardPort(nodes, definitions, &host, "inbound", 80, 443)
-	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenDestinationNatTree, 80, "a-host"))
+	assert.ErrorIs(t, err, errors.ErrWithVarCtx(errGenDestinationNatTree, 80, "a-host"))
 
 	ruleEntry.ChildNodes["destination"] = dest
 
@@ -851,7 +853,7 @@ func TestAddForwardPortErrors(t *testing.T) {
 	delete(ruleEntry.ChildNodes, "inside-address")
 
 	err = addForwardPort(nodes, definitions, &host, "inbound", 80, 443)
-	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenInsideNatTree, 80, "a-host"))
+	assert.ErrorIs(t, err, errors.ErrWithVarCtx(errGenInsideNatTree, 80, "a-host"))
 
 	ruleEntry.ChildNodes["inside-address"] = addr
 }
@@ -871,7 +873,7 @@ func TestAddConnectionErrors(t *testing.T) {
 		Destination: &abstraction.ConnectionDetail{},
 	}
 	err := addConnection(nodes, definitions, "inbound", conn)
-	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenFwRuleTree, "inbound", 100))
+	assert.ErrorIs(t, err, errors.ErrWithVarCtx(errGenFwRuleTree, "inbound", 100))
 
 	fw.ChildNodes["rule"] = rule
 
@@ -880,7 +882,7 @@ func TestAddConnectionErrors(t *testing.T) {
 	delete(ruleEntry.ChildNodes, "source")
 
 	err = addConnection(nodes, definitions, "inbound", conn)
-	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenFwSrcTree, "inbound", 110, "test rule"))
+	assert.ErrorIs(t, err, errors.ErrWithVarCtx(errGenFwSrcTree, "inbound", 110, "test rule"))
 
 	ruleEntry.ChildNodes["source"] = src
 
@@ -888,7 +890,7 @@ func TestAddConnectionErrors(t *testing.T) {
 	delete(ruleEntry.ChildNodes, "destination")
 
 	err = addConnection(nodes, definitions, "inbound", conn)
-	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenFwDestTree, "inbound", 120, "test rule"))
+	assert.ErrorIs(t, err, errors.ErrWithVarCtx(errGenFwDestTree, "inbound", 120, "test rule"))
 
 	ruleEntry.ChildNodes["destination"] = dst
 
@@ -900,8 +902,8 @@ func TestAddConnectionErrors(t *testing.T) {
 	delete(src.ChildNodes, "group")
 
 	err = addConnection(nodes, definitions, "inbound", conn)
-	assert.ErrorIs(t, err, utils.ErrWithCtx(errGenFwAddrGroupTree, "fw-group"))
-	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenFwSrcTree, "inbound", 130, "test rule"))
+	assert.ErrorIs(t, err, errors.ErrWithCtx(errGenFwAddrGroupTree, "fw-group"))
+	assert.ErrorIs(t, err, errors.ErrWithVarCtx(errGenFwSrcTree, "inbound", 130, "test rule"))
 
 	src.ChildNodes["group"] = addrGroup
 
@@ -909,8 +911,8 @@ func TestAddConnectionErrors(t *testing.T) {
 	delete(dst.ChildNodes, "group")
 
 	err = addConnection(nodes, definitions, "inbound", conn)
-	assert.ErrorIs(t, err, utils.ErrWithCtx(errGenFwPortGroupTree, "fw-group"))
-	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errGenFwDestTree, "inbound", 140, "test rule"))
+	assert.ErrorIs(t, err, errors.ErrWithCtx(errGenFwPortGroupTree, "fw-group"))
+	assert.ErrorIs(t, err, errors.ErrWithVarCtx(errGenFwDestTree, "inbound", 140, "test rule"))
 
 	dst.ChildNodes["group"] = portGroup
 }

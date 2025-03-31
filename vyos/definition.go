@@ -2,6 +2,8 @@ package vyos
 
 import (
 	"fmt"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
 	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"reflect"
 	"strings"
@@ -238,7 +240,7 @@ func (definitions *Definitions) FindChild(path []any) *Definition {
 			continue
 		}
 
-		for _, child := range utils.Last(children).Children {
+		for _, child := range slices.Last(children).Children {
 			// Child matches if the name matches the step and either
 			// - the node is not a tag
 			// - the node IS a tag, and its value matches the next step of the path (+2 since starting from index 1 on path)
@@ -261,7 +263,7 @@ func (definitions *Definitions) FindChild(path []any) *Definition {
 		}
 	}
 
-	return utils.Last(children)
+	return slices.Last(children)
 }
 
 func (definitions *Definitions) add(definition *Definition) {
@@ -328,7 +330,7 @@ var errUnmatchedDynamicNode = "cannot end tree path on dynamic entry without def
 
 func (definitions *Definitions) ensureTree(nodes *Node, path *utils.VyosPath) error {
 	if len(path.Path) != len(path.NodePath) {
-		return utils.ErrWithVarCtx(errDiffLength, len(path.Path), len(path.NodePath))
+		return errors.ErrWithVarCtx(errDiffLength, len(path.Path), len(path.NodePath))
 	}
 
 	lastDynamic := false
@@ -350,18 +352,18 @@ func (definitions *Definitions) ensureTree(nodes *Node, path *utils.VyosPath) er
 		}
 
 		// Track this definition's path
-		childPath := utils.CopySliceWith(defPath, path.Path[idx])
+		childPath := slices.CopySliceWith(defPath, path.Path[idx])
 		fullPath := strings.Join(childPath, "/")
-		childNodePath := utils.CopySliceWith(nodePath, path.NodePath[idx])
+		childNodePath := slices.CopySliceWith(nodePath, path.NodePath[idx])
 		fullNodePath := strings.Join(childNodePath, "/")
 		// Identify this node, and update the last dynamic state based on its configuration
 		node := nodes.FindChild(childNodePath)
 		if node == nil {
-			return utils.ErrWithCtx(errNonexistentNode, fullNodePath)
+			return errors.ErrWithCtx(errNonexistentNode, fullNodePath)
 		} else if node.IsTag {
 			lastDynamic = true
 			if len(path.Path) == idx+1 {
-				return utils.ErrWithCtx(errUnmatchedDynamicNode, fullPath)
+				return errors.ErrWithCtx(errUnmatchedDynamicNode, fullPath)
 			}
 			// Add the next path definition name to the string path, so when we check if the given definition is already
 			// included, it is fully qualified instead of the placeholder tag instead
@@ -402,7 +404,7 @@ func (definitions *Definitions) ensureTree(nodes *Node, path *utils.VyosPath) er
 func (definitions *Definitions) addValue(nodes *Node, path *utils.VyosPath, keyName string, value any) {
 	parent := nodes.FindChild(path.NodePath)
 	if parent.Name == utils.DYNAMIC_NODE {
-		parent = nodes.FindChild(utils.AllExcept(path.NodePath, 1))
+		parent = nodes.FindChild(slices.AllExcept(path.NodePath, 1))
 	}
 	definitions.add(&Definition{
 		Name:       keyName,
@@ -416,7 +418,7 @@ func (definitions *Definitions) addValue(nodes *Node, path *utils.VyosPath, keyN
 func (definitions *Definitions) addListValue(nodes *Node, path *utils.VyosPath, keyName string, value []any) {
 	parent := nodes.FindChild(path.NodePath)
 	if parent.Name == utils.DYNAMIC_NODE {
-		parent = nodes.FindChild(utils.AllExcept(path.NodePath, 1))
+		parent = nodes.FindChild(slices.AllExcept(path.NodePath, 1))
 	}
 	definitions.add(&Definition{
 		Name:       keyName,
@@ -428,7 +430,7 @@ func (definitions *Definitions) addListValue(nodes *Node, path *utils.VyosPath, 
 }
 
 func (definitions *Definitions) appendToListValue(nodes *Node, path *utils.VyosPath, keyName string, value any) {
-	node := definitions.FindChild(config.SliceStrToAny(utils.CopySliceWith(path.Path, keyName)))
+	node := definitions.FindChild(config.SliceStrToAny(slices.CopySliceWith(path.Path, keyName)))
 	if node == nil {
 		definitions.addListValue(nodes, path, keyName, []any{value})
 	} else {
@@ -457,7 +459,7 @@ func (definition *Definition) merge(definitions *Definitions, other *Definition)
 	diffs := definition.diffDefinition(other)
 	// Make sure the attributes on the definition are the same, otherwise they are not compatible
 	if len(diffs) > 0 {
-		return utils.ErrWithVarCtx(errMergeConflict, len(diffs), definition.FullPath(), strings.Join(diffs, "\n"))
+		return errors.ErrWithVarCtx(errMergeConflict, len(diffs), definition.FullPath(), strings.Join(diffs, "\n"))
 	}
 
 	for _, child := range other.Children {
@@ -491,7 +493,7 @@ func generateSparseDefinitionTree(nodes *Node, path *utils.VyosPath) *Definition
 		Children: []*Definition{},
 	}
 
-	nodeSteps := utils.CopySliceWith(steps, path.Path[0])
+	nodeSteps := slices.CopySliceWith(steps, path.Path[0])
 	steps = append(steps, path.Path[0])
 
 	def := definition
@@ -508,7 +510,7 @@ func generateSparseDefinitionTree(nodes *Node, path *utils.VyosPath) *Definition
 		} else if parent.Name == utils.DYNAMIC_NODE {
 			// If parent is a placeholder node, then traverse up one further to find the real parent,
 			// since this one contains no real information
-			parent = nodes.FindChild(utils.AllExcept(nodeSteps, 1))
+			parent = nodes.FindChild(slices.AllExcept(nodeSteps, 1))
 		}
 
 		node := nodes.FindChild(append(nodeSteps, step))

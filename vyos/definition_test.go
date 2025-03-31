@@ -2,6 +2,8 @@ package vyos
 
 import (
 	"github.com/ammesonb/ubiquiti-config-generator/config"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
 	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"github.com/stretchr/testify/assert"
 	"strings"
@@ -678,19 +680,19 @@ func TestGeneratePopulatedDefinitionTreeNested(t *testing.T) {
 	expected := &Definition{
 		Name:  "start",
 		Path:  path.Path,
-		Node:  nodes.FindChild(utils.CopySliceWith(path.NodePath, "start")),
+		Node:  nodes.FindChild(slices.CopySliceWith(path.NodePath, "start")),
 		Value: "10.0.0.240",
 		Children: []*Definition{
 			{
 				Name:       "stop",
-				Path:       utils.CopySliceWith(path.Path, "start", "10.0.0.240"),
-				Node:       nodes.FindChild(utils.CopySliceWith(path.NodePath, "start", utils.DYNAMIC_NODE, "stop")),
+				Path:       slices.CopySliceWith(path.Path, "start", "10.0.0.240"),
+				Node:       nodes.FindChild(slices.CopySliceWith(path.NodePath, "start", utils.DYNAMIC_NODE, "stop")),
 				Value:      "10.0.0.255",
 				Children:   []*Definition{},
-				ParentNode: nodes.FindChild(utils.CopySliceWith(path.NodePath, "start")),
+				ParentNode: nodes.FindChild(slices.CopySliceWith(path.NodePath, "start")),
 			},
 		},
-		ParentNode: nodes.FindChild(utils.AllExcept(path.NodePath, 1)),
+		ParentNode: nodes.FindChild(slices.AllExcept(path.NodePath, 1)),
 	}
 
 	generated := generatePopulatedDefinitionTree(
@@ -707,7 +709,7 @@ func TestGeneratePopulatedDefinitionTreeNested(t *testing.T) {
 		},
 		path,
 		// Skip the tag placeholder for the parent, since that is what would be done normally
-		nodes.FindChild(utils.AllExcept(path.NodePath, 1)),
+		nodes.FindChild(slices.AllExcept(path.NodePath, 1)),
 	)
 
 	assert.Empty(t, expected.Diff(generated), "Definitions should generate as expected")
@@ -809,7 +811,7 @@ func TestAddValue(t *testing.T) {
 	defs.appendToListValue(nodes, path, "port", 80)
 	defs.appendToListValue(nodes, path, "port", 443)
 
-	descriptionDef := defs.FindChild(config.SliceStrToAny(utils.CopySliceWith(path.Path, "description")))
+	descriptionDef := defs.FindChild(config.SliceStrToAny(slices.CopySliceWith(path.Path, "description")))
 	assert.NotNil(t, descriptionDef)
 	assert.Equal(t, descriptionDef.Value, description)
 	assert.Nil(t, descriptionDef.Values)
@@ -817,7 +819,7 @@ func TestAddValue(t *testing.T) {
 	assert.Equal(t, descriptionDef.ParentNode.Name, "port-group")
 	assert.True(t, descriptionDef.ParentNode.IsTag)
 
-	portsDef := defs.FindChild(config.SliceStrToAny(utils.CopySliceWith(path.Path, "port")))
+	portsDef := defs.FindChild(config.SliceStrToAny(slices.CopySliceWith(path.Path, "port")))
 	assert.NotNil(t, portsDef)
 	assert.Len(t, portsDef.Values, 2, "Port 80 and 443 added")
 	assert.Equal(t, portsDef.Values, []any{80, 443})
@@ -904,17 +906,17 @@ func TestEnsureTree(t *testing.T) {
 	assert.ErrorIs(
 		t,
 		defs.ensureTree(nodes, badPath),
-		utils.ErrWithCtx(errUnmatchedDynamicNode, "firewall/name"),
+		errors.ErrWithCtx(errUnmatchedDynamicNode, "firewall/name"),
 	)
 	assert.ErrorIs(
 		t,
 		defs.ensureTree(&Node{}, badPath),
-		utils.ErrWithCtx(errNonexistentNode, "firewall"),
+		errors.ErrWithCtx(errNonexistentNode, "firewall"),
 	)
 	badPath.Path = append(badPath.Path, "foo")
 	assert.ErrorIs(
 		t,
 		defs.ensureTree(nodes, badPath),
-		utils.ErrWithVarCtx(errDiffLength, 3, 2),
+		errors.ErrWithVarCtx(errDiffLength, 3, 2),
 	)
 }

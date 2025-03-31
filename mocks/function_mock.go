@@ -1,6 +1,8 @@
 package mocks
 
-import "github.com/ammesonb/ubiquiti-config-generator/utils"
+import (
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+)
 
 type funcReturn []any
 
@@ -29,7 +31,7 @@ var errFuncCalledExtra = "function %s was called %d times, but only has %d mocke
 
 func SetNextResult(name string, value any) error {
 	if _, ok := returnValues[name]; !ok {
-		return utils.ErrWithCtx(errNoSuchFunction, name)
+		return errors.ErrWithCtx(errNoSuchFunction, name)
 	}
 
 	returnValues[name] = append(returnValues[name], value)
@@ -42,12 +44,12 @@ func GetResult(name string) (any, error) {
 	values, valOk := returnValues[name]
 	callCount, countOk := funcCalls[name]
 	if !valOk || !countOk {
-		return nil, utils.ErrWithCtx(errNoSuchFunction, name)
+		return nil, errors.ErrWithCtx(errNoSuchFunction, name)
 	}
 	// less than or equal to, since call count is increased at the end to account for
 	// zero-indexed arrays based on first vs second vs third calls
 	if len(values) <= callCount {
-		return nil, utils.ErrWithVarCtx(errFuncCalledExtra, name, callCount+1, len(values))
+		return nil, errors.ErrWithVarCtx(errFuncCalledExtra, name, callCount+1, len(values))
 	}
 
 	funcCalls[name]++

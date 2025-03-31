@@ -1,7 +1,7 @@
 package validation
 
 import (
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"net"
 )
 
@@ -19,12 +19,12 @@ var (
 func IsAddressInSubnet(address string, cidr string) (bool, error) {
 	ip := net.ParseIP(address)
 	if ip == nil {
-		return false, utils.ErrWithCtx(errInvalidAddress, address)
+		return false, errors.ErrWithCtx(errInvalidAddress, address)
 	}
 
 	_, network, err := net.ParseCIDR(cidr)
 	if err != nil {
-		return false, utils.ErrWithCtxParent(errInvalidCIDR, cidr, err)
+		return false, errors.ErrWithCtxParent(errInvalidCIDR, cidr, err)
 	}
 
 	return network.Contains(ip), nil

@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/ammesonb/ubiquiti-config-generator/mocks"
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"io"
 	"path/filepath"
 	"regexp"
@@ -48,7 +48,7 @@ func ParseNodeDef(templatesPath string, fsWrapper *mocks.FsWrapper) (*Node, erro
 	entries, err := fsWrapper.ReadDir(templatesPath)
 	logger := console_logger.DefaultLogger()
 	if err != nil {
-		return nil, utils.ErrWithCtxParent(errReadNodeDir, templatesPath, err)
+		return nil, errors.ErrWithCtxParent(errReadNodeDir, templatesPath, err)
 	}
 
 	node := &Node{
@@ -69,7 +69,7 @@ func ParseNodeDef(templatesPath string, fsWrapper *mocks.FsWrapper) (*Node, erro
 			fullFilePath := filepath.Join(templatesPath, entry.Name())
 			reader, err := fsWrapper.Open(fullFilePath)
 			if err != nil {
-				return nil, utils.ErrWithCtxParent(errOpenNodeDef, fullFilePath, err)
+				return nil, errors.ErrWithCtxParent(errOpenNodeDef, fullFilePath, err)
 			}
 
 			if err := parseDefinition(reader, logger, node); err != nil {
@@ -77,7 +77,7 @@ func ParseNodeDef(templatesPath string, fsWrapper *mocks.FsWrapper) (*Node, erro
 			}
 
 			if err := reader.Close(); err != nil {
-				return nil, utils.ErrWithCtxParent(errCloseNodeDef, fullFilePath, err)
+				return nil, errors.ErrWithCtxParent(errCloseNodeDef, fullFilePath, err)
 			}
 			continue
 		} else if !entry.IsDir() {

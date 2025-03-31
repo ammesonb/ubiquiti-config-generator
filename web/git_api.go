@@ -10,10 +10,12 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -30,6 +32,12 @@ var (
 	GREEN_CHECK = "&#9989;"
 	RED_CROSS   = "&#10060;"
 	WARNING     = "&#x26a0;"
+)
+
+var (
+	errMarshalBody   = "failed to create %s body"
+	errCreateRequest = "failed to create %s request for %s"
+	errDoRequest     = "failed to do %s request for %s"
 )
 
 func validateGitWebhookBody(w http.ResponseWriter, r *http.Request, secret string, log *log.Logger, event string, body []byte) bool {
@@ -79,27 +87,27 @@ func addGitHubHeaders(req *http.Request, jwt string, accessToken string) {
 	}
 }
 
-func makeGitRequest(client *http.Client, what string, jwt string, accessToken string, url, method string, body map[string]any) (*http.Response, error) {
+func makeGitRequest(client mocks.WebClient, what string, jwt string, accessToken string, url, method string, body map[string]any) (*http.Response, error) {
 	var encoded []byte = nil
 	var err error
 
 	if body != nil {
 		encoded, err = json.Marshal(body)
 		if err != nil {
-			return nil, utils.ErrWithCtxParent("failed to create %s body", what, err)
+			return nil, errors.ErrWithCtxParent(errMarshalBody, what, err)
 		}
 	}
 
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(encoded))
 	if err != nil {
-		return nil, utils.ErrWithCtxParent("failed to create request for %s", what, err)
+		return nil, errors.ErrWithVarCtxParent(errCreateRequest, err, method, what)
 	}
 
 	addGitHubHeaders(req, jwt, accessToken)
 
 	response, err := client.Do(req)
 	if err != nil {
-		return nil, utils.ErrWithCtxParent("failed to make request for %s", what, err)
+		return nil, errors.ErrWithCtxParent(errDoRequest, what, err)
 	}
 
 	return response, nil
@@ -108,7 +116,7 @@ func makeGitRequest(client *http.Client, what string, jwt string, accessToken st
 func makeJWT(cfg *config.Config) (string, error) {
 	keyfile, err := os.ReadFile(cfg.Git.PrivateKeyPath)
 	if err != nil {
-		return "", utils.ErrWithParent("failed to open/read keyfile", err)
+		return "", errors.ErrWithParent("failed to open/read keyfile", err)
 	}
 
 	block, _ := pem.Decode(keyfile)
@@ -137,7 +145,7 @@ type accessTokenResponse struct {
 	AccessToken string `json:"token"`
 }
 
-func getAccessToken(client *http.Client, appID int32, jwt string) (string, error) {
+func getAccessToken(client mocks.WebClient, appID string, jwt string) (string, error) {
 	response, err := makeGitRequest(
 		client,
 		"installation",
@@ -150,30 +158,35 @@ func getAccessToken(client *http.Client, appID int32, jwt string) (string, error
 	if err != nil {
 		return "", err
 	}
+	defer func() {
+		if err := response.Body.Close(); err != nil {
+			fmt.Printf("Failed to close response body: %v\n", err)
+		}
+	}()
 
 	installationBody, err := io.ReadAll(response.Body)
 	if err != nil {
-		return "", utils.ErrWithParent("failed to read installations body", err)
+		return "", errors.ErrWithParent("failed to read installations body", err)
 	}
 
 	var appInstalls installationsResponse
 	if err = json.Unmarshal(installationBody, &appInstalls); err != nil {
 		fmt.Println(string(installationBody))
-		return "", utils.ErrWithParent("failed to parse installation response", err)
+		return "", errors.ErrWithParent("failed to parse installation response", err)
 	} else if len(appInstalls.Installations) == 0 {
-		return "", utils.Err("response did not return any installations; need at least one")
+		return "", errors.Err("response did not return any installations; need at least one")
 	}
 
 	accessTokenURL := ""
 	for _, install := range appInstalls.Installations {
-		if install.AppID == appID {
+		if strconv.Itoa(int(install.AppID)) == appID {
 			accessTokenURL = install.AccessTokensURL
 		}
 	}
 
 	if accessTokenURL == "" {
 		fmt.Println(appInstalls.Installations)
-		return "", utils.ErrWithCtx("could not find an installation matching AppID %d", appID)
+		return "", errors.ErrWithCtx("could not find an installation matching AppID %s", appID)
 	}
 
 	response, err = makeGitRequest(
@@ -191,19 +204,19 @@ func getAccessToken(client *http.Client, appID int32, jwt string) (string, error
 
 	tokenBody, err := io.ReadAll(response.Body)
 	if err != nil {
-		return "", utils.ErrWithParent("failed to read token response body", err)
+		return "", errors.ErrWithParent("failed to read token response body", err)
 	}
 
 	var tokenResponse accessTokenResponse
 	if err = json.Unmarshal(tokenBody, &tokenResponse); err != nil {
 		fmt.Println(tokenBody)
-		return "", utils.ErrWithParent("failed to parse access token response", err)
+		return "", errors.ErrWithParent("failed to parse access token response", err)
 	}
 
 	return tokenResponse.AccessToken, nil
 }
 
-func createCheck(client *http.Client, logDB *gorm.DB, request checkSuiteRequest, accessToken string) error {
+func createCheck(client mocks.WebClient, logDB *gorm.DB, request checkSuiteRequest, accessToken string) error {
 	response, err := makeGitRequest(
 		client,
 		"check run request",
@@ -257,7 +270,7 @@ func createCheck(client *http.Client, logDB *gorm.DB, request checkSuiteRequest,
 }
 
 func updateCheck(
-	client *http.Client,
+	client mocks.WebClient,
 	request checkRun,
 	accessToken string,
 	status string,
@@ -280,16 +293,16 @@ func updateCheck(
 	body, err := io.ReadAll(response.Body)
 
 	if err != nil {
-		return utils.ErrWithParent("failed to read check update response body", err)
+		return errors.ErrWithParent("failed to read check update response body", err)
 	} else if response.StatusCode != 200 {
-		return utils.ErrWithVarCtx("failed to update check %d with status code %d: %s", request.ID, response.StatusCode, string(body))
+		return errors.ErrWithVarCtx("failed to update check %d with status code %d: %s", request.ID, response.StatusCode, string(body))
 	}
 
 	return nil
 }
 
 func failCheck(
-	client *http.Client,
+	client mocks.WebClient,
 	request checkRun,
 	accessToken string,
 	extra map[string]any,
@@ -313,7 +326,7 @@ func failCheck(
 }
 
 func setCommitStatus(
-	client *http.Client,
+	client mocks.WebClient,
 	accessToken string,
 	url string,
 	revision,
@@ -339,9 +352,9 @@ func setCommitStatus(
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		return utils.ErrWithParent("failed to read commit status response body", err)
+		return errors.ErrWithParent("failed to read commit status response body", err)
 	} else if response.StatusCode != 201 {
-		return utils.ErrWithVarCtx(
+		return errors.ErrWithVarCtx(
 			"failed to update commit %s to state %s, got HTTP %d: %s",
 			revision,
 			status,

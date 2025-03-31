@@ -1,7 +1,7 @@
 package mocks
 
 import (
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
@@ -12,7 +12,7 @@ func TestMockFunctionResults(t *testing.T) {
 	InitOrClearFuncReturn(funcName)
 	res, err := GetResult(funcName)
 	assert.Nil(t, res, "No results if function return not mocked")
-	assert.ErrorIs(t, err, utils.ErrWithVarCtx(errFuncCalledExtra, funcName, 1, 0), "No results registered")
+	assert.ErrorIs(t, err, errors.ErrWithVarCtx(errFuncCalledExtra, funcName, 1, 0), "No results registered")
 
 	firstRes := []any{"foo", nil}
 	secondRes := []any{"bar", nil}
@@ -29,9 +29,9 @@ func TestMockFunctionResults(t *testing.T) {
 	ClearAll()
 	res, err = GetResult(funcName)
 	assert.Nil(t, res, "No result if function was not registered")
-	assert.ErrorIs(t, err, utils.ErrWithCtx(errNoSuchFunction, funcName))
+	assert.ErrorIs(t, err, errors.ErrWithCtx(errNoSuchFunction, funcName))
 
 	err = SetNextResult(funcName, true)
-	assert.ErrorIs(t, err, utils.ErrWithCtx(errNoSuchFunction, funcName))
+	assert.ErrorIs(t, err, errors.ErrWithCtx(errNoSuchFunction, funcName))
 
 }

@@ -2,6 +2,8 @@ package vyos
 
 import (
 	"fmt"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
 	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"reflect"
 	"sort"
@@ -47,7 +49,7 @@ func FromNetworkAbstraction(nodes *Node, network *abstraction.Network) (*Definit
 		utils.MakeVyosDynamicPC(network.Name),
 	)
 	if err := definitions.ensureTree(nodes, dhcpPath); err != nil {
-		return nil, []error{utils.ErrWithParent(errGenDHCPTree, err)}
+		return nil, []error{errors.ErrWithParent(errGenDHCPTree, err)}
 	}
 
 	definitions.addValue(nodes, dhcpPath, "authoritative", network.Authoritative)
@@ -59,7 +61,7 @@ func FromNetworkAbstraction(nodes *Node, network *abstraction.Network) (*Definit
 			definitions,
 			network.Interface,
 		); err != nil {
-			return nil, []error{utils.ErrWithParent(errConfigInterface, err)}
+			return nil, []error{errors.ErrWithParent(errConfigInterface, err)}
 		}
 	}
 
@@ -68,7 +70,7 @@ func FromNetworkAbstraction(nodes *Node, network *abstraction.Network) (*Definit
 	for _, subnet := range network.Subnets {
 		subnetPath := subnetBase.Extend(utils.MakeVyosDynamicPC(subnet.CIDR))
 		if err := definitions.ensureTree(nodes, subnetPath); err != nil {
-			errors = append(errors, utils.ErrWithCtxParent(errGenSubnetTree, subnet.CIDR, err))
+			errors = append(errors, errors.ErrWithCtxParent(errGenSubnetTree, subnet.CIDR, err))
 			continue
 		}
 		addSubnetNetworkValues(nodes, definitions, subnet, subnetPath)
@@ -100,7 +102,7 @@ func configureNetworkInterface(nodes *Node, definitions *Definitions, iface *abs
 	)
 	// initialize the interfaces/ethernet tree, and override the dynamic node with the proper value
 	if err := definitions.ensureTree(nodes, path); err != nil {
-		return utils.ErrWithCtxParent(errGenInterfaceTree, iface.Name, err)
+		return errors.ErrWithCtxParent(errGenInterfaceTree, iface.Name, err)
 	}
 
 	definitions.addValue(nodes, path, "duplex", iface.Duplex)
@@ -116,7 +118,7 @@ func configureNetworkInterface(nodes *Node, definitions *Definitions, iface *abs
 			utils.MakeVyosDynamicPC(strconv.Itoa(int(*iface.Vif))),
 		)
 		if err := definitions.ensureTree(nodes, path); err != nil {
-			return utils.ErrWithVarCtxParent(
+			return errors.ErrWithVarCtxParent(
 				errGenEthVifTree,
 				err,
 				iface.Name,
@@ -135,19 +137,19 @@ func configureNetworkInterface(nodes *Node, definitions *Definitions, iface *abs
 		utils.MakeVyosPC("in"),
 	)
 	if err := definitions.ensureTree(nodes, inPath); err != nil {
-		return utils.ErrWithParent(errGenInFwTree, err)
+		return errors.ErrWithParent(errGenInFwTree, err)
 	}
 	definitions.addValue(nodes, inPath, "name", iface.InboundFirewall)
 
 	outPath := inPath.DivergeFrom(1, utils.MakeVyosPC("out"))
 	if err := definitions.ensureTree(nodes, outPath); err != nil {
-		return utils.ErrWithParent(errGenOutFwTree, err)
+		return errors.ErrWithParent(errGenOutFwTree, err)
 	}
 	definitions.addValue(nodes, outPath, "name", iface.OutboundFirewall)
 
 	localPath := inPath.DivergeFrom(1, utils.MakeVyosPC("local"))
 	if err := definitions.ensureTree(nodes, localPath); err != nil {
-		return utils.ErrWithParent(errGenLocalFwTree, err)
+		return errors.ErrWithParent(errGenLocalFwTree, err)
 	}
 	definitions.addValue(nodes, localPath, "name", iface.LocalFirewall)
 
@@ -171,7 +173,7 @@ func addSubnetNetworkValues(nodes *Node, definitions *Definitions, subnet *abstr
 			},
 			path,
 			// Get the parent node, stripping the final placeholder from the dynamic tag placeholder
-			nodes.FindChild(utils.AllExcept(path.NodePath, 1)),
+			nodes.FindChild(slices.AllExcept(path.NodePath, 1)),
 		),
 	)
 
@@ -191,7 +193,7 @@ func addHostToSubnet(nodes *Node, definitions *Definitions, host *abstraction.Ho
 	)
 
 	if err := definitions.ensureTree(nodes, hostPath); err != nil {
-		return utils.ErrWithCtxParent(errGenHostTree, host.Name, err)
+		return errors.ErrWithCtxParent(errGenHostTree, host.Name, err)
 	}
 
 	definitions.addValue(nodes, hostPath, "ip-address", host.Address)
@@ -227,7 +229,7 @@ func addHostToAddressGroups(nodes *Node, definitions *Definitions, host *abstrac
 	for _, group := range host.AddressGroups {
 		groupPath := path.Extend(utils.MakeVyosDynamicPC(group))
 		if err := definitions.ensureTree(nodes, groupPath); err != nil {
-			errors = append(errors, utils.ErrWithCtxParent(errGenAddrGroupTree, group, err))
+			errors = append(errors, errors.ErrWithCtxParent(errGenAddrGroupTree, group, err))
 			continue
 		}
 		definitions.appendToListValue(nodes, groupPath, "address", host.Address)
@@ -253,7 +255,7 @@ func addFirewallRules(nodes *Node, definitions *Definitions, network *abstractio
 	}
 
 	if len(host.Connections) > 0 && network.Interface == nil {
-		return append(errors, utils.ErrWithVarCtx(errFwRequiresInterface, network.Name, host.Name))
+		return append(errors, errors.ErrWithVarCtx(errFwRequiresInterface, network.Name, host.Name))
 	}
 
 	for _, connection := range host.Connections {
@@ -263,7 +265,7 @@ func addFirewallRules(nodes *Node, definitions *Definitions, network *abstractio
 		if firewallName == "" {
 			errors = append(
 				errors,
-				utils.ErrWithVarCtx(errUnknownFirewall, connection.Description, host.Name),
+				errors.ErrWithVarCtx(errUnknownFirewall, connection.Description, host.Name),
 			)
 			continue
 		} else if err := addConnection(
@@ -291,7 +293,7 @@ func addForwardPort(nodes *Node, definitions *Definitions, host *abstraction.Hos
 	)
 
 	if err := definitions.ensureTree(nodes, path); err != nil {
-		return utils.ErrWithVarCtxParent(
+		return errors.ErrWithVarCtxParent(
 			errGenNatRuleTree,
 			err,
 			from,
@@ -309,7 +311,7 @@ func addForwardPort(nodes *Node, definitions *Definitions, host *abstraction.Hos
 	definitions.addValue(nodes, path, "inbound-interface", inboundInterface)
 	destPath := path.Extend(utils.MakeVyosPC("destination"))
 	if err := definitions.ensureTree(nodes, destPath); err != nil {
-		return utils.ErrWithVarCtx(
+		return errors.ErrWithVarCtx(
 			errGenDestinationNatTree,
 			from,
 			host.Name,
@@ -319,7 +321,7 @@ func addForwardPort(nodes *Node, definitions *Definitions, host *abstraction.Hos
 
 	insidePath := path.Extend(utils.MakeVyosPC("inside-address"))
 	if err := definitions.ensureTree(nodes, insidePath); err != nil {
-		return utils.ErrWithVarCtxParent(
+		return errors.ErrWithVarCtxParent(
 			errGenInsideNatTree,
 			err,
 			from,
@@ -350,7 +352,7 @@ func addConnection(
 	)
 
 	if err := definitions.ensureTree(nodes, rulePath); err != nil {
-		return utils.ErrWithVarCtxParent(errGenFwRuleTree, err, firewall, rule)
+		return errors.ErrWithVarCtxParent(errGenFwRuleTree, err, firewall, rule)
 	}
 
 	var action, log string
@@ -377,7 +379,7 @@ func addConnection(
 		rulePath.Extend(utils.MakeVyosPC("source")),
 		connection.Source,
 	); err != nil {
-		return utils.ErrWithVarCtxParent(errGenFwSrcTree, err, firewall, rule, connection.Description)
+		return errors.ErrWithVarCtxParent(errGenFwSrcTree, err, firewall, rule, connection.Description)
 	}
 	if err := addConnectionDetail(
 		definitions,
@@ -385,7 +387,7 @@ func addConnection(
 		rulePath.Extend(utils.MakeVyosPC("destination")),
 		connection.Destination,
 	); err != nil {
-		return utils.ErrWithVarCtxParent(errGenFwDestTree, err, firewall, rule, connection.Description)
+		return errors.ErrWithVarCtxParent(errGenFwDestTree, err, firewall, rule, connection.Description)
 	}
 
 	return nil
@@ -429,7 +431,7 @@ func getConnectionFirewall(network *abstraction.Network, subnet *abstraction.Sub
 func addConnectionDetail(definitions *Definitions, nodes *Node, path *utils.VyosPath, connection *abstraction.ConnectionDetail) error {
 	if connection != nil {
 		if err := definitions.ensureTree(nodes, path); err != nil {
-			return utils.ErrWithParent("failed to create connection tree", err)
+			return errors.ErrWithParent("failed to create connection tree", err)
 		}
 		if connection.Address != nil {
 			if validation.IsValidAddress(*connection.Address) {
@@ -439,7 +441,7 @@ func addConnectionDetail(definitions *Definitions, nodes *Node, path *utils.Vyos
 				// Group needs to nest further
 				groupPath := path.Extend(utils.MakeVyosPC("group"))
 				if err := definitions.ensureTree(nodes, groupPath); err != nil {
-					return utils.ErrWithCtxParent(errGenFwAddrGroupTree, *connection.Address, err)
+					return errors.ErrWithCtxParent(errGenFwAddrGroupTree, *connection.Address, err)
 				}
 				definitions.addValue(
 					nodes,
@@ -458,7 +460,7 @@ func addConnectionDetail(definitions *Definitions, nodes *Node, path *utils.Vyos
 				// Group needs to nest further
 				groupPath := path.Extend(utils.MakeVyosPC("group"))
 				if err := definitions.ensureTree(nodes, groupPath); err != nil {
-					return utils.ErrWithCtxParent(errGenFwPortGroupTree, *connection.Port, err)
+					return errors.ErrWithCtxParent(errGenFwPortGroupTree, *connection.Port, err)
 				}
 				definitions.addValue(
 					nodes,
@@ -484,7 +486,7 @@ func FromPortGroupAbstraction(nodes *Node, group abstraction.PortGroup) (*Defini
 		utils.MakeVyosDynamicPC(group.Name),
 	)
 	if err := definitions.ensureTree(nodes, path); err != nil {
-		return nil, utils.ErrWithCtxParent(errGenPortGroupTree, group.Name, err)
+		return nil, errors.ErrWithCtxParent(errGenPortGroupTree, group.Name, err)
 	}
 
 	definitions.addValue(

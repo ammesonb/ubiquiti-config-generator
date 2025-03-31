@@ -2,6 +2,7 @@ package vyos
 
 import (
 	"fmt"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
 	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"strings"
 
@@ -84,7 +85,7 @@ func (node *Node) Children() []*Node {
 func (node *Node) FindChild(path []string) *Node {
 	children := []*Node{node}
 	for _, step := range path {
-		child, ok := utils.Last(children).ChildNodes[step]
+		child, ok := slices.Last(children).ChildNodes[step]
 		if !ok {
 			console_logger.DefaultLogger().Debugf(
 				"Could not find node for step '%s' of path '%s'",
@@ -97,16 +98,16 @@ func (node *Node) FindChild(path []string) *Node {
 		children = append(children, child)
 	}
 
-	return utils.Last(children)
+	return slices.Last(children)
 }
 
 func (node *Node) ParentPath() string {
 	parts := strings.Split(node.Path, "/")
 	// parent is all but last entry of the path parts
-	parts = utils.AllExcept(parts, 1)
+	parts = slices.AllExcept(parts, 1)
 	// If last entry is a placeholder, trim that too
-	if utils.Last(parts) == utils.DYNAMIC_NODE {
-		parts = utils.AllExcept(parts, 1)
+	if slices.Last(parts) == utils.DYNAMIC_NODE {
+		parts = slices.AllExcept(parts, 1)
 	}
 
 	return strings.Join(parts, "/")

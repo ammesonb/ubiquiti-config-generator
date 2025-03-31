@@ -1,5 +1,7 @@
 package utils
 
+import "github.com/ammesonb/ubiquiti-config-generator/internal/slices"
+
 // VyosPath represents a chain of configuration levels
 type VyosPath struct {
 	Path     []string
@@ -55,8 +57,8 @@ func (v *VyosPath) Extend(components ...VyosPathComponent) *VyosPath {
 // DivergeFrom makes a duplicate of this path, omitting the previous N entries
 func (v *VyosPath) DivergeFrom(omitCount int, components ...VyosPathComponent) *VyosPath {
 	v2 := &VyosPath{
-		Path:     CopySlice(AllExcept(v.Path, omitCount)),
-		NodePath: CopySlice(AllExcept(v.NodePath, omitCount)),
+		Path:     slices.CopySlice(slices.AllExcept(v.Path, omitCount)),
+		NodePath: slices.CopySlice(slices.AllExcept(v.NodePath, omitCount)),
 	}
 
 	return v2.Append(components...)

@@ -3,7 +3,7 @@ package web
 import (
 	"errors"
 	"fmt"
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
+	errors2 "github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"os"
@@ -30,7 +30,7 @@ var (
 func cloneRepo(url string, branch string) (string, *plumbing.Hash, error) {
 	dir, err := os.MkdirTemp("", "ubiquiti-config-")
 	if err != nil {
-		return "", nil, utils.ErrWithParent(errCreateTempDir, err)
+		return "", nil, errors2.ErrWithParent(errCreateTempDir, err)
 	}
 	repo, err := git.PlainClone(dir, false, &git.CloneOptions{
 		URL:      url,
@@ -48,17 +48,17 @@ func cloneRepo(url string, branch string) (string, *plumbing.Hash, error) {
 	}()
 
 	if err != nil {
-		return "", nil, utils.ErrWithCtxParent(errCloneRepo, url, err)
+		return "", nil, errors2.ErrWithCtxParent(errCloneRepo, url, err)
 	}
 
 	workTree, err := repo.Worktree()
 	if err != nil {
-		return "", nil, utils.ErrWithCtxParent(errGetWorktree, url, err)
+		return "", nil, errors2.ErrWithCtxParent(errGetWorktree, url, err)
 	}
 
 	head, err := repo.Head()
 	if err != nil {
-		return "", nil, utils.ErrWithCtxParent(errGetHead, url, err)
+		return "", nil, errors2.ErrWithCtxParent(errGetHead, url, err)
 	}
 
 	opts := &git.CheckoutOptions{
@@ -81,7 +81,7 @@ func checkoutRemoteBranch(repo *git.Repository, worktree *git.Worktree, branch s
 	// First, need to fetch origin so get the remote reference
 	remote, err := repo.Remote("origin")
 	if err != nil {
-		return utils.ErrWithParent(errGetRemotes, err)
+		return errors2.ErrWithParent(errGetRemotes, err)
 	}
 
 	// Make a branch reference so we know what we are looking for
@@ -91,10 +91,10 @@ func checkoutRemoteBranch(repo *git.Repository, worktree *git.Worktree, branch s
 		RefSpecs: []config.RefSpec{config.RefSpec(branchRef + ":" + branchRef)},
 	}); err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
 		// If fetching remote fails, and it is not because the local instance is already updated
-		return utils.ErrWithParent(errFetchRemotes, err)
+		return errors2.ErrWithParent(errFetchRemotes, err)
 	} else if err = worktree.Checkout(checkoutOpts); err != nil {
 		// Try checking out the branch again
-		return utils.ErrWithCtxParent(errCheckoutAfterFetch, branch, err)
+		return errors2.ErrWithCtxParent(errCheckoutAfterFetch, branch, err)
 	}
 
 	return nil
@@ -104,12 +104,12 @@ func getChangedFiles(path string, mainHash *plumbing.Hash) ([]string, error) {
 	files := make([]string, 0)
 	repo, err := git.PlainOpen(path)
 	if err != nil {
-		return files, utils.ErrWithCtxParent(errOpenRepo, path, err)
+		return files, errors2.ErrWithCtxParent(errOpenRepo, path, err)
 	}
 
 	head, err := repo.Head()
 	if err != nil {
-		return files, utils.ErrWithCtxParent(errGetHead, path, err)
+		return files, errors2.ErrWithCtxParent(errGetHead, path, err)
 	}
 
 	currentTree, err := getTreeForHash(repo, path, head.Hash())
@@ -123,7 +123,7 @@ func getChangedFiles(path string, mainHash *plumbing.Hash) ([]string, error) {
 
 	changes, err := object.DiffTree(previousTree, currentTree)
 	if err != nil {
-		return files, utils.ErrWithCtxParent(errDiffTrees, path, err)
+		return files, errors2.ErrWithCtxParent(errDiffTrees, path, err)
 	}
 
 	for _, change := range changes {
@@ -140,14 +140,14 @@ func getChangedFiles(path string, mainHash *plumbing.Hash) ([]string, error) {
 func getTreeForHash(repo *git.Repository, path string, hash plumbing.Hash) (*object.Tree, error) {
 	current, err := repo.CommitObject(hash)
 	if err != nil {
-		return nil, utils.ErrWithCtxParent(errHeadCommit, struct {
+		return nil, errors2.ErrWithCtxParent(errHeadCommit, struct {
 			Path string
 			Hash string
 		}{Path: path, Hash: hash.String()}, err)
 	}
 	currentTree, err := current.Tree()
 	if err != nil {
-		return nil, utils.ErrWithCtxParent(errTreeHead, struct {
+		return nil, errors2.ErrWithCtxParent(errTreeHead, struct {
 			Path string
 			Hash string
 		}{Path: path, Hash: hash.String()}, err)
