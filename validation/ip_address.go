@@ -1,8 +1,9 @@
 package validation
 
 import (
-	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"net"
+
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 )
 
 // IsValidAddress returns true if the address is a valid IP address

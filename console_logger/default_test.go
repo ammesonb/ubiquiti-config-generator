@@ -1,11 +1,12 @@
 package console_logger
 
 import (
-	"github.com/charmbracelet/log"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/charmbracelet/log"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDefaultLogger(t *testing.T) {

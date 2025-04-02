@@ -2,12 +2,13 @@ package web
 
 import (
 	"fmt"
+	"net/http"
+	"testing"
+
 	"github.com/ammesonb/ubiquiti-config-generator/db"
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"testing"
 )
 
 func closeBody(response *http.Response) {
@@ -38,5 +39,4 @@ func TestMakeGitRequest(t *testing.T) {
 	assert.Nil(t, response)
 	assert.ErrorIs(t, err, errors.ErrWithVarCtx(errCreateRequest, "[}(", "test-obj"))
 	defer closeBody(response)
-
 }

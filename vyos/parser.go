@@ -2,10 +2,11 @@ package vyos
 
 import (
 	"errors"
-	errors2 "github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 	"os"
 	"path/filepath"
+
+	errors2 "github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 )

@@ -2,13 +2,13 @@ package vyos
 
 import (
 	"fmt"
-	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"reflect"
 	"strings"
 
-	"github.com/ammesonb/ubiquiti-config-generator/config"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
+
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 )
 
@@ -325,8 +325,10 @@ func (definitions *Definitions) add(definition *Definition) {
 	}
 }
 
-var errDiffLength = "cannot ensure paths for differing definition and node lengths: got %d definitions and %d nodes"
-var errUnmatchedDynamicNode = "cannot end tree path on dynamic entry without defined tag: %s"
+var (
+	errDiffLength           = "cannot ensure paths for differing definition and node lengths: got %d definitions and %d nodes"
+	errUnmatchedDynamicNode = "cannot end tree path on dynamic entry without defined tag: %s"
+)
 
 func (definitions *Definitions) ensureTree(nodes *Node, path *utils.VyosPath) error {
 	if len(path.Path) != len(path.NodePath) {
@@ -430,7 +432,7 @@ func (definitions *Definitions) addListValue(nodes *Node, path *utils.VyosPath, 
 }
 
 func (definitions *Definitions) appendToListValue(nodes *Node, path *utils.VyosPath, keyName string, value any) {
-	node := definitions.FindChild(config.SliceStrToAny(slices.CopySliceWith(path.Path, keyName)))
+	node := definitions.FindChild(slices.SliceStrToAny(slices.CopySliceWith(path.Path, keyName)))
 	if node == nil {
 		definitions.addListValue(nodes, path, keyName, []any{value})
 	} else {

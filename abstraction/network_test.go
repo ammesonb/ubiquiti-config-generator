@@ -1,9 +1,10 @@
 package abstraction
 
 import (
+	"testing"
+
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestMissingDirectory(t *testing.T) {
@@ -42,6 +43,7 @@ func TestLoadNetworks(t *testing.T) {
 	assert.Len(t, networks[0].Subnets[0].Hosts, 1, "One host in first subnet")
 	assert.Len(t, networks[0].Subnets[1].Hosts, 1, "One host in second subnet")
 }
+
 func TestSetupFirewallCounters(t *testing.T) {
 	resetCounters()
 
@@ -163,7 +165,6 @@ func TestLoadHost(t *testing.T) {
 func TestLoadHosts(t *testing.T) {
 	network := &Network{
 		Subnets: []*Subnet{
-
 			{
 				CIDR:  "10.16.0.0/24",
 				Hosts: make([]*Host, 0),

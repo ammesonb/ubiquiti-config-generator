@@ -2,15 +2,15 @@ package vyos
 
 import (
 	"fmt"
-	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"reflect"
 	"sort"
 	"strconv"
 
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
+
 	"github.com/ammesonb/ubiquiti-config-generator/abstraction"
-	"github.com/ammesonb/ubiquiti-config-generator/config"
 	"github.com/ammesonb/ubiquiti-config-generator/validation"
 )
 
@@ -178,7 +178,7 @@ func addSubnetNetworkValues(nodes *Node, definitions *Definitions, subnet *abstr
 	)
 
 	definitions.addValue(nodes, path, "lease", subnet.DHCPLease)
-	definitions.addListValue(nodes, path, "dns-server", config.SliceStrToAny(subnet.DNSServers))
+	definitions.addListValue(nodes, path, "dns-server", slices.SliceStrToAny(subnet.DNSServers))
 	definitions.addValue(nodes, path, "domain-name", subnet.DomainName)
 	definitions.addValue(nodes, path, "default-router", subnet.DefaultRouter)
 
@@ -402,7 +402,7 @@ func getConnectionFirewall(network *abstraction.Network, subnet *abstraction.Sub
 	} else {
 		// since address may be an address group, ignore errors about invalid IPs
 		sourceLocal, _ = validation.IsAddressInSubnet(*connection.Source.Address, subnet.CIDR)
-		sourceLocal = config.InSlice(*connection.Source.Address, config.SliceStrToAny(host.AddressGroups)) || sourceLocal
+		sourceLocal = slices.InSlice(*connection.Source.Address, slices.SliceStrToAny(host.AddressGroups)) || sourceLocal
 	}
 
 	// Must define an address for destination to be local
@@ -410,7 +410,7 @@ func getConnectionFirewall(network *abstraction.Network, subnet *abstraction.Sub
 	if destValid {
 		// since address may be an address group, ignore errors about invalid IPs
 		destLocal, _ = validation.IsAddressInSubnet(*connection.Destination.Address, subnet.CIDR)
-		destLocal = config.InSlice(*connection.Destination.Address, config.SliceStrToAny(host.AddressGroups)) || destLocal
+		destLocal = slices.InSlice(*connection.Destination.Address, slices.SliceStrToAny(host.AddressGroups)) || destLocal
 	}
 
 	// after determining locality of source and destination, can determine appropriate firewall to use
@@ -493,7 +493,7 @@ func FromPortGroupAbstraction(nodes *Node, group abstraction.PortGroup) (*Defini
 		nodes, path, "description", group.Description,
 	)
 	definitions.addListValue(
-		nodes, path, "port", config.SliceIntToAny(group.Ports),
+		nodes, path, "port", slices.SliceIntToAny(group.Ports),
 	)
 
 	return definitions, nil

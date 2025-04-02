@@ -1,13 +1,13 @@
 package vyos
 
 import (
-	"github.com/ammesonb/ubiquiti-config-generator/config"
+	"strings"
+	"testing"
+
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
 	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"github.com/stretchr/testify/assert"
-	"strings"
-	"testing"
 )
 
 func TestDefinition_Diff(t *testing.T) {
@@ -714,6 +714,7 @@ func TestGeneratePopulatedDefinitionTreeNested(t *testing.T) {
 
 	assert.Empty(t, expected.Diff(generated), "Definitions should generate as expected")
 }
+
 func TestDefinitions_FindChild(t *testing.T) {
 	nodes := GetGeneratedNodes(t)
 
@@ -811,7 +812,7 @@ func TestAddValue(t *testing.T) {
 	defs.appendToListValue(nodes, path, "port", 80)
 	defs.appendToListValue(nodes, path, "port", 443)
 
-	descriptionDef := defs.FindChild(config.SliceStrToAny(slices.CopySliceWith(path.Path, "description")))
+	descriptionDef := defs.FindChild(slices.SliceStrToAny(slices.CopySliceWith(path.Path, "description")))
 	assert.NotNil(t, descriptionDef)
 	assert.Equal(t, descriptionDef.Value, description)
 	assert.Nil(t, descriptionDef.Values)
@@ -819,7 +820,7 @@ func TestAddValue(t *testing.T) {
 	assert.Equal(t, descriptionDef.ParentNode.Name, "port-group")
 	assert.True(t, descriptionDef.ParentNode.IsTag)
 
-	portsDef := defs.FindChild(config.SliceStrToAny(slices.CopySliceWith(path.Path, "port")))
+	portsDef := defs.FindChild(slices.SliceStrToAny(slices.CopySliceWith(path.Path, "port")))
 	assert.NotNil(t, portsDef)
 	assert.Len(t, portsDef.Values, 2, "Port 80 and 443 added")
 	assert.Equal(t, portsDef.Values, []any{80, 443})
@@ -876,7 +877,7 @@ func TestAddDoesNotOverwrite(t *testing.T) {
 	vifPath := ethPath.Extend(utils.MakeVyosPC("vif"), utils.MakeVyosDynamicPC("10"))
 	defs.add(generateSparseDefinitionTree(nodes, vifPath))
 
-	eth := defs.FindChild(config.SliceStrToAny(ethPath.Path))
+	eth := defs.FindChild(slices.SliceStrToAny(ethPath.Path))
 	assert.NotNil(t, eth)
 	if eth == nil {
 		t.FailNow()

@@ -3,10 +3,11 @@ package web
 import (
 	"errors"
 	"fmt"
+	"os"
+
 	errors2 "github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"os"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"

@@ -2,15 +2,15 @@ package vyos
 
 import (
 	"fmt"
+	"strconv"
+	"testing"
+
 	"github.com/ammesonb/ubiquiti-config-generator/abstraction"
-	"github.com/ammesonb/ubiquiti-config-generator/config"
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
 	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"github.com/ammesonb/ubiquiti-config-generator/validation"
 	"github.com/stretchr/testify/assert"
-	"strconv"
-	"testing"
 )
 
 func TestFromPortGroupAbstraction(t *testing.T) {
@@ -230,7 +230,7 @@ func TestFromNetworkAbstraction(t *testing.T) {
 		ifaceFwPath,
 	))
 
-	eth := expected.FindChild(config.SliceStrToAny(ethPath.Path))
+	eth := expected.FindChild(slices.SliceStrToAny(ethPath.Path))
 	assert.NotNil(t, eth)
 	if eth != nil {
 		expected.add(&Definition{
@@ -258,7 +258,7 @@ func TestFromNetworkAbstraction(t *testing.T) {
 
 	// expected virtual interface definitions
 	vifPath := ifaceFwPath.DivergeFrom(1)
-	vif := expected.FindChild(config.SliceStrToAny(vifPath.Path))
+	vif := expected.FindChild(slices.SliceStrToAny(vifPath.Path))
 	assert.NotNil(t, vif)
 	if vif != nil {
 		expected.add(&Definition{
@@ -740,7 +740,6 @@ func TestGetConnectionFirewall(t *testing.T) {
 	assert.Equal(t, local, getConnectionFirewall(&network, &subnet, &host, conn), "Local address")
 	conn.Source.Address = &addr2
 	assert.Equal(t, local, getConnectionFirewall(&network, &subnet, &host, conn), "Local address group")
-
 }
 
 func TestAddHostToAddressGroups(t *testing.T) {

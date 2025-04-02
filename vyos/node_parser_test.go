@@ -3,14 +3,15 @@ package vyos
 import (
 	"bytes"
 	"fmt"
-	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/mocks"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"math/rand"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/mocks"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 )
@@ -1030,6 +1031,7 @@ func checkEmptyConstraint(t *testing.T, node *Node, ntype string, help string, e
 	assert.Equal(t, ntype, node.Type)
 	assert.Equal(t, help, node.Help)
 }
+
 func TestInvalidConstraint(t *testing.T) {
 	// invalid unrecognized expression
 	ntype := "txt"
@@ -1155,7 +1157,6 @@ syntax:expression: exec "if ! /usr/sbin/ubnt-fw validate-protocol '$VAR(@)' ;
 		t.FailNow()
 	}
 	assert.Equal(t, expectedConstraintHelp, node.Constraints[0].FailureReason)
-
 }
 
 func TestParseNodeDef(t *testing.T) {

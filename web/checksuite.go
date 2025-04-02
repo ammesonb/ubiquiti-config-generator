@@ -3,13 +3,12 @@ package web
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/charmbracelet/log"
 	"net/http"
 	"time"
 
-	"gorm.io/gorm"
+	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
+	"github.com/charmbracelet/log"
 
-	"github.com/ammesonb/ubiquiti-config-generator/config"
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 	"github.com/ammesonb/ubiquiti-config-generator/db"
 )
@@ -19,18 +18,17 @@ func ProcessGitCheckSuite(
 	w http.ResponseWriter,
 	r *http.Request,
 	client *http.Client,
-	logDB *gorm.DB,
-	cfg *config.Config,
 	accessToken string,
 ) {
 	log := console_logger.DefaultLogger()
+	gitCfg := configuration.GetService().GetGitConfig()
 	var body []byte
 	if _, err := r.Body.Read(body); err != nil {
 		internalServerError(w, log, "Failed to read check suite request body", err)
 		return
 	}
 
-	if !validateGitWebhookBody(w, r, cfg.Git.WebhookSecret, log, "check suite", body) {
+	if !validateGitWebhookBody(w, r, gitCfg.WebhookSecret, log, "check suite", body) {
 		return
 	}
 
@@ -52,10 +50,10 @@ func ProcessGitCheckSuite(
 		return
 	}
 
-	ensureDBCommitCheck(logDB, client, request, accessToken)
+	ensureDBCommitCheck(client, request, accessToken)
 }
 
-func ensureDBCommitCheck(logDB *gorm.DB, client *http.Client, request checkSuiteRequest, accessToken string) {
+func ensureDBCommitCheck(client *http.Client, request checkSuiteRequest, accessToken string) {
 	check := &db.CommitCheck{
 		Revision:  request.CheckSuite.HeadSHA,
 		Status:    "pending",

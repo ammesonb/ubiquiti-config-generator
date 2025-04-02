@@ -1,18 +1,21 @@
 package abstraction
 
 import (
-	errors2 "github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"os"
 	"path"
 	"regexp"
 
+	errors2 "github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+
 	"gopkg.in/yaml.v3"
 )
 
-var errReadPortGroup = "failed to read the port group in %s"
-var errPortGroupEmpty = "no ports specified for port group %s"
-var errParsePortGroup = "failed to parse port group in %s"
-var failReadPortGroup = "failed to read port group path '%s'"
+var (
+	errReadPortGroup  = "failed to read the port group in %s"
+	errPortGroupEmpty = "no ports specified for port group %s"
+	errParsePortGroup = "failed to parse port group in %s"
+	failReadPortGroup = "failed to read port group path '%s'"
+)
 
 // LoadPortGroups will look at all yaml files in the given path and return a list of port groups
 func LoadPortGroups(portGroupsPath string) ([]PortGroup, []error) {

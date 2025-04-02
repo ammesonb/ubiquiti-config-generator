@@ -1,8 +1,9 @@
 package vyos
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNode_FindChild(t *testing.T) {

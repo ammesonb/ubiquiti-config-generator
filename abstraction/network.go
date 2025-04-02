@@ -1,10 +1,11 @@
 package abstraction
 
 import (
-	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"os"
 	"path"
 	"regexp"
+
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 
 	"gopkg.in/yaml.v3"
 

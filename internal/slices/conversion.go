@@ -1,4 +1,4 @@
-package config
+package slices
 
 func InSlice(elem any, arr []any) bool {
 	for _, x := range arr {

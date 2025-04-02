@@ -3,12 +3,13 @@ package vyos
 import (
 	"errors"
 	"fmt"
-	errors2 "github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/mocks"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"testing"
+
+	errors2 "github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/mocks"
+	"github.com/stretchr/testify/assert"
 
 	"gopkg.in/yaml.v3"
 )

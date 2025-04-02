@@ -1,8 +1,9 @@
 package slices
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCopySlice(t *testing.T) {

@@ -2,9 +2,10 @@ package vyos
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
 	"github.com/ammesonb/ubiquiti-config-generator/utils"
-	"strings"
 
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 )
@@ -248,8 +249,10 @@ const (
 	MaxBound ConstraintKey = "MaxBound"
 )
 
-var UnsetMinBound = -123456789
-var UnsetMaxBound = 123456789
+var (
+	UnsetMinBound = -123456789
+	UnsetMaxBound = 123456789
+)
 
 // GetProperty Dynamically looks up the value of a particular constraint value by its key
 func (n *NodeConstraint) GetProperty(field ConstraintKey) interface{} {

@@ -3,15 +3,16 @@ package vyos
 import (
 	"bufio"
 	"fmt"
-	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
-	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 	"io"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 
 	"github.com/charmbracelet/log"
 )

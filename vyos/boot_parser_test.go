@@ -1,10 +1,11 @@
 package vyos
 
 import (
-	"github.com/ammesonb/ubiquiti-config-generator/utils"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/ammesonb/ubiquiti-config-generator/utils"
 )
 
 func TestLineDetection(t *testing.T) {

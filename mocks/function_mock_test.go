@@ -1,37 +1,67 @@
 package mocks
 
 import (
-	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
+
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestMockFunctionResults(t *testing.T) {
-	funcName := "testfunc"
-	InitOrClearFuncReturn(funcName)
-	res, err := GetResult(funcName)
-	assert.Nil(t, res, "No results if function return not mocked")
-	assert.ErrorIs(t, err, errors.ErrWithVarCtx(errFuncCalledExtra, funcName, 1, 0), "No results registered")
+func TestFunctionMock(t *testing.T) {
+	t.Run("Set result for uninitialized mock succeeds", func(t *testing.T) {
+		mock := FunctionMock{}
+		var testFunc FunctionName = "foo"
+		expected := []any{1, 2, 3}
+		mock.SetNextResult(testFunc, expected)
 
-	firstRes := []any{"foo", nil}
-	secondRes := []any{"bar", nil}
-	assert.NoError(t, SetNextResult(funcName, firstRes))
-	assert.NoError(t, SetNextResult(funcName, secondRes))
+		actual, err := mock.GetResult(testFunc)
+		assert.NoError(t, err)
+		assert.True(t, reflect.DeepEqual(expected, actual))
+	})
 
-	res, err = GetResult(funcName)
-	assert.True(t, reflect.DeepEqual(res, firstRes))
-	assert.NoError(t, err)
-	res, err = GetResult(funcName)
-	assert.True(t, reflect.DeepEqual(res, secondRes))
-	assert.NoError(t, err)
+	t.Run("Set result for initialized mock succeeds", func(t *testing.T) {
+		mock := FunctionMock{}
+		var testFunc FunctionName = "foo"
+		mock.ResetFunc(testFunc)
+		expected := []any{1, 2, 3}
+		mock.SetNextResult(testFunc, expected)
 
-	ClearAll()
-	res, err = GetResult(funcName)
-	assert.Nil(t, res, "No result if function was not registered")
-	assert.ErrorIs(t, err, errors.ErrWithCtx(errNoSuchFunction, funcName))
+		actual, err := mock.GetResult(testFunc)
+		assert.NoError(t, err)
+		assert.True(t, reflect.DeepEqual(expected, actual))
+	})
 
-	err = SetNextResult(funcName, true)
-	assert.ErrorIs(t, err, errors.ErrWithCtx(errNoSuchFunction, funcName))
+	t.Run("Get details for unregistered mock fails", func(t *testing.T) {
+		mock := FunctionMock{}
+		var testFunc FunctionName = "foo"
+		result, err := mock.GetResult(testFunc)
+		assert.Nil(t, result)
+		assert.ErrorIs(t, err, errors.ErrWithCtx(ErrNoSuchFunction, testFunc))
 
+		count, err := mock.GetCallCount(testFunc)
+		assert.Equal(t, 0, count)
+		assert.ErrorIs(t, err, errors.ErrWithCtx(ErrNoSuchFunction, testFunc))
+
+		args, err := mock.GetCallArguments(testFunc)
+		assert.Nil(t, args)
+		assert.ErrorIs(t, err, errors.ErrWithCtx(ErrNoSuchFunction, testFunc))
+	})
+
+	t.Run("Getting result exceeding set mocks fails", func(t *testing.T) {
+		mock := FunctionMock{}
+		var testFunc FunctionName = "foo"
+		mock.Reset()
+		mock.ResetFunc(testFunc)
+		expected := []any{1, 2, 3}
+		mock.SetNextResult(testFunc, expected)
+
+		result, err := mock.GetResult(testFunc)
+		assert.NoError(t, err)
+		assert.True(t, reflect.DeepEqual(expected, result))
+
+		result, err = mock.GetResult(testFunc)
+		assert.Nil(t, result)
+		assert.ErrorIs(t, err, errors.ErrWithVarCtx(errFuncCalledExtra, testFunc, 2, 1))
+	})
 }

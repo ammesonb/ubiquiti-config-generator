@@ -4,7 +4,8 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/ammesonb/ubiquiti-config-generator/config"
+	"github.com/ammesonb/ubiquiti-config-generator/internal"
+
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 	"github.com/ammesonb/ubiquiti-config-generator/web"
 )
@@ -63,32 +64,18 @@ TODO:
 func main() {
 	log := console_logger.DefaultLogger()
 
-	log.Debug("Reading settings")
-	configData, err := config.ReadConfig("./config.yaml")
-	if err != nil {
-		log.Fatal(err)
+	log.Info("Registering services")
+	errs := internal.RegisterServices(log)
+	if len(errs) > 0 {
+		log.Fatal(errs)
 	}
 
-	cfg, err := config.LoadConfig(configData)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	deviceData, err := config.ReadConfig(cfg.DevicesFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	cfg.Devices, err = config.GetDeviceConfigs(deviceData)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Debugf("Settings read")
+	log.Debug("Services loaded")
 
 	shutdownChannel := make(chan os.Signal, 1)
 	// We'll accept graceful shutdowns when quit via SIGINT (Ctrl+C)
 	// SIGKILL, SIGQUIT or SIGTERM (Ctrl+/) will not be caught.
 	signal.Notify(shutdownChannel, os.Interrupt)
 
-	web.StartWebhookServer(log, cfg, shutdownChannel)
+	web.StartWebhookServer(log, shutdownChannel)
 }

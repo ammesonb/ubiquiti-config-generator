@@ -2,12 +2,13 @@ package vyos
 
 import (
 	"fmt"
-	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/mocks"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/mocks"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParse(t *testing.T) {

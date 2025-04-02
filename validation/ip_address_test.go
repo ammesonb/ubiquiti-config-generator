@@ -1,8 +1,9 @@
 package validation
 
 import (
-	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"testing"
+
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 
 	"github.com/stretchr/testify/assert"
 )

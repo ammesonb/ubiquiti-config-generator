@@ -1,4 +1,4 @@
-package mocks
+package filesystem
 
 import (
 	"os"
@@ -7,15 +7,6 @@ import (
 )
 
 type statFunc func(filename string) (os.FileInfo, error)
-
-// FsWrapper wraps numerous file system interactions
-type FsWrapper struct {
-	Stat    statFunc
-	ReadDir func(dir string) ([]os.DirEntry, error)
-	Open    func(filename string) (*os.File, error)
-}
-
-var fsWrapper *FsWrapper
 
 type MockFileInfo struct {
 	name    string
@@ -45,34 +36,22 @@ func (i MockFileInfo) Sys() any {
 }
 
 type MockDirEntry struct {
-	IName  string
-	IPath  string
-	IIsDir bool
-	IMode  os.FileMode
-	IStat  statFunc
+	FileName string
+	FilePath string
+	Dir      bool
+	FileMode os.FileMode
+	StatFunc statFunc
 }
 
 func (e MockDirEntry) Name() string {
-	return e.IName
+	return e.FileName
 }
 func (e MockDirEntry) Type() os.FileMode {
-	return e.IMode
+	return e.FileMode
 }
 func (e MockDirEntry) IsDir() bool {
-	return e.IIsDir
+	return e.Dir
 }
 func (e MockDirEntry) Info() (os.FileInfo, error) {
-	return e.IStat(path.Join(e.IPath, e.IName))
-}
-
-// GetFsWrapper returns default implementations for FS functions
-func GetFsWrapper() *FsWrapper {
-	if fsWrapper == nil {
-		fsWrapper = &FsWrapper{
-			Stat:    os.Stat,
-			ReadDir: os.ReadDir,
-			Open:    os.Open,
-		}
-	}
-	return fsWrapper
+	return e.StatFunc(path.Join(e.FilePath, e.FileName))
 }

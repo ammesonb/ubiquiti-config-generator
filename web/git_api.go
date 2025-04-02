@@ -10,8 +10,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 	"io"
 	"net/http"
 	"os"
@@ -19,12 +17,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/mocks"
+	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
+
 	"github.com/golang-jwt/jwt"
 	"gorm.io/gorm"
 
 	"github.com/charmbracelet/log"
 
-	"github.com/ammesonb/ubiquiti-config-generator/config"
 	"github.com/ammesonb/ubiquiti-config-generator/db"
 )
 
@@ -113,8 +114,8 @@ func makeGitRequest(client mocks.WebClient, what string, jwt string, accessToken
 	return response, nil
 }
 
-func makeJWT(cfg *config.Config) (string, error) {
-	keyfile, err := os.ReadFile(cfg.Git.PrivateKeyPath)
+func makeJWT(gitConfig configuration.GitConfig) (string, error) {
+	keyfile, err := os.ReadFile(gitConfig.PrivateKeyPath)
 	if err != nil {
 		return "", errors.ErrWithParent("failed to open/read keyfile", err)
 	}
@@ -127,7 +128,7 @@ func makeJWT(cfg *config.Config) (string, error) {
 		jwt.MapClaims{
 			"iat": time.Now().Unix(),
 			"exp": time.Now().Unix() + 600,
-			"iss": cfg.Git.AppID,
+			"iss": gitConfig.AppID,
 		})
 	return t.SignedString(privateKey)
 }

@@ -2,10 +2,11 @@ package vyos
 
 import (
 	"bufio"
-	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
 	"io"
 	"regexp"
 	"strings"
+
+	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
 
 	"github.com/charmbracelet/log"
 

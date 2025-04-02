@@ -46,6 +46,6 @@ func (e UbiConfGenError) Matches(err error) bool {
 	}
 
 	// Errors are identical if the message and object are the same, no deep recursive check yet
-	// since they frequently are different error classes, and harder to test for, so sticking to surface checks for now
+	// since they frequently are different error classes and harder to test for, so sticking to surface checks for now
 	return ubiErr.Message == e.Message && ubiErr.Context == e.Context
 }

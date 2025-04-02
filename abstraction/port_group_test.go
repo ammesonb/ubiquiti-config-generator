@@ -1,9 +1,10 @@
 package abstraction
 
 import (
-	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"reflect"
 	"testing"
+
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 
 	"github.com/stretchr/testify/assert"
 )

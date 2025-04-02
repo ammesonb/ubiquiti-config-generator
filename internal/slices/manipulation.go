@@ -1,3 +1,4 @@
+// Contains slice index manipulation functions like duplicating or subsets
 package slices
 
 // Last returns the final element of a given slice

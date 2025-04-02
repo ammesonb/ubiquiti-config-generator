@@ -1,11 +1,11 @@
-package mocks
+package filesystem
 
 import (
-	"github.com/stretchr/testify/assert"
 	"os"
-	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMockFileInfo_Name(t *testing.T) {
@@ -40,39 +40,26 @@ func TestMockFileInfo_Sys(t *testing.T) {
 }
 
 func TestMockDirEntry_Name(t *testing.T) {
-	mockDirEntry := &MockDirEntry{IName: "sample name"}
+	mockDirEntry := &MockDirEntry{FileName: "sample name"}
 	assert.Equal(t, "sample name", mockDirEntry.Name())
 }
 
 func TestMockDirEntry_Type(t *testing.T) {
-	mockDirEntry := &MockDirEntry{IMode: 1}
+	mockDirEntry := &MockDirEntry{FileMode: 1}
 	assert.Equal(t, os.FileMode(1), mockDirEntry.Type())
 }
 
 func TestMockDirEntry_IsDir(t *testing.T) {
-	mockDirEntry := &MockDirEntry{IIsDir: true}
+	mockDirEntry := &MockDirEntry{Dir: true}
 	assert.True(t, mockDirEntry.IsDir())
 }
 
 func TestMockDirEntry_Info(t *testing.T) {
-	mockDirEntry := &MockDirEntry{IPath: "./", IName: "fs_factory.go", IStat: os.Stat}
+	mockDirEntry := &MockDirEntry{FilePath: "./", FileName: "service.go", StatFunc: os.Stat}
 	info, err := mockDirEntry.Info()
 	assert.NotNil(t, info)
 	assert.NoError(t, err)
 
 	assert.Greater(t, info.Size(), int64(0))
 	assert.False(t, info.IsDir())
-}
-
-func TestGetFsWrapper(t *testing.T) {
-	wrapper := GetFsWrapper()
-	if wrapper != GetFsWrapper() {
-		t.Errorf("GetFsWrapper should return the same instance")
-	}
-	if reflect.ValueOf(wrapper.Stat).Pointer() != reflect.ValueOf(os.Stat).Pointer() {
-		t.Errorf("Stat function should use default implementation")
-	}
-	if reflect.ValueOf(wrapper.ReadDir).Pointer() != reflect.ValueOf(os.ReadDir).Pointer() {
-		t.Errorf("ReadDir function should use default implementation")
-	}
 }
