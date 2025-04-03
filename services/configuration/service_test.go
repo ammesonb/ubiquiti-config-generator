@@ -4,6 +4,9 @@ import (
 	"os"
 	"testing"
 
+	mockFs "github.com/ammesonb/ubiquiti-config-generator/mocks/filesystem"
+	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
+
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/ammesonb/ubiquiti-config-generator/internal/test_helpers"
 	"github.com/stretchr/testify/assert"
@@ -100,7 +103,7 @@ func TestServiceGetters(t *testing.T) {
 	logConfig := LoggingConfig{
 		DBName: "log.db",
 	}
-	var devices []DeviceConfig
+	var devices []*DeviceConfig
 
 	s := DefaultConfigurationService{
 		config: &Config{
@@ -117,31 +120,45 @@ func TestServiceGetters(t *testing.T) {
 
 func TestServiceLoad(t *testing.T) {
 	s := DefaultConfigurationService{}
+	assert.NoError(t, mockFs.MockFileSystem(t))
+	mockedFs := filesystem.GetService().(*mockFs.MockedFileSystem)
+	mockedFs.Reset()
 
 	t.Run("file does not exist", func(t *testing.T) {
+		mockedFs.SetNextResult(mockFs.ReadFileFn, []any{nil, os.ErrNotExist})
 		err := s.Load("/does/not/exist")
-		assert.ErrorIs(t, err, os.ErrNotExist)
+		assert.ErrorIs(t, err, errors.ErrWithParent(errReadMainConfig, os.ErrNotExist))
 	})
 
 	t.Run("invalid yaml", func(t *testing.T) {
-		// TODO: mock filesystem
-		// builder-style chain calls to define mocked behaviors?
-
-		err := s.Load("./test-files/invalid-yaml")
-		assert.ErrorIs(t, err, errors.ErrWithCtx(errParseMainConfig, "./test-files/invalid-yaml"))
+		mockedFs.SetNextResult(mockFs.ReadFileFn, []any{[]byte("invalid yaml"), nil})
+		yamlFile := "./test-files/invalid-yaml"
+		err := s.Load(yamlFile)
+		assert.ErrorIs(t, err, errors.ErrWithCtx(errParseMainConfig, yamlFile))
 	})
+
+	// TODO: more tests here
 }
 
+// TODO: fix up device tests
 func TestLoadDevices(t *testing.T) {
+	assert.NoError(t, mockFs.MockFileSystem(t))
+	mockedFs := filesystem.GetService().(*mockFs.MockedFileSystem)
+	mockedFs.Reset()
+
 	t.Run("nonexistent file", func(t *testing.T) {
-		err := loadDevices("/does/not/exist", nil)
+		mockedFs.ResetFunc(mockFs.ReadFileFn)
+		mockedFs.SetNextResult(mockFs.ReadFileFn, []any{nil, os.ErrNotExist})
+		err := loadDevices("/does/not/exist", &[]*DeviceConfig{})
 		assert.ErrorIs(t, err, os.ErrNotExist)
 	})
 
 	t.Run("Invalid YAML", func(t *testing.T) {
-		devices, err := GetDeviceConfigs([]byte("invalid[yaml"))
-		assert.Empty(t, devices)
-		assert.Error(t, err)
+		mockedFs.ResetFunc(mockFs.ReadFileFn)
+		mockedFs.SetNextResult(mockFs.ReadFileFn, []any{[]byte("invalid yaml"), nil})
+		var devices []*DeviceConfig
+		err := loadDevices("/does/not/exist", &devices)
+		assert.ErrorIs(t, err, errors.ErrWithCtx(errParseDevices, "/does/not/exist"))
 	})
 
 	t.Run("Explicit device values are not overwritten", func(t *testing.T) {
@@ -152,7 +169,9 @@ func TestLoadDevices(t *testing.T) {
 - name: dev2
   address: 5.6.7.8
 `)
-		devices, err := GetDeviceConfigs(deviceYAML)
+		mockedFs.SetNextResult(mockFs.ReadFileFn, []any{deviceYAML, nil})
+		devices := []*DeviceConfig{}
+		err := loadDevices("explicit-values.yaml", &devices)
 		assert.NoError(t, err)
 
 		if len(devices) != 2 {
@@ -187,7 +206,9 @@ func TestLoadDevices(t *testing.T) {
   address: $dev2_address
   port: 80
 `)
-		devices, err := GetDeviceConfigs(deviceYAML)
+		mockedFs.SetNextResult(mockFs.ReadFileFn, []any{deviceYAML, nil})
+		var devices []*DeviceConfig = []*DeviceConfig{}
+		err := loadDevices("env-values.yaml", &devices)
 		assert.NoError(t, err)
 
 		if len(devices) != 2 {

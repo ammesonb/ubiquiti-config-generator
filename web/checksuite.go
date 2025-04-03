@@ -10,7 +10,7 @@ import (
 	"github.com/charmbracelet/log"
 
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
-	"github.com/ammesonb/ubiquiti-config-generator/db"
+	"github.com/ammesonb/ubiquiti-config-generator/services/db"
 )
 
 // ProcessGitCheckSuite will create new check runs and update their statuses as appropriate
@@ -60,14 +60,16 @@ func ensureDBCommitCheck(client *http.Client, request checkSuiteRequest, accessT
 		StartedAt: time.Now(),
 	}
 
-	exists, err := db.Exists(logDB, db.CommitCheck{}, "Revision", check.Revision)
+	dbService := db.GetService()
+
+	exists, err := dbService.Exists(db.CommitCheck{}, "Revision", check.Revision)
 	if err != nil {
 		log.Errorf("Error when checking if commit check already exists: %v", err)
 	} else if exists {
 		log.Warnf("Check already added to DB for revision: %s", check.Revision)
 	} else {
-		logDB.Create(&check)
-		if err = createCheck(client, logDB, request, accessToken); err != nil {
+		dbService.GetDB().Create(&check)
+		if err = createCheck(client, request, accessToken); err != nil {
 			log.Errorf("Failed creating check: %v", err)
 		} else {
 			log.Info("Successfully created check")

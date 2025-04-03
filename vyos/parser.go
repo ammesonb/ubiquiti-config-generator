@@ -1,12 +1,12 @@
 package vyos
 
 import (
-	"errors"
+	errs "errors"
 	"os"
 	"path/filepath"
 
-	errors2 "github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/mocks"
+	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
 
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 )
@@ -16,30 +16,31 @@ var (
 	errFailedStat      = "failed to stat file %s"
 )
 
-func isNodeDef(templatesPath string, fsWrapper *mocks.FsWrapper) (bool, error) {
+func isNodeDef(templatesPath string) (bool, error) {
 	// Uses arbitrary firewall node.def file to determine if running using nodes or XML
+	fsService := filesystem.GetService()
 	firewallPath := filepath.Join(templatesPath, "firewall", "node.def")
-	info, err := fsWrapper.Stat(firewallPath)
+	info, err := fsService.Stat(firewallPath)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
+		if errs.Is(err, os.ErrNotExist) {
 			return false, nil
 		}
 
-		return false, errors2.ErrWithCtx(errFailedStat, firewallPath)
+		return false, errors.ErrWithCtx(errFailedStat, firewallPath)
 	}
 
 	return !info.IsDir(), nil
 }
 
 // Parse converts the provided templates path into an analyzable list of nodes
-func Parse(templatesPath string, fsWrapper *mocks.FsWrapper) (*Node, error) {
-	isNode, err := isNodeDef(templatesPath, fsWrapper)
+func Parse(templatesPath string) (*Node, error) {
+	isNode, err := isNodeDef(templatesPath)
 	if err != nil {
 		return nil, err
 	} else if isNode {
 		console_logger.DefaultLogger().Info("Detected node templates definitions")
-		return ParseNodeDef(templatesPath, fsWrapper)
+		return ParseNodeDef(templatesPath)
 	}
 
-	return nil, errors2.ErrWithCtx(errUnsupportedType, templatesPath)
+	return nil, errors.ErrWithCtx(errUnsupportedType, templatesPath)
 }

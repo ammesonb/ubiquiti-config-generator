@@ -11,7 +11,8 @@ import (
 
 	"github.com/ammesonb/ubiquiti-config-generator/config"
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
-	"github.com/ammesonb/ubiquiti-config-generator/db"
+	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
+	"github.com/ammesonb/ubiquiti-config-generator/services/db"
 )
 
 // ProcessGitCheckRun will handle a requested check run and validate the new configuration
@@ -20,8 +21,8 @@ func ProcessGitCheckRun(
 	r *http.Request,
 	client *http.Client,
 	logDB *gorm.DB,
-	cfg *config.Config,
-	devices map[string]*config.DeviceConfig,
+	cfg *configuration.Config,
+	devices map[string]*configuration.DeviceConfig,
 	accessToken string,
 ) {
 	log := console_logger.DefaultLogger()

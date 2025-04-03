@@ -48,11 +48,12 @@ func TestSingletonRegistration(t *testing.T) {
 func TestEphemeralRegistration(t *testing.T) {
 	RegisterService(FilesystemServiceIndex, mockConfigSvc{isSingleton: false})
 	assert.Contains(t, serviceRegistrations, FilesystemServiceIndex)
+	assert.False(t, serviceRegistrations[FilesystemServiceIndex].IsSingleton())
 
 	// Ensure service is created but not cached
 	fetchedService, err := GetService(FilesystemServiceIndex)
 	assert.NoError(t, err)
-	assert.NotContains(t, serviceCache, FilesystemServiceIndex)
+	assert.Nil(t, serviceCache[FilesystemServiceIndex])
 	assert.NotEqual(t, &svc, fetchedService)
 
 	// Ensure on second call, new service instance is returned

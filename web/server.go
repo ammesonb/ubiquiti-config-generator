@@ -94,7 +94,7 @@ func StartWebhookServer(logger *log.Logger, shutdownChannel chan os.Signal) {
 	gitConfig := configuration.GetService().GetGitConfig()
 	srv := &http.Server{
 		Handler: r,
-		Addr:    fmt.Sprintf("%s:%d", gitConfig.ListenIP, gitConfig.WebhookPort),
+		Addr:    fmt.Sprintf("%s:%s", gitConfig.ListenIP, gitConfig.WebhookPort),
 		// Good practice: enforce timeouts for servers you create!
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,

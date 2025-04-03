@@ -4,15 +4,19 @@ import (
 	"path"
 	"strings"
 
+	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
+
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
 )
 
 var errReadDir = "failed to read directory %s"
 
+// TODO: this should go somewhere else
+
 // EnumerateConfigFiles will return a full list of all configuration files in a given path that the device requires
-func EnumerateConfigFiles(fs mocks.FsWrapper, device *configuration.DeviceConfig, pathRoot string) ([]string, []error) {
+func EnumerateConfigFiles(device *configuration.DeviceConfig, pathRoot string) ([]string, []error) {
+	fs := filesystem.GetService()
 	files := make([]string, 0)
 	errs := make([]error, 0)
 
@@ -21,7 +25,7 @@ func EnumerateConfigFiles(fs mocks.FsWrapper, device *configuration.DeviceConfig
 	entries, err := fs.ReadDir(pathRoot)
 	if err != nil {
 		errs = append(errs, errors.ErrWithCtxParent(errReadDir, pathRoot, err))
-		return files, errs
+		return nil, errs
 	}
 
 	for _, entry := range entries {
@@ -36,9 +40,9 @@ func EnumerateConfigFiles(fs mocks.FsWrapper, device *configuration.DeviceConfig
 
 		if entry.IsDir() {
 			// For directory, recurse and get any nested files
-			children, errs := EnumerateConfigFiles(fs, device, fullPath)
+			children, childErrs := EnumerateConfigFiles(device, fullPath)
 			files = append(files, children...)
-			errs = append(errs, errs...)
+			errs = append(errs, childErrs...)
 		} else {
 			// Otherwise simply append this file
 			files = append(files, fullPath)
@@ -63,7 +67,7 @@ func entryInConfig(paths []string, path string) bool {
 func dirInConfig(paths []string, path string) bool {
 	for _, p := range paths {
 		// If exact match or file path starts with the configured one
-		if p == path || strings.HasPrefix(p, path) {
+		if (p == path && strings.HasSuffix(p, "/")) || strings.HasPrefix(p, path) {
 			return true
 		}
 	}

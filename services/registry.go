@@ -18,6 +18,7 @@ type ServiceIndex string
 const (
 	ConfigurationServiceIndex ServiceIndex = "configuration"
 	FilesystemServiceIndex    ServiceIndex = "filesystem"
+	DatabaseServiceIndex      ServiceIndex = "database"
 )
 
 // serviceRegistrations is a map containing all registered services
@@ -31,6 +32,7 @@ var errNoSuchService = "no such service: %s"
 // RegisterService stores a provided service under the given index
 func RegisterService(index ServiceIndex, service ServiceRegistration) {
 	serviceRegistrations[index] = service
+	serviceCache[index] = nil
 }
 
 // GetService returns an instance of the service registered under the given index, but prefers to reuse a cached instance
@@ -40,6 +42,7 @@ func GetService(index ServiceIndex) (any, error) {
 		return nil, errors.ErrWithCtx(errNoSuchService, index)
 	}
 
+	// If the service is not a singleton or has not been cached, create a new instance
 	if serviceCache[index] == nil || !registration.IsSingleton() {
 		return createService(index)
 	}

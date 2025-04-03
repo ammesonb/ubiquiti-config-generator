@@ -13,16 +13,20 @@ var (
 // FunctionName represents a function name that may be called in the application
 type FunctionName string
 
-// FunctionMock tracks called functions and mocked return values
-type FunctionMock struct {
-	initialized  bool
+// ServiceMock tracks called functions and mocked return values
+type ServiceMock struct {
+	initialized bool
+	// returnValues is a double-nested list of values to return from the indexing function
+	// first layer is the call #, second is one or more values to return
 	returnValues map[FunctionName][][]any
-	funcCalls    map[FunctionName]int
-	calledWith   map[FunctionName][][]any
+	// calledWith is similat to returnValues, but tracks the arguments passed to the function
+	calledWith map[FunctionName][][]any
+	// funcCalls tracks how many times a function was called
+	funcCalls map[FunctionName]int
 }
 
 // ResetFunc clears the mocked return values and call count for a function
-func (m *FunctionMock) ResetFunc(name FunctionName) {
+func (m *ServiceMock) ResetFunc(name FunctionName) {
 	if !m.initialized {
 		m.initialized = true
 		m.Reset()
@@ -34,24 +38,28 @@ func (m *FunctionMock) ResetFunc(name FunctionName) {
 }
 
 // Reset clears all mocked return values and call counts
-func (m *FunctionMock) Reset() {
+func (m *ServiceMock) Reset() {
+	if !m.initialized {
+		m.initialized = true
+		m.Reset()
+	}
+
 	m.returnValues = make(map[FunctionName][][]any)
 	m.funcCalls = make(map[FunctionName]int)
 	m.calledWith = make(map[FunctionName][][]any)
 }
 
 // SetNextResult adds a mocked return value to a function
-func (m *FunctionMock) SetNextResult(name FunctionName, values []any) {
-	if !m.initialized {
-		m.initialized = true
-		m.Reset()
+func (m *ServiceMock) SetNextResult(name FunctionName, values []any) {
+	if _, ok := m.returnValues[name]; !ok {
+		m.ResetFunc(name)
 	}
 
 	m.returnValues[name] = append(m.returnValues[name], values)
 }
 
 // GetResult returns the next mocked return value for a function, indexed by and incrementing call count
-func (m *FunctionMock) GetResult(name FunctionName, args ...any) ([]any, error) {
+func (m *ServiceMock) GetResult(name FunctionName, args ...any) ([]any, error) {
 	values, valOk := m.returnValues[name]
 	if !valOk {
 		return nil, errors.ErrWithCtx(ErrNoSuchFunction, name)
@@ -71,7 +79,7 @@ func (m *FunctionMock) GetResult(name FunctionName, args ...any) ([]any, error) 
 }
 
 // GetCallCount returns the number of times a function was called
-func (m *FunctionMock) GetCallCount(name FunctionName) (int, error) {
+func (m *ServiceMock) GetCallCount(name FunctionName) (int, error) {
 	count, ok := m.funcCalls[name]
 	if !ok {
 		return 0, errors.ErrWithCtx(ErrNoSuchFunction, name)
@@ -81,7 +89,7 @@ func (m *FunctionMock) GetCallCount(name FunctionName) (int, error) {
 }
 
 // GetCallArguments returns the arguments passed to a function
-func (m *FunctionMock) GetCallArguments(name FunctionName) ([][]any, error) {
+func (m *ServiceMock) GetCallArguments(name FunctionName) ([][]any, error) {
 	args, ok := m.calledWith[name]
 	if !ok {
 		return nil, errors.ErrWithCtx(ErrNoSuchFunction, name)
@@ -112,6 +120,7 @@ func ClearAll() {
 	funcCalls = make(map[string]int)
 }
 
+// SetNextResult appends the provided value(s) to the mocked return values for the provided function
 func SetNextResult(name string, value any) error {
 	if _, ok := returnValues[name]; !ok {
 		return errors.ErrWithCtx(ErrNoSuchFunction, name)

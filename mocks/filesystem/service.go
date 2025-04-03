@@ -17,11 +17,11 @@ const (
 
 // MockedFileSystem intercepts any calls to the system filesystem and returns customized mocked values
 type MockedFileSystem struct {
-	mocks.FunctionMock
+	mocks.ServiceMock
 }
 
 // Stat returns FileInfo and error
-func (m MockedFileSystem) Stat(path string) (os.FileInfo, error) {
+func (m *MockedFileSystem) Stat(path string) (os.FileInfo, error) {
 	values, err := m.GetResult(StatFn, path)
 	if err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func (m MockedFileSystem) Stat(path string) (os.FileInfo, error) {
 }
 
 // ReadFile returns bytes and error
-func (m MockedFileSystem) ReadFile(path string) ([]byte, error) {
+func (m *MockedFileSystem) ReadFile(path string) ([]byte, error) {
 	values, err := m.GetResult(ReadFileFn, path)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func (m MockedFileSystem) ReadFile(path string) ([]byte, error) {
 }
 
 // ReadDir returns DirEntry and error
-func (m MockedFileSystem) ReadDir(path string) ([]os.DirEntry, error) {
+func (m *MockedFileSystem) ReadDir(path string) ([]os.DirEntry, error) {
 	values, err := m.GetResult(ReadDirFn, path)
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func (m MockedFileSystem) ReadDir(path string) ([]os.DirEntry, error) {
 }
 
 // Open returns File and error
-func (m MockedFileSystem) Open(path string) (*os.File, error) {
+func (m *MockedFileSystem) Open(path string) (*os.File, error) {
 	values, err := m.GetResult(OpenFn, path)
 	if err != nil {
 		return nil, err
@@ -85,14 +85,14 @@ func (m MockedFileSystem) Open(path string) (*os.File, error) {
 type mockFileSystemRegistration struct {
 }
 
-// IsSingleton returns filesystem is not singleton
+// IsSingleton returns filesystem is singleton
 func (m mockFileSystemRegistration) IsSingleton() bool {
-	return false
+	return true
 }
 
 // New returns a new mock FileSystemService
 func (m mockFileSystemRegistration) New() (any, error) {
-	return MockedFileSystem{}, nil
+	return &MockedFileSystem{}, nil
 }
 
 // MockFileSystem registers the mocked filesystem service, requiring a test object to ensure only used in tests

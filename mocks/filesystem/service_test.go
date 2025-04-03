@@ -14,7 +14,7 @@ func TestMockFileSystemRegistration(t *testing.T) {
 	assert.NoError(t, MockFileSystem(t))
 
 	t.Run("singleton", func(t *testing.T) {
-		assert.False(t, mockFileSystemRegistration{}.IsSingleton())
+		assert.True(t, mockFileSystemRegistration{}.IsSingleton())
 	})
 
 	t.Run("new", func(t *testing.T) {
@@ -26,7 +26,7 @@ func TestMockFileSystemRegistration(t *testing.T) {
 
 func TestMockFileSystem(t *testing.T) {
 	assert.NoError(t, MockFileSystem(t))
-	fs := filesystem.GetService().(MockedFileSystem)
+	fs := filesystem.GetService().(*MockedFileSystem)
 	t.Run("no registered functions", func(t *testing.T) {
 		info, err := fs.Stat("service.go")
 		assert.Nil(t, info)

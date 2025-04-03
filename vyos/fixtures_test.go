@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	errors2 "github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 	"github.com/stretchr/testify/assert"
 
 	"gopkg.in/yaml.v3"
@@ -76,7 +75,7 @@ func generateNodeFixtures(templateDir string, outputFile string) error {
 	}
 
 	fmt.Printf("Parsing templates from %s\n", templatePath)
-	node, err := Parse(templateDir, mocks.GetFsWrapper())
+	node, err := Parse(templateDir)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrParseTemplates{templatePath: templatePath}, err)
 	}

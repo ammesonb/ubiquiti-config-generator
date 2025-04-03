@@ -12,7 +12,7 @@ import (
 
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/mocks"
+	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
 
 	"github.com/charmbracelet/log"
 )
@@ -43,10 +43,11 @@ var (
 )
 
 // ParseNodeDef takes a template path and converts it into a list of nodes for analysis/validation
-func ParseNodeDef(templatesPath string, fsWrapper *mocks.FsWrapper) (*Node, error) {
+func ParseNodeDef(templatesPath string) (*Node, error) {
 	// ReadDir returns relative paths, so /etc will return hosts, passwd, shadow, etc
 	// Not including the parent `/etc/` prefix
-	entries, err := fsWrapper.ReadDir(templatesPath)
+	fsService := filesystem.GetService()
+	entries, err := fsService.ReadDir(templatesPath)
 	logger := console_logger.DefaultLogger()
 	if err != nil {
 		return nil, errors.ErrWithCtxParent(errReadNodeDir, templatesPath, err)
@@ -67,8 +68,9 @@ func ParseNodeDef(templatesPath string, fsWrapper *mocks.FsWrapper) (*Node, erro
 	for _, entry := range entries {
 		if entry.Name() == "node.def" && !entry.IsDir() {
 			// Parse node definition files only
+			fsService := filesystem.GetService()
 			fullFilePath := filepath.Join(templatesPath, entry.Name())
-			reader, err := fsWrapper.Open(fullFilePath)
+			reader, err := fsService.Open(fullFilePath)
 			if err != nil {
 				return nil, errors.ErrWithCtxParent(errOpenNodeDef, fullFilePath, err)
 			}
@@ -87,7 +89,7 @@ func ParseNodeDef(templatesPath string, fsWrapper *mocks.FsWrapper) (*Node, erro
 		}
 
 		// For other directories, continuing recursing
-		childNode, err := ParseNodeDef(filepath.Join(templatesPath, entry.Name()), fsWrapper)
+		childNode, err := ParseNodeDef(filepath.Join(templatesPath, entry.Name()))
 		if err != nil {
 			return nil, err
 		}

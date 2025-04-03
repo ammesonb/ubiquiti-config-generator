@@ -5,71 +5,116 @@ import (
 	"testing"
 
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/mocks"
+	mockFs "github.com/ammesonb/ubiquiti-config-generator/mocks/filesystem"
 	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
+	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestEnumerateConfigFiles(t *testing.T) {
-	readName := "read"
-	mocks.InitOrClearFuncReturn(readName)
-
-	fsWrap := mocks.FsWrapper{
-		ReadDir: func(_ string) ([]os.DirEntry, error) {
-			val, err := mocks.GetResult(readName)
-			if err != nil {
-				return nil, err
-			} else if val == "miss" {
-				return nil, os.ErrNotExist
-				// } else {
-				// return {}, nil
-			}
-
-			return val.([]os.DirEntry), nil
-		},
-	}
-
-	assert.NoError(t, mocks.SetNextResult(readName, "miss"))
-
+	assert.NoError(t, mockFs.MockFileSystem(t))
+	mockedFs := filesystem.GetService().(*mockFs.MockedFileSystem)
 	config := &configuration.DeviceConfig{ConfigFiles: []string{"/config/", "/boot/conf", "/etc/network", "/opt/config/"}}
-	files, errs := EnumerateConfigFiles(fsWrap, config, "/")
-	assert.Empty(t, files, "No files if read dir fails")
-	assert.Len(t, errs, 1, "Does not continue after read fail")
-	assert.ErrorIs(t, errs[0], errors.ErrWithCtx(errReadDir, "/"))
 
-	assert.NoError(
-		t,
-		mocks.SetNextResult(
-			readName,
-			[]os.DirEntry{
-				mocks.MockDirEntry{IName: "boot", IIsDir: true},
-				mocks.MockDirEntry{IName: "tmp", IIsDir: true},
-				mocks.MockDirEntry{IName: "opt", IIsDir: true},
+	t.Run("nonexistent directory", func(t *testing.T) {
+		mockedFs.SetNextResult(mockFs.ReadDirFn, []any{nil, os.ErrNotExist})
+		files, errs := EnumerateConfigFiles(config, "/")
+		assert.Empty(t, files, "No files if read dir fails")
+		assert.Len(t, errs, 1, "Does not continue after read fail")
+		assert.ErrorIs(t, errs[0], errors.ErrWithCtx(errReadDir, "/"))
+	})
+
+	t.Run("nested directories considered and errors omitted", func(t *testing.T) {
+		mockedFs.ResetFunc(mockFs.ReadDirFn)
+		mockedFs.SetNextResult(mockFs.ReadDirFn, []any{
+			[]mockFs.MockDirEntry{
+				{FileName: "boot", Dir: true},
+				{FileName: "config", Dir: true},
 			},
-		),
-	)
-	assert.NoError(t, mocks.SetNextResult(readName, []os.DirEntry{
-		mocks.MockDirEntry{IName: "skipped"},
-		mocks.MockDirEntry{IName: "conf"},
-	}))
-	assert.NoError(t, mocks.SetNextResult(readName, []os.DirEntry{
-		mocks.MockDirEntry{IName: "config", IIsDir: true},
-		mocks.MockDirEntry{IName: "hostname"},
-		mocks.MockDirEntry{IName: "vyatta", IIsDir: true},
-	}))
-	assert.NoError(t, mocks.SetNextResult(readName, []os.DirEntry{
-		mocks.MockDirEntry{IName: "network.yaml"},
-		mocks.MockDirEntry{IName: "iface.yaml"},
-		mocks.MockDirEntry{IName: "fw.yaml"},
-	}))
+			nil,
+		})
+		// boot directory is not readable
+		mockedFs.SetNextResult(mockFs.ReadDirFn, []any{nil, os.ErrPermission})
+		// config directory contains one file
+		mockedFs.SetNextResult(mockFs.ReadDirFn, []any{
+			[]mockFs.MockDirEntry{
+				{FileName: "network.yaml"},
+			},
+			nil,
+		})
+		files, errs := EnumerateConfigFiles(config, "/")
+		assert.Len(t, files, 1, "Only one file in boot directory")
+		assert.Equal(t, files[0], "/config/network.yaml")
+		assert.Len(t, errs, 1, "One error from reading boot")
+		assert.ErrorIs(t, errs[0], errors.ErrWithCtx(errReadDir, "/boot"))
+	})
 
-	files, errs = EnumerateConfigFiles(fsWrap, config, "/")
-	assert.Empty(t, errs)
-	assert.Len(t, files, 4, "Files found")
-	assert.Equal(t, files[0], "/boot/conf", "File match")
-	assert.Equal(t, files[1], "/opt/config/network.yaml", "File match")
-	assert.Equal(t, files[2], "/opt/config/iface.yaml", "File match")
-	assert.Equal(t, files[3], "/opt/config/fw.yaml", "File match")
+	t.Run("mix of skipped and found files", func(t *testing.T) {
+		mockedFs.ResetFunc(mockFs.ReadDirFn)
+		mockedFs.SetNextResult(mockFs.ReadDirFn, []any{
+			[]mockFs.MockDirEntry{
+				{FileName: "boot", Dir: true},
+				{FileName: "etc", Dir: true},
+				{FileName: "opt", Dir: true},
+				{FileName: "tmp", Dir: true},
+			},
+			nil,
+		})
+		// boot contains a conf directory and grub file
+		mockedFs.SetNextResult(mockFs.ReadDirFn, []any{
+			[]mockFs.MockDirEntry{
+				{FileName: "conf", Dir: true},
+				{FileName: "grub.conf"},
+			},
+			nil,
+		})
+
+		// conf directory contains one file, but skipped since conf in config is a file
+		mockedFs.SetNextResult(mockFs.ReadDirFn, []any{
+			[]mockFs.MockDirEntry{
+				{FileName: "boot.yaml"},
+			},
+			nil,
+		})
+
+		// etc directory contains various files
+		mockedFs.SetNextResult(mockFs.ReadDirFn, []any{
+			[]mockFs.MockDirEntry{
+				{FileName: "network"},
+				{FileName: "interface"},
+				{FileName: "firewall"},
+			},
+			nil,
+		})
+
+		// opt directory contains a config directory
+		mockedFs.SetNextResult(mockFs.ReadDirFn, []any{
+			[]mockFs.MockDirEntry{
+				{FileName: "config", Dir: true},
+			},
+			nil,
+		})
+
+		// config directory contains two files
+		mockedFs.SetNextResult(mockFs.ReadDirFn, []any{
+			[]mockFs.MockDirEntry{
+				{FileName: "network.conf"},
+				{FileName: "interface.conf"},
+			},
+			nil,
+		})
+
+		files, errs := EnumerateConfigFiles(config, "/")
+
+		assert.Len(t, files, 3)
+		if len(files) < 3 {
+			t.FailNow()
+		}
+		assert.Equal(t, "/etc/network", files[0])
+		assert.Equal(t, "/opt/config/network.conf", files[1])
+		assert.Equal(t, "/opt/config/interface.conf", files[2])
+		assert.Empty(t, errs, "No errors")
+	})
 }
 
 func TestDeviceFilesChanged(t *testing.T) {

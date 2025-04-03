@@ -1,18 +1,20 @@
 package filesystem
 
-import "github.com/ammesonb/ubiquiti-config-generator/services"
+import (
+	"github.com/ammesonb/ubiquiti-config-generator/services"
+)
 
 type filesystemRegistration struct {
 }
 
-// IsSingleton returns filesystem is not singleton
-func (r filesystemRegistration) IsSingleton() bool {
-	return false
+// IsSingleton returns filesystem is singleton
+func (filesystemRegistration) IsSingleton() bool {
+	return true
 }
 
-// New returns a new FileSystemService
-func (r filesystemRegistration) New() (any, error) {
-	return DefaultFileSystemService{}, nil
+// New instantiates a new FileSystemService
+func (filesystemRegistration) New() (any, error) {
+	return &DefaultFileSystemService{}, nil
 }
 
 // RegisterService registers the filesystem service

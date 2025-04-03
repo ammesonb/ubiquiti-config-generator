@@ -65,31 +65,31 @@ func FromNetworkAbstraction(nodes *Node, network *abstraction.Network) (*Definit
 		}
 	}
 
-	errors := make([]error, 0)
+	errs := make([]error, 0)
 	subnetBase := dhcpPath.Extend(utils.MakeVyosPC("subnet"))
 	for _, subnet := range network.Subnets {
 		subnetPath := subnetBase.Extend(utils.MakeVyosDynamicPC(subnet.CIDR))
 		if err := definitions.ensureTree(nodes, subnetPath); err != nil {
-			errors = append(errors, errors.ErrWithCtxParent(errGenSubnetTree, subnet.CIDR, err))
+			errs = append(errs, errors.ErrWithCtxParent(errGenSubnetTree, subnet.CIDR, err))
 			continue
 		}
 		addSubnetNetworkValues(nodes, definitions, subnet, subnetPath)
 
 		for _, host := range subnet.Hosts {
 			if err := addHostToSubnet(nodes, definitions, host, subnetPath); err != nil {
-				errors = append(errors, err)
+				errs = append(errs, err)
 				continue
 			}
-			if errs := addHostToAddressGroups(nodes, definitions, host); errs != nil {
-				errors = append(errors, errs...)
+			if hostErrs := addHostToAddressGroups(nodes, definitions, host); hostErrs != nil {
+				errs = append(errs, hostErrs...)
 			}
-			if err := addFirewallRules(nodes, definitions, network, subnet, host); err != nil {
-				errors = append(errors, err...)
+			if fwErrs := addFirewallRules(nodes, definitions, network, subnet, host); fwErrs != nil {
+				errs = append(errs, fwErrs...)
 			}
 		}
 	}
 
-	return definitions, errors
+	return definitions, errs
 }
 
 // configureNetworkInterface sets properties of an interface including address, firewalls, etc
@@ -225,17 +225,17 @@ func addHostToAddressGroups(nodes *Node, definitions *Definitions, host *abstrac
 		utils.MakeVyosPC("group"),
 		utils.MakeVyosPC("address-group"),
 	)
-	errors := make([]error, 0)
+	errs := make([]error, 0)
 	for _, group := range host.AddressGroups {
 		groupPath := path.Extend(utils.MakeVyosDynamicPC(group))
 		if err := definitions.ensureTree(nodes, groupPath); err != nil {
-			errors = append(errors, errors.ErrWithCtxParent(errGenAddrGroupTree, group, err))
+			errs = append(errs, errors.ErrWithCtxParent(errGenAddrGroupTree, group, err))
 			continue
 		}
 		definitions.appendToListValue(nodes, groupPath, "address", host.Address)
 	}
 
-	return errors
+	return errs
 }
 
 func addFirewallRules(nodes *Node, definitions *Definitions, network *abstraction.Network, subnet *abstraction.Subnet, host *abstraction.Host) []error {
@@ -246,16 +246,16 @@ func addFirewallRules(nodes *Node, definitions *Definitions, network *abstractio
 	}
 	sort.Ints(fromPorts)
 
-	errors := make([]error, 0)
+	errs := make([]error, 0)
 	for _, fromPort := range fromPorts {
 		from := int32(fromPort)
 		if err := addForwardPort(nodes, definitions, host, network.InboundInterface, from, host.ForwardPorts[from]); err != nil {
-			errors = append(errors, err)
+			errs = append(errs, err)
 		}
 	}
 
 	if len(host.Connections) > 0 && network.Interface == nil {
-		return append(errors, errors.ErrWithVarCtx(errFwRequiresInterface, network.Name, host.Name))
+		return append(errs, errors.ErrWithVarCtx(errFwRequiresInterface, network.Name, host.Name))
 	}
 
 	for _, connection := range host.Connections {
@@ -263,8 +263,8 @@ func addFirewallRules(nodes *Node, definitions *Definitions, network *abstractio
 		// if firewall name is blank, then some part of the rule definition is likely invalid since it does not seem to
 		// apply to the host that it is written for
 		if firewallName == "" {
-			errors = append(
-				errors,
+			errs = append(
+				errs,
 				errors.ErrWithVarCtx(errUnknownFirewall, connection.Description, host.Name),
 			)
 			continue
@@ -274,11 +274,11 @@ func addFirewallRules(nodes *Node, definitions *Definitions, network *abstractio
 			firewallName,
 			connection,
 		); err != nil {
-			errors = append(errors, err)
+			errs = append(errs, err)
 		}
 	}
 
-	return errors
+	return errs
 }
 
 func addForwardPort(nodes *Node, definitions *Definitions, host *abstraction.Host, inboundInterface string, from int32, to int32) error {

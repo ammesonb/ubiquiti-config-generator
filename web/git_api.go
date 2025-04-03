@@ -20,13 +20,11 @@ import (
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
+	"github.com/ammesonb/ubiquiti-config-generator/services/db"
 
 	"github.com/golang-jwt/jwt"
-	"gorm.io/gorm"
 
 	"github.com/charmbracelet/log"
-
-	"github.com/ammesonb/ubiquiti-config-generator/db"
 )
 
 var (
@@ -217,7 +215,9 @@ func getAccessToken(client mocks.WebClient, appID string, jwt string) (string, e
 	return tokenResponse.AccessToken, nil
 }
 
-func createCheck(client mocks.WebClient, logDB *gorm.DB, request checkSuiteRequest, accessToken string) error {
+func createCheck(client mocks.WebClient, request checkSuiteRequest, accessToken string) error {
+	dbService := db.GetService()
+
 	response, err := makeGitRequest(
 		client,
 		"check run request",
@@ -236,7 +236,7 @@ func createCheck(client mocks.WebClient, logDB *gorm.DB, request checkSuiteReque
 	}
 
 	if response.StatusCode != 201 {
-		logDB.Create(&db.CheckLog{
+		dbService.GetDB().Create(&db.CheckLog{
 			Revision:  request.CheckSuite.HeadSHA,
 			Status:    db.StatusFailure,
 			Timestamp: time.Now(),
@@ -251,7 +251,7 @@ func createCheck(client mocks.WebClient, logDB *gorm.DB, request checkSuiteReque
 			db.StatusFailure,
 			"Failed to schedule check run",
 		); err != nil {
-			logDB.Create(&db.CheckLog{
+			dbService.GetDB().Create(&db.CheckLog{
 				Revision:  request.CheckSuite.HeadSHA,
 				Status:    db.StatusFailure,
 				Timestamp: time.Now(),
@@ -259,7 +259,7 @@ func createCheck(client mocks.WebClient, logDB *gorm.DB, request checkSuiteReque
 			})
 		}
 	} else {
-		logDB.Create(&db.CheckLog{
+		dbService.GetDB().Create(&db.CheckLog{
 			Revision:  request.CheckSuite.HeadSHA,
 			Status:    db.StatusInfo,
 			Timestamp: time.Now(),

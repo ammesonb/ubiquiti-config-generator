@@ -4,7 +4,7 @@ type Config struct {
 	Logging     LoggingConfig `yaml:"logging"`
 	Git         GitConfig     `yaml:"git"`
 	DevicesFile string        `yaml:"devices-file"`
-	Devices     []DeviceConfig
+	Devices     []*DeviceConfig
 }
 
 type LoggingConfig struct {

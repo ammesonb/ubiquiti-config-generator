@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/mocks"
+	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
@@ -1160,7 +1160,8 @@ syntax:expression: exec "if ! /usr/sbin/ubnt-fw validate-protocol '$VAR(@)' ;
 }
 
 func TestParseNodeDef(t *testing.T) {
-	node, err := ParseNodeDef("/nonexistent", mocks.GetFsWrapper())
+	assert.NoError(t, filesystem.RegisterService())
+	node, err := ParseNodeDef("/nonexistent")
 	assert.Nil(t, node)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, errors.ErrWithCtx(errReadNodeDir, "/nonexistent"))

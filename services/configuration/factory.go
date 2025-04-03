@@ -13,12 +13,12 @@ var defaultConfigPath = "./config.yaml"
 type configRegistration struct{}
 
 // IsSingleton returns configuration service is singleton
-func (_ configRegistration) IsSingleton() bool {
+func (configRegistration) IsSingleton() bool {
 	return true
 }
 
-// New returns a new ConfigurationService
-func (_ configRegistration) New() (any, error) {
+// New instantiates a new ConfigurationService
+func (configRegistration) New() (any, error) {
 	var configuration ConfigurationService = &DefaultConfigurationService{}
 
 	err := configuration.Load(getConfigurationPath())

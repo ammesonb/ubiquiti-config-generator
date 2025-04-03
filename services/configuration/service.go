@@ -14,7 +14,7 @@ type ConfigurationService interface {
 	Load(filepath string) error
 	GetGitConfig() GitConfig
 	GetLoggingConfig() LoggingConfig
-	GetDevices() []DeviceConfig
+	GetDevices() []*DeviceConfig
 }
 
 // DefaultConfigurationService implements ConfigurationService
@@ -33,7 +33,7 @@ func (s *DefaultConfigurationService) GetLoggingConfig() LoggingConfig {
 }
 
 // GetDevices returns a list of all configured devices
-func (s *DefaultConfigurationService) GetDevices() []DeviceConfig {
+func (s *DefaultConfigurationService) GetDevices() []*DeviceConfig {
 	return s.config.Devices
 }
 
@@ -51,10 +51,10 @@ func (s *DefaultConfigurationService) Load(filepath string) error {
 	}
 
 	getConfigValuesFromEnv(s.config)
-	return loadDevices(s.config.DevicesFile, s.config.Devices)
+	return loadDevices(s.config.DevicesFile, &s.config.Devices)
 }
 
-func loadDevices(devicesFile string, devices []DeviceConfig) error {
+func loadDevices(devicesFile string, devices *[]*DeviceConfig) error {
 	if devicesFile == "" {
 		return nil
 	}
@@ -64,12 +64,12 @@ func loadDevices(devicesFile string, devices []DeviceConfig) error {
 		return errors.ErrWithParent(errReadDevices, err)
 	}
 
-	if err = yaml.Unmarshal(devicesBytes, &devices); err != nil {
+	if err = yaml.Unmarshal(devicesBytes, devices); err != nil {
 		return errors.ErrWithCtxParent(errParseDevices, devicesFile, err)
 	}
 
-	for device := range devices {
-		updateConfigFromEnv(&devices[device])
+	for _, device := range *devices {
+		updateConfigFromEnv(device)
 	}
 
 	return nil
