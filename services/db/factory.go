@@ -18,8 +18,8 @@ func (m dbRegistration) IsSingleton() bool {
 // New returns a new database connection
 func (m dbRegistration) New() (any, error) {
 	dbName := configuration.GetService().GetLoggingConfig().DBName
-	return gorm.Open(sqlite.Open(dbName), &gorm.Config{})
-	// ("file::memory:?cache=shared"), nil
+	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
+	return &DefaultDatabaseService{Database: db}, err
 }
 
 // RegisterService registers the database service

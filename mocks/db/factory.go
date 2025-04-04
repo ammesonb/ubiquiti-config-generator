@@ -21,7 +21,7 @@ func (m mockDatabaseRegistration) New() (any, error) {
 	inMemoryDatabaseName := "file::memory:?cache=shared"
 
 	gormDb, err := gorm.Open(sqlite.Open(inMemoryDatabaseName), &gorm.Config{})
-	return db.DefaultDatabaseService{Database: gormDb}, err
+	return &db.DefaultDatabaseService{Database: gormDb}, err
 }
 
 func MockDatabase(_ *testing.T) error {

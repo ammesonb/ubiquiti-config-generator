@@ -2,10 +2,8 @@ package filesystem
 
 import (
 	"os"
-	"testing"
 
 	"github.com/ammesonb/ubiquiti-config-generator/mocks"
-	"github.com/ammesonb/ubiquiti-config-generator/services"
 )
 
 const (
@@ -80,26 +78,4 @@ func (m *MockedFileSystem) Open(path string) (*os.File, error) {
 		return nil, err
 	}
 	return values[0].(*os.File), nil
-}
-
-type mockFileSystemRegistration struct {
-}
-
-// IsSingleton returns filesystem is singleton
-func (m mockFileSystemRegistration) IsSingleton() bool {
-	return true
-}
-
-// New returns a new mock FileSystemService
-func (m mockFileSystemRegistration) New() (any, error) {
-	return &MockedFileSystem{}, nil
-}
-
-// MockFileSystem registers the mocked filesystem service, requiring a test object to ensure only used in tests
-func MockFileSystem(_ *testing.T) error {
-	services.RegisterService(services.FilesystemServiceIndex, mockFileSystemRegistration{})
-	// Attempt get, so we know upfront if the service can load successfully
-	_, err := services.GetService(services.FilesystemServiceIndex)
-
-	return err
 }

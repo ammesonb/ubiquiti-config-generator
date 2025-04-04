@@ -114,3 +114,8 @@ func updateConfigFromEnv(config interface{}) {
 		}
 	}
 }
+
+// MakeDefaultConfigurationService creates a new default configuration service from the provided config
+func MakeDefaultConfigurationService(config *Config) *DefaultConfigurationService {
+	return &DefaultConfigurationService{config: config}
+}
