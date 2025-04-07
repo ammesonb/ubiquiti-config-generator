@@ -68,10 +68,10 @@ func ensureDBCommitCheck(client *http.Client, request checkSuiteRequest, accessT
 	} else if exists {
 		log.Warnf("Check already added to DB for revision: %s", check.Revision)
 	} else {
-		dbService.GetDB().Create(&check)
 		if err = createCheck(client, request, accessToken); err != nil {
 			log.Errorf("Failed creating check: %v", err)
 		} else {
+			dbService.GetDB().Create(&check)
 			log.Info("Successfully created check")
 		}
 	}

@@ -1,9 +1,10 @@
 package configuration
 
 type Config struct {
-	Logging     LoggingConfig `yaml:"logging"`
-	Git         GitConfig     `yaml:"git"`
-	DevicesFile string        `yaml:"devices-file"`
+	Logging LoggingConfig `yaml:"logging"`
+	Git     GitConfig     `yaml:"git"`
+	// TODO: support list of files as well
+	DevicesFile string `yaml:"devices-file"`
 	Devices     []*DeviceConfig
 }
 

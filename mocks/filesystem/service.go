@@ -15,7 +15,7 @@ const (
 
 // MockedFileSystem intercepts any calls to the system filesystem and returns customized mocked values
 type MockedFileSystem struct {
-	mocks.ServiceMock
+	*mocks.ServiceMock
 }
 
 // Stat returns FileInfo and error

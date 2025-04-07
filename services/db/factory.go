@@ -38,5 +38,3 @@ func GetService() DatabaseService {
 	dbService, _ := services.GetService(services.DatabaseServiceIndex)
 	return dbService.(DatabaseService)
 }
-
-// TODO: tests

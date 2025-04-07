@@ -7,7 +7,7 @@ import (
 
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 
 	"github.com/ammesonb/ubiquiti-config-generator/validation"
 )
@@ -51,7 +51,7 @@ func loadNetwork(networkPath string) (*Network, []error) {
 	if err != nil {
 		return nil, []error{errors.ErrWithCtxParent(errReadNetworkConf, networkPath, err)}
 	}
-	var network Network
+	network := Network{}
 
 	if err = yaml.Unmarshal(config, &network); err != nil {
 		return nil, []error{errors.ErrWithCtxParent(errParseNetworkConf, networkPath, err)}

@@ -10,7 +10,7 @@ import (
 	errors2 "github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/stretchr/testify/assert"
 
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // GetGeneratedNodes reads and parses the YAML file containing an already-analyzed

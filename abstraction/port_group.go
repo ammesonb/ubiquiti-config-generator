@@ -7,7 +7,7 @@ import (
 
 	errors2 "github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 )
 
 var (

@@ -7,7 +7,7 @@ import (
 
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 )
 
 type ConfigurationService interface {

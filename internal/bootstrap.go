@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"fmt"
+
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
 	"github.com/ammesonb/ubiquiti-config-generator/services/db"
@@ -12,8 +14,8 @@ var serviceRegistrationError = "failed to register service %s"
 
 // Ensure fixed initialization order, since some services rely on others
 var services = []string{
-	"configuration",
 	"filesystem",
+	"configuration",
 	"database",
 }
 
@@ -30,6 +32,7 @@ func RegisterServices(logger *log.Logger) []error {
 		logger.Debugf("Registering service %s", service)
 		if err := serviceFuncs[service](); err != nil {
 			errs = append(errs, errors.ErrWithCtxParent(serviceRegistrationError, service, err))
+			fmt.Println(err)
 		}
 	}
 

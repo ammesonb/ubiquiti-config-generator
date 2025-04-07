@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/ammesonb/ubiquiti-config-generator/db"
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/ammesonb/ubiquiti-config-generator/mocks"
 	"github.com/stretchr/testify/assert"
@@ -23,11 +22,10 @@ func TestMakeGitRequest(t *testing.T) {
 	client := &mocks.MockClient{}
 
 	mocks.InitOrClearFuncReturn(mocks.HTTPClientDo)
-	memDB, err := db.GetTestDB()
-	assert.NoError(t, err)
 
 	body := map[string]any{
-		"foo": memDB,
+		// client is not JSON-serializable
+		"foo": http.Client{},
 	}
 	response, err := makeGitRequest(client, "test-obj", "abc", "def", "/test-url", "GET", body)
 	assert.Nil(t, response)

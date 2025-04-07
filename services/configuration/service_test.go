@@ -137,10 +137,35 @@ func TestServiceLoad(t *testing.T) {
 		assert.ErrorIs(t, err, errors.ErrWithCtx(errParseMainConfig, yamlFile))
 	})
 
+	t.Run("valid config", func(t *testing.T) {
+		validConfig := []byte(`
+# Interface settings
+logging:
+  user: $UBQ_CONFIG_USER
+  pass: $UBQ_CONFIG_PASS
+
+git:
+  # The ID of the application
+  app-id: $GITHUB_APP_ID
+  # The main GitHub branch
+  primary-branch: main
+
+  private-key-path: ./ubiquiti-config.pem
+  # The address for the webserver to listen on
+  listen-ip: 0.0.0.0
+  # The external URL of the webhook, should match the GitHub app configuration
+  webhook-url: https://example.com
+  # The port to listen on for GitHub webhook stuff
+  webhook-port: 12345
+  # The secret to use with GitHub webhooks
+  webhook-secret: $UBQ_GITHUB_WEBHOOK_SECRET
+`)
+		mockedFs.SetNextResult(mockFs.ReadFileFn, []any{validConfig, nil})
+	})
+
 	// TODO: more tests here
 }
 
-// TODO: fix up device tests
 func TestLoadDevices(t *testing.T) {
 	assert.NoError(t, mockFs.MockFileSystem(t))
 	mockedFs := filesystem.GetService().(*mockFs.MockedFileSystem)

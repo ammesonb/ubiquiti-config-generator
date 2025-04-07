@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -23,6 +24,7 @@ import (
 	"github.com/ammesonb/ubiquiti-config-generator/services/db"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/google/go-github/v70/github"
 
 	"github.com/charmbracelet/log"
 )
@@ -66,6 +68,11 @@ func validateAction(w http.ResponseWriter, r *http.Request, what string, log *lo
 	}
 
 	formAction := form.Get("action")
+
+	client := github.NewClient(nil)
+	client.WithAuthToken("")
+
+	client.Checks.CreateCheckRun(context.Background(), "willnorris", "ubiquiti-config-generator", github.CreateCheckRunOptions{})
 
 	for _, action := range actions {
 		if action == formAction {

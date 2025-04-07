@@ -41,5 +41,3 @@ func (s *DefaultDatabaseService) Exists(model any, idCol string, idVal any) (boo
 
 	return exists, err
 }
-
-// TODO: tests
