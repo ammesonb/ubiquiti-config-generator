@@ -1,10 +1,12 @@
 package services
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/charmbracelet/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,15 +19,22 @@ func (m mockConfigSvc) IsSingleton() bool {
 }
 
 // pretend service is an int, but it could be anything
-var svc int = 4
+type mockSvc struct {
+	// struct needs a placeholder field, otherwise same empty memory allocation is reused
+	id int
+}
 
-func (m mockConfigSvc) New() (any, error) {
+func (m mockSvc) StopService(_ *log.Logger) {}
+
+var svc *mockSvc = &mockSvc{id: 1}
+
+func (m mockConfigSvc) New() (ServiceImplementation, error) {
 	// For singleton, return by reference otherwise by value
 	if m.isSingleton {
-		return &svc, nil
+		return svc, nil
 	}
 
-	return rand.Int(), nil
+	return &mockSvc{id: rand.Int()}, nil
 }
 
 func TestSingletonRegistration(t *testing.T) {
@@ -36,13 +45,13 @@ func TestSingletonRegistration(t *testing.T) {
 	fetchedService, err := GetService(ConfigurationServiceIndex)
 	assert.NoError(t, err)
 	assert.Contains(t, serviceCache, ConfigurationServiceIndex)
-	assert.Equal(t, &svc, fetchedService)
+	assert.Same(t, fetchedService, svc)
 
 	// Ensure on second call, same service is returned and cache is not modified
 	fetchedService, err = GetService(ConfigurationServiceIndex)
 	assert.NoError(t, err)
-	assert.Equal(t, &svc, fetchedService)
-	assert.Equal(t, &svc, serviceCache[ConfigurationServiceIndex])
+	assert.Same(t, fetchedService, svc)
+	assert.Same(t, fetchedService, serviceCache[ConfigurationServiceIndex])
 }
 
 func TestEphemeralRegistration(t *testing.T) {
@@ -54,14 +63,16 @@ func TestEphemeralRegistration(t *testing.T) {
 	fetchedService, err := GetService(FilesystemServiceIndex)
 	assert.NoError(t, err)
 	assert.Nil(t, serviceCache[FilesystemServiceIndex])
-	assert.NotEqual(t, &svc, fetchedService)
+	fmt.Printf("Fetched service: %p\n", fetchedService)
+	fmt.Printf("Global service: %p\n", svc)
+
+	assert.NotSame(t, fetchedService, svc)
 
 	// Ensure on second call, new service instance is returned
 	secondService, err := GetService(FilesystemServiceIndex)
 	assert.NoError(t, err)
-	assert.NotEqual(t, &svc, secondService)
-	assert.NotEqual(t, fetchedService, secondService)
-	assert.NotEqual(t, &fetchedService, &secondService)
+	assert.NotSame(t, secondService, svc)
+	assert.NotSame(t, secondService, fetchedService)
 }
 
 func TestMissedRegistration(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 )
 
 func TestMigrate(t *testing.T) {
-	mockConf.MockConfiguration(t, mockConfig)
+	assert.NoError(t, mockConf.MockConfiguration(t, mockConfig))
 
 	t.Run("count fails before migration", func(t *testing.T) {
 		n, err := dbRegistration{}.New()
@@ -35,7 +35,7 @@ func TestMigrate(t *testing.T) {
 }
 
 func TestExists(t *testing.T) {
-	mockConf.MockConfiguration(t, mockConfig)
+	assert.NoError(t, mockConf.MockConfiguration(t, mockConfig))
 	assert.NoError(t, RegisterService())
 
 	dbService := GetService()

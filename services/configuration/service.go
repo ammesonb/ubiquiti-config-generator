@@ -6,7 +6,9 @@ import (
 	"strings"
 
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/services"
 	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
+	"github.com/charmbracelet/log"
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -15,6 +17,7 @@ type ConfigurationService interface {
 	GetGitConfig() GitConfig
 	GetLoggingConfig() LoggingConfig
 	GetDevices() []*DeviceConfig
+	services.ServiceImplementation
 }
 
 // DefaultConfigurationService implements ConfigurationService
@@ -36,6 +39,8 @@ func (s *DefaultConfigurationService) GetLoggingConfig() LoggingConfig {
 func (s *DefaultConfigurationService) GetDevices() []*DeviceConfig {
 	return s.config.Devices
 }
+
+func (s *DefaultConfigurationService) StopService(logger *log.Logger) {}
 
 // Load populates this configuration service with data from the provided file
 func (s *DefaultConfigurationService) Load(filepath string) error {

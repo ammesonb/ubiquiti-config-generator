@@ -13,7 +13,7 @@ func (filesystemRegistration) IsSingleton() bool {
 }
 
 // New instantiates a new FileSystemService
-func (filesystemRegistration) New() (any, error) {
+func (filesystemRegistration) New() (services.ServiceImplementation, error) {
 	return &DefaultFileSystemService{}, nil
 }
 

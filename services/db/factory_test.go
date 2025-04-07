@@ -17,7 +17,7 @@ var mockConfig = &configuration.Config{
 }
 
 func TestRegistration(t *testing.T) {
-	mockConf.MockConfiguration(t, mockConfig)
+	assert.NoError(t, mockConf.MockConfiguration(t, mockConfig))
 	dbRegistration := dbRegistration{}
 	assert.True(t, dbRegistration.IsSingleton())
 
@@ -30,7 +30,7 @@ func TestRegistration(t *testing.T) {
 }
 
 func TestRegisterService(t *testing.T) {
-	mockConf.MockConfiguration(t, mockConfig)
+	assert.NoError(t, mockConf.MockConfiguration(t, mockConfig))
 	assert.NoError(t, RegisterService())
 	dbService := GetService()
 	assert.IsType(t,

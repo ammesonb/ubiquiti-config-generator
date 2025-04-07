@@ -17,7 +17,7 @@ func (m mockConfigurationRegistration) IsSingleton() bool {
 }
 
 // New returns a new mock ConfigurationService
-func (m mockConfigurationRegistration) New() (any, error) {
+func (m mockConfigurationRegistration) New() (services.ServiceImplementation, error) {
 	return configuration.MakeDefaultConfigurationService(m.config), nil
 }
 

@@ -1,8 +1,10 @@
 package main
 
 import (
-	"os"
+	"context"
 	"os/signal"
+	"sync"
+	"syscall"
 
 	"github.com/ammesonb/ubiquiti-config-generator/internal"
 
@@ -64,18 +66,25 @@ TODO:
 func main() {
 	log := console_logger.DefaultLogger()
 
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGABRT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGKILL)
+	defer stop()
+
 	log.Info("Registering services")
-	errs := internal.RegisterServices(log)
+	var serviceGroup sync.WaitGroup
+	errs := internal.RegisterServices(log, ctx, &serviceGroup)
 	if len(errs) > 0 {
 		log.Fatal(errs)
 	}
 
 	log.Debug("Services loaded")
 
-	shutdownChannel := make(chan os.Signal, 1)
-	// We'll accept graceful shutdowns when quit via SIGINT (Ctrl+C)
-	// SIGKILL, SIGQUIT or SIGTERM (Ctrl+/) will not be caught.
-	signal.Notify(shutdownChannel, os.Interrupt)
+	web.StartWebhookServer(log, ctx)
 
-	web.StartWebhookServer(log, shutdownChannel)
+	<-ctx.Done()
+
+	log.Warn("Received signal, shutting down gracefully")
+
+	stop()
+	log.Warn("Gracefully shutting down services...Press CTRL + C (or other signal) again to force")
+	serviceGroup.Wait()
 }

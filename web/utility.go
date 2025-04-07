@@ -15,6 +15,6 @@ func internalServerError(w http.ResponseWriter, log *log.Logger, message string,
 
 func badRequest(w http.ResponseWriter, log *log.Logger, message string) {
 	w.WriteHeader(400)
-	log.Warnf(message)
+	log.Warn(message)
 	_, _ = w.Write([]byte("Bad request: " + strings.ToLower(message)))
 }

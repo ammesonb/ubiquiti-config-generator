@@ -15,7 +15,7 @@ func (m mockFileSystemRegistration) IsSingleton() bool {
 }
 
 // New returns a new mock FileSystemService
-func (m mockFileSystemRegistration) New() (any, error) {
+func (m mockFileSystemRegistration) New() (services.ServiceImplementation, error) {
 	return &MockedFileSystem{}, nil
 }
 

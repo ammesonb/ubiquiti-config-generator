@@ -4,11 +4,17 @@ package services
 
 import (
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/charmbracelet/log"
 )
 
+type ServiceImplementation interface {
+	StopService(*log.Logger)
+}
+
 // ServiceRegistration provides the required functionality to generate/get on-demand features
+
 type ServiceRegistration interface {
-	New() (any, error)
+	New() (ServiceImplementation, error)
 	IsSingleton() bool
 }
 
@@ -25,7 +31,7 @@ const (
 var serviceRegistrations = make(map[ServiceIndex]ServiceRegistration)
 
 // serviceCache is a map containing all generated instances of services
-var serviceCache = make(map[ServiceIndex]any)
+var serviceCache = make(map[ServiceIndex]ServiceImplementation)
 
 var errNoSuchService = "no such service: %s"
 
@@ -36,7 +42,7 @@ func RegisterService(index ServiceIndex, service ServiceRegistration) {
 }
 
 // GetService returns an instance of the service registered under the given index, but prefers to reuse a cached instance
-func GetService(index ServiceIndex) (any, error) {
+func GetService(index ServiceIndex) (ServiceImplementation, error) {
 	registration, ok := serviceRegistrations[index]
 	if !ok {
 		return nil, errors.ErrWithCtx(errNoSuchService, index)
@@ -52,7 +58,7 @@ func GetService(index ServiceIndex) (any, error) {
 
 // createService returns a new instance of the service registered under the given index
 // To avoid accidentally instantiating extra singletons, this cannot be called externally
-func createService(index ServiceIndex) (any, error) {
+func createService(index ServiceIndex) (ServiceImplementation, error) {
 	// only called from GetService, so we know the service was registered
 	registration := serviceRegistrations[index]
 	service, err := registration.New()

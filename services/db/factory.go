@@ -16,7 +16,7 @@ func (m dbRegistration) IsSingleton() bool {
 }
 
 // New returns a new database connection
-func (m dbRegistration) New() (any, error) {
+func (m dbRegistration) New() (services.ServiceImplementation, error) {
 	dbName := configuration.GetService().GetLoggingConfig().DBName
 	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
 	return &DefaultDatabaseService{Database: db}, err

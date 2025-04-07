@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/ammesonb/ubiquiti-config-generator/mocks"
+	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
 )
 
 const (
@@ -16,6 +17,7 @@ const (
 // MockedFileSystem intercepts any calls to the system filesystem and returns customized mocked values
 type MockedFileSystem struct {
 	*mocks.ServiceMock
+	filesystem.FileSystemService
 }
 
 // Stat returns FileInfo and error

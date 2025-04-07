@@ -5,7 +5,6 @@ import (
 	"crypto/subtle"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
@@ -56,7 +55,7 @@ func githubAccessTokenMiddleware(next http.Handler, logger *log.Logger) http.Han
 }
 
 // StartWebhookServer spins up a new server that responds to GitHub webhooks and also provides check/deployment status logs
-func StartWebhookServer(logger *log.Logger, shutdownChannel chan os.Signal) {
+func StartWebhookServer(logger *log.Logger, ctx context.Context) {
 	logger.Debug("Initializing web server")
 
 	r := mux.NewRouter()
@@ -102,23 +101,14 @@ func StartWebhookServer(logger *log.Logger, shutdownChannel chan os.Signal) {
 
 	// Run our server in a goroutine so that it doesn't block.
 	go func() {
-		if err := srv.ListenAndServe(); err != nil {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatalf("Error from web server listen/serve: %v", err)
 		}
 	}()
 
 	// Block until we receive our signal.
-	<-shutdownChannel
+	<-ctx.Done()
 
-	// Wait 5 seconds - arbitrary, could use other contextual signals if needed
-	// e.g. DB closing
-	ctx, cancel := context.WithTimeout(context.Background(), 5)
-	defer cancel()
-	// Doesn't block if no connections, but will otherwise wait
-	// until the timeout deadline.
+	logger.Warn("Shutting down webhook server")
 	_ = srv.Shutdown(ctx)
-	// Optionally, you could run srv.Shutdown in a goroutine and block on
-	// <-ctx.Done() if your application should wait for other services
-	// to finalize based on context cancellation.
-	logger.Warn("shutting down")
 }

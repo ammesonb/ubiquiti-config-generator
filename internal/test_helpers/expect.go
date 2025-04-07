@@ -48,7 +48,7 @@ func NewAssertionTracker(t *testing.T) *AssertionTracker {
 	t.Cleanup(func() {
 		t.Helper()
 		for _, mismatch := range tracker.GetMismatchedValues() {
-			t.Errorf(mismatch)
+			t.Error(mismatch)
 		}
 	})
 

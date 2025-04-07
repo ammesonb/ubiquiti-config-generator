@@ -1,16 +1,11 @@
 package errors
 
 import (
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
-
-type errFake struct{}
-
-func (e errFake) Error() string {
-	return "foo"
-}
 
 func TestErrors(t *testing.T) {
 	err := ErrWithCtx("test error %s", "foo")

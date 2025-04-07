@@ -18,7 +18,7 @@ func (configRegistration) IsSingleton() bool {
 }
 
 // New instantiates a new ConfigurationService
-func (configRegistration) New() (any, error) {
+func (configRegistration) New() (services.ServiceImplementation, error) {
 	var configuration ConfigurationService = &DefaultConfigurationService{}
 
 	err := configuration.Load(getConfigurationPath())

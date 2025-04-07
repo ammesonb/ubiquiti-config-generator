@@ -232,7 +232,7 @@ func TestLoadDevices(t *testing.T) {
   port: 80
 `)
 		mockedFs.SetNextResult(mockFs.ReadFileFn, []any{deviceYAML, nil})
-		var devices []*DeviceConfig = []*DeviceConfig{}
+		devices := []*DeviceConfig{}
 		err := loadDevices("env-values.yaml", &devices)
 		assert.NoError(t, err)
 

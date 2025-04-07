@@ -17,7 +17,7 @@ func (m mockDatabaseRegistration) IsSingleton() bool {
 }
 
 // New returns a new database connection
-func (m mockDatabaseRegistration) New() (any, error) {
+func (m mockDatabaseRegistration) New() (services.ServiceImplementation, error) {
 	inMemoryDatabaseName := "file::memory:?cache=shared"
 
 	gormDb, err := gorm.Open(sqlite.Open(inMemoryDatabaseName), &gorm.Config{})
