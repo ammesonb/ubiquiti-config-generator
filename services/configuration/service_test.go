@@ -4,8 +4,7 @@ import (
 	"os"
 	"testing"
 
-	mockFs "github.com/ammesonb/ubiquiti-config-generator/mocks/filesystem"
-	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
+	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem/filesystemfakes"
 
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/ammesonb/ubiquiti-config-generator/internal/test_helpers"
@@ -105,7 +104,7 @@ func TestServiceGetters(t *testing.T) {
 	}
 	var devices []*DeviceConfig
 
-	s := DefaultConfigurationService{
+	s := YAMLService{
 		config: &Config{
 			Git:     gitConfig,
 			Logging: logConfig,
@@ -119,21 +118,20 @@ func TestServiceGetters(t *testing.T) {
 }
 
 func TestServiceLoad(t *testing.T) {
-	s := DefaultConfigurationService{}
-	assert.NoError(t, mockFs.MockFileSystem(t))
-	mockedFs := filesystem.GetService().(*mockFs.MockedFileSystem)
-	mockedFs.Reset()
+	s := YAMLService{}
 
 	t.Run("file does not exist", func(t *testing.T) {
-		mockedFs.SetNextResult(mockFs.ReadFileFn, []any{nil, os.ErrNotExist})
-		err := s.Load("/does/not/exist")
+		fakeFs := filesystemfakes.FakeFileSystemService{}
+		fakeFs.ReadFileReturns(nil, os.ErrNotExist)
+		err := s.Load("/does/not/exist", &fakeFs)
 		assert.ErrorIs(t, err, errors.ErrWithParent(errReadMainConfig, os.ErrNotExist))
 	})
 
 	t.Run("invalid yaml", func(t *testing.T) {
-		mockedFs.SetNextResult(mockFs.ReadFileFn, []any{[]byte("invalid yaml"), nil})
+		fakeFs := filesystemfakes.FakeFileSystemService{}
+		fakeFs.ReadFileReturns([]byte("invalid yaml"), nil)
 		yamlFile := "./test-files/invalid-yaml"
-		err := s.Load(yamlFile)
+		err := s.Load(yamlFile, &fakeFs)
 		assert.ErrorIs(t, err, errors.ErrWithCtx(errParseMainConfig, yamlFile))
 	})
 
@@ -160,29 +158,25 @@ git:
   # The secret to use with GitHub webhooks
   webhook-secret: $UBQ_GITHUB_WEBHOOK_SECRET
 `)
-		mockedFs.SetNextResult(mockFs.ReadFileFn, []any{validConfig, nil})
+		fakeFs := filesystemfakes.FakeFileSystemService{}
+		fakeFs.ReadFileReturns(validConfig, nil)
 	})
-
 	// TODO: more tests here
 }
 
 func TestLoadDevices(t *testing.T) {
-	assert.NoError(t, mockFs.MockFileSystem(t))
-	mockedFs := filesystem.GetService().(*mockFs.MockedFileSystem)
-	mockedFs.Reset()
-
 	t.Run("nonexistent file", func(t *testing.T) {
-		mockedFs.ResetFunc(mockFs.ReadFileFn)
-		mockedFs.SetNextResult(mockFs.ReadFileFn, []any{nil, os.ErrNotExist})
-		err := loadDevices("/does/not/exist", &[]*DeviceConfig{})
+		fakeFs := filesystemfakes.FakeFileSystemService{}
+		fakeFs.ReadFileReturns(nil, os.ErrNotExist)
+		err := loadDevices("/does/not/exist", &[]*DeviceConfig{}, &fakeFs)
 		assert.ErrorIs(t, err, os.ErrNotExist)
 	})
 
 	t.Run("Invalid YAML", func(t *testing.T) {
-		mockedFs.ResetFunc(mockFs.ReadFileFn)
-		mockedFs.SetNextResult(mockFs.ReadFileFn, []any{[]byte("invalid yaml"), nil})
+		fakeFs := filesystemfakes.FakeFileSystemService{}
+		fakeFs.ReadFileReturns([]byte("invalid yaml"), nil)
 		var devices []*DeviceConfig
-		err := loadDevices("/does/not/exist", &devices)
+		err := loadDevices("/does/not/exist", &devices, &fakeFs)
 		assert.ErrorIs(t, err, errors.ErrWithCtx(errParseDevices, "/does/not/exist"))
 	})
 
@@ -194,9 +188,10 @@ func TestLoadDevices(t *testing.T) {
 - name: dev2
   address: 5.6.7.8
 `)
-		mockedFs.SetNextResult(mockFs.ReadFileFn, []any{deviceYAML, nil})
+		fakeFs := filesystemfakes.FakeFileSystemService{}
+		fakeFs.ReadFileReturns(deviceYAML, nil)
 		devices := []*DeviceConfig{}
-		err := loadDevices("explicit-values.yaml", &devices)
+		err := loadDevices("explicit-values.yaml", &devices, &fakeFs)
 		assert.NoError(t, err)
 
 		if len(devices) != 2 {
@@ -231,9 +226,10 @@ func TestLoadDevices(t *testing.T) {
   address: $dev2_address
   port: 80
 `)
-		mockedFs.SetNextResult(mockFs.ReadFileFn, []any{deviceYAML, nil})
+		fakeFs := filesystemfakes.FakeFileSystemService{}
+		fakeFs.ReadFileReturns(deviceYAML, nil)
 		devices := []*DeviceConfig{}
-		err := loadDevices("env-values.yaml", &devices)
+		err := loadDevices("env-values.yaml", &devices, &fakeFs)
 		assert.NoError(t, err)
 
 		if len(devices) != 2 {

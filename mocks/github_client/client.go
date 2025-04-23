@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/ammesonb/ubiquiti-config-generator/mocks"
-	"github.com/charmbracelet/log"
+	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
 	"github.com/google/go-github/v70/github"
 )
 
@@ -17,9 +17,6 @@ const (
 	ListInstallationsFn  mocks.FunctionName = "ListInstallations"
 	CheckAuthorizationFn mocks.FunctionName = "CheckAuthorization"
 )
-
-func (m *MockClient) StopService(logger *log.Logger) {
-}
 
 // ListInstallations mocks the GitHub Apps.ListInstallations method
 func (m *MockClient) ListInstallations(ctx context.Context) ([]*github.Installation, *github.Response, error) {
@@ -37,7 +34,7 @@ func (m *MockClient) ListInstallations(ctx context.Context) ([]*github.Installat
 }
 
 // CheckAuthorization mocks the GitHub Apps.CheckAuthorization method
-func (m *MockClient) CheckAuthorization(ctx context.Context) error {
+func (m *MockClient) CheckAuthorization(ctx context.Context, _ filesystem.Service) error {
 	values, err := m.GetResult(CheckAuthorizationFn, ctx)
 	if err != nil {
 		return err

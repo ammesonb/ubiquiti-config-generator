@@ -16,7 +16,7 @@ var (
 
 type MockGitHubService struct {
 	mocks.ServiceMock
-	github.GitHubService
+	github.Service
 }
 
 func (m *MockGitHubService) StopService(_ *log.Logger) {}

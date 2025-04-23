@@ -3,40 +3,46 @@ package filesystem
 import (
 	"os"
 
-	"github.com/ammesonb/ubiquiti-config-generator/services"
 	"github.com/charmbracelet/log"
 )
 
-// FileSystemService provides various ways to access the file system
-type FileSystemService interface {
+//go:generate go tool counterfeiter -generate
+
+// Service provides various ways to access the file system
+//
+//counterfeiter:generate . Service
+type Service interface {
 	Stat(filename string) (os.FileInfo, error)
 	ReadFile(filename string) ([]byte, error)
 	ReadDir(dir string) ([]os.DirEntry, error)
 	Open(filename string) (*os.File, error)
-	services.ServiceImplementation
 }
 
-// DefaultFileSystemService provides default implementations for FileSystemService
-type DefaultFileSystemService struct{}
+// OSService provides a default implementations for FileSystemService using the os library
+type OSService struct{}
 
 // Stat calls os.Stat
-func (s *DefaultFileSystemService) Stat(filename string) (os.FileInfo, error) {
+func (s *OSService) Stat(filename string) (os.FileInfo, error) {
 	return os.Stat(filename)
 }
 
 // ReadFile calls os.ReadFile
-func (s *DefaultFileSystemService) ReadFile(filename string) ([]byte, error) {
+func (s *OSService) ReadFile(filename string) ([]byte, error) {
 	return os.ReadFile(filename)
 }
 
 // ReadDir calls os.ReadDir
-func (s *DefaultFileSystemService) ReadDir(dir string) ([]os.DirEntry, error) {
+func (s *OSService) ReadDir(dir string) ([]os.DirEntry, error) {
 	return os.ReadDir(dir)
 }
 
 // Open calls os.Open
-func (s *DefaultFileSystemService) Open(filename string) (*os.File, error) {
+func (s *OSService) Open(filename string) (*os.File, error) {
 	return os.Open(filename)
 }
 
-func (s *DefaultFileSystemService) StopService(_ *log.Logger) {}
+func (s *OSService) StopService(_ *log.Logger) {}
+
+func New() (Service, error) {
+	return &OSService{}, nil
+}

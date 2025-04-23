@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/ammesonb/ubiquiti-config-generator/internal"
+	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
 
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 	"github.com/ammesonb/ubiquiti-config-generator/web"
@@ -72,13 +73,20 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGABRT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGKILL)
 	defer stop()
 
-	log.Info("Registering services")
+	log.Info("Bootstrapping application...")
 	var serviceGroup sync.WaitGroup
-	errs := internal.RegisterServices(log, ctx, &serviceGroup)
-	if len(errs) > 0 {
-		log.Fatal(errs)
+
+	fsService, err := filesystem.New()
+	if err != nil {
+		log.Fatalf("Failed to create filesystem service: %v", err)
 	}
-	if errs := internal.CheckAuthorizations(log, ctx); len(errs) > 0 {
+
+	config, err := internal.LoadConfiguration(log, ctx, fsService)
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	if errs := internal.CheckAuthorizations(log, ctx, config, fsService, githubService); len(errs) > 0 {
 		log.Fatal(errs)
 	}
 

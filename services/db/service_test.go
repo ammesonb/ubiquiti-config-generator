@@ -5,17 +5,11 @@ import (
 	"time"
 
 	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
-	mockConf "github.com/ammesonb/ubiquiti-config-generator/mocks/configuration"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMigrate(t *testing.T) {
-	assert.NoError(t, mockConf.MockConfiguration(t, mockConfig))
-
 	t.Run("count fails before migration", func(t *testing.T) {
-		assert.NoError(t, mockConf.MockConfiguration(t, mockConfig))
-		n, err := dbRegistration{}.New()
-		assert.NoError(t, err)
 		dbService := n.(DatabaseService)
 		tables, err := dbService.GetDB().Debug().Migrator().GetTables()
 		assert.NoError(t, err)
@@ -39,9 +33,6 @@ func TestMigrate(t *testing.T) {
 }
 
 func TestExists(t *testing.T) {
-	assert.NoError(t, mockConf.MockConfiguration(t, mockConfig))
-	assert.NoError(t, RegisterService(t.Context()))
-
 	dbService := GetService()
 
 	// Create simple data entry
@@ -66,8 +57,6 @@ func TestExists(t *testing.T) {
 }
 
 func TestStopService(t *testing.T) {
-	assert.NoError(t, mockConf.MockConfiguration(t, mockConfig))
-	assert.NoError(t, RegisterService(t.Context()))
 	dbService := GetService()
 	assert.IsType(t,
 		&DefaultDatabaseService{}, dbService)

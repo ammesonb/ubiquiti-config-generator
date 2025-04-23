@@ -43,10 +43,9 @@ var (
 )
 
 // ParseNodeDef takes a template path and converts it into a list of nodes for analysis/validation
-func ParseNodeDef(templatesPath string) (*Node, error) {
+func ParseNodeDef(templatesPath string, fsService filesystem.Service) (*Node, error) {
 	// ReadDir returns relative paths, so /etc will return hosts, passwd, shadow, etc
 	// Not including the parent `/etc/` prefix
-	fsService := filesystem.GetService()
 	entries, err := fsService.ReadDir(templatesPath)
 	logger := console_logger.DefaultLogger()
 	if err != nil {
@@ -68,7 +67,6 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 	for _, entry := range entries {
 		if entry.Name() == "node.def" && !entry.IsDir() {
 			// Parse node definition files only
-			fsService := filesystem.GetService()
 			fullFilePath := filepath.Join(templatesPath, entry.Name())
 			reader, err := fsService.Open(fullFilePath)
 			if err != nil {
@@ -89,7 +87,7 @@ func ParseNodeDef(templatesPath string) (*Node, error) {
 		}
 
 		// For other directories, continuing recursing
-		childNode, err := ParseNodeDef(filepath.Join(templatesPath, entry.Name()))
+		childNode, err := ParseNodeDef(filepath.Join(templatesPath, entry.Name()), fsService)
 		if err != nil {
 			return nil, err
 		}

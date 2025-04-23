@@ -16,9 +16,8 @@ var (
 	errFailedStat      = "failed to stat file %s"
 )
 
-func isNodeDef(templatesPath string) (bool, error) {
+func isNodeDef(templatesPath string, fsService filesystem.Service) (bool, error) {
 	// Uses arbitrary firewall node.def file to determine if running using nodes or XML
-	fsService := filesystem.GetService()
 	firewallPath := filepath.Join(templatesPath, "firewall", "node.def")
 	info, err := fsService.Stat(firewallPath)
 	if err != nil {
@@ -33,13 +32,13 @@ func isNodeDef(templatesPath string) (bool, error) {
 }
 
 // Parse converts the provided templates path into an analyzable list of nodes
-func Parse(templatesPath string) (*Node, error) {
-	isNode, err := isNodeDef(templatesPath)
+func Parse(templatesPath string, fsService filesystem.Service) (*Node, error) {
+	isNode, err := isNodeDef(templatesPath, fsService)
 	if err != nil {
 		return nil, err
 	} else if isNode {
 		console_logger.DefaultLogger().Info("Detected node templates definitions")
-		return ParseNodeDef(templatesPath)
+		return ParseNodeDef(templatesPath, fsService)
 	}
 
 	return nil, errors.ErrWithCtx(errUnsupportedType, templatesPath)

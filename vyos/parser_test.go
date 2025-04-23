@@ -1,48 +1,57 @@
 package vyos
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	mockFs "github.com/ammesonb/ubiquiti-config-generator/mocks/filesystem"
 	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
+	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem/filesystemfakes"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestParse(t *testing.T) {
-	assert.NoError(t, filesystem.RegisterService(t.Context()))
+	defaultFs := &filesystem.OSService{}
 
-	nodes, err := Parse("./test-files/node")
-	assert.NoError(t, err)
-	assert.NotNil(t, nodes, "Node definitions should parse successfully")
-	assert.NotNil(t, nodes.FindChild([]string{"firewall"}), "Firewall node parsed")
+	t.Run("sample nodes parse successfully", func(t *testing.T) {
+		nodes, err := Parse("./test-files/node", defaultFs)
+		assert.NoError(t, err)
+		assert.NotNil(t, nodes, "Node definitions should parse successfully")
+		assert.NotNil(t, nodes.FindChild([]string{"firewall"}), "Firewall node parsed")
 
-	nodes, err = Parse("./test-files/xml")
-	assert.Nil(t, nodes, "No XML nodes generated")
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, errors.ErrWithCtx(errUnsupportedType, "./test-files/xml"))
+		nodes, err = Parse("./test-files/xml", defaultFs)
+		assert.Nil(t, nodes, "No XML nodes generated")
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, errors.ErrWithCtx(errUnsupportedType, "./test-files/xml"))
+	})
 
-	nodes, err = Parse("./test-files/invalid-node-dir")
-	assert.Nil(t, nodes, "No nodes generated")
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, errors.ErrWithCtx(errUnsupportedType, "./test-files/invalid-node-dir"))
+	t.Run("directory does not exist", func(t *testing.T) {
+		fakeFs := filesystemfakes.FakeFileSystemService{}
+		fakeFs.StatReturns(nil, os.ErrNotExist)
 
-	assert.NoError(t, mockFs.MockFileSystem(t))
-	mockedFs := filesystem.GetService().(*mockFs.MockedFileSystem)
-	mockedFs.SetNextResult(mockFs.StatFn, []any{nil, errors.Err(errFailedStat)})
+		nodes, err := Parse("./test-files/invalid-node-dir", &fakeFs)
+		assert.Nil(t, nodes, "No nodes generated")
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, errors.ErrWithCtx(errUnsupportedType, "./test-files/invalid-node-dir"))
+	})
 
-	nodes, err = Parse("./test-files/node")
-	assert.Nil(t, nodes, "No nodes generated")
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, errors.ErrWithCtx(errFailedStat, filepath.Join("./test-files/node", "firewall", "node.def")))
+	t.Run("failed stat", func(t *testing.T) {
+		fakeFs := filesystemfakes.FakeFileSystemService{}
+		fakeFs.StatReturns(nil, errors.Err(errFailedStat))
+
+		nodes, err := Parse("./test-files/node", &fakeFs)
+		assert.Nil(t, nodes, "No nodes generated")
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, errors.ErrWithCtx(errFailedStat, filepath.Join("./test-files/node", "firewall", "node.def")))
+	})
 }
 
 func TestParseErrors(t *testing.T) {
-	assert.NoError(t, mockFs.MockFileSystem(t))
-	mockedFs := filesystem.GetService().(*mockFs.MockedFileSystem)
-	mockedFs.SetNextResult(mockFs.StatFn, []any{nil, errors.Err(errFailedStat)})
-	isNode, err := isNodeDef("/failure")
+	fakeFs := filesystemfakes.FakeFileSystemService{}
+	fakeFs.StatReturns(nil, errors.Err(errFailedStat))
+
+	isNode, err := isNodeDef("/failure", &fakeFs)
 	assert.False(t, isNode, "Not nodes if function errors")
 	assert.Error(t, err, "Error thrown on failure")
 	assert.ErrorIs(t, err, errors.ErrWithCtx(errFailedStat, filepath.Join("/failure", "firewall", "node.def")))

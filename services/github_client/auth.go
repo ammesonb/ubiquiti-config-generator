@@ -20,9 +20,7 @@ var (
 	errNoAppIDMatch         = "no installation with matching application ID found"
 )
 
-func makeJWT(gitConfig configuration.GitConfig) (string, error) {
-	fsService := filesystem.GetService()
-
+func makeJWT(gitConfig configuration.GitConfig, fsService filesystem.Service) (string, error) {
 	keyfile, err := fsService.ReadFile(gitConfig.PrivateKeyPath)
 	if err != nil {
 		return "", errors.ErrWithParent(errReadKeyfile, err)

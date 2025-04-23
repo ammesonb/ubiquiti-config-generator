@@ -1,10 +1,22 @@
-package filesystem
+package filesystemfakes
 
 import (
 	"os"
 	"path"
 	"time"
 )
+
+// ReadDirReturnType is the return type for ReadDir, containing the directory entries and an error
+type ReadDirReturnType struct {
+	Dir []os.DirEntry
+	Err error
+}
+
+func MockReadDir(fs *FakeFileSystemService, values []ReadDirReturnType) {
+	for idx, value := range values {
+		fs.ReadDirReturnsOnCall(idx, value.Dir, value.Err)
+	}
+}
 
 type statFunc func(filename string) (os.FileInfo, error)
 

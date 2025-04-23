@@ -3,22 +3,20 @@ package db
 import (
 	"fmt"
 
-	"github.com/ammesonb/ubiquiti-config-generator/services"
 	"github.com/charmbracelet/log"
 	"gorm.io/gorm"
 )
 
-// DatabaseService specifies required methods for database interactions
-type DatabaseService interface {
+// Service specifies required methods for database interactions
+type Service interface {
 	GetDB() *gorm.DB
 	Migrate() error
 	Exists(model any, idCol string, idVal any) (bool, error)
-	services.ServiceImplementation
+	CloseDB(logger *log.Logger)
 }
 
 // DefaultDatabaseService provides default implementations for DatabaseService
 type DefaultDatabaseService struct {
-	services.ServiceImplementation
 	Database *gorm.DB
 }
 
@@ -46,7 +44,7 @@ func (s *DefaultDatabaseService) Exists(model any, idCol string, idVal any) (boo
 	return exists, err
 }
 
-func (s *DefaultDatabaseService) StopService(logger *log.Logger) {
+func (s *DefaultDatabaseService) CloseDB(logger *log.Logger) {
 	sqlDB, err := s.Database.DB()
 	if err != nil {
 		logger.Errorf("Failed getting database connection on shutdown: %v", err)

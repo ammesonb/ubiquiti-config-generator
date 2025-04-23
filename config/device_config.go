@@ -15,14 +15,13 @@ var errReadDir = "failed to read directory %s"
 // TODO: this should go somewhere else
 
 // EnumerateConfigFiles will return a full list of all configuration files in a given path that the device requires
-func EnumerateConfigFiles(device *configuration.DeviceConfig, pathRoot string) ([]string, []error) {
-	fs := filesystem.GetService()
+func EnumerateConfigFiles(device *configuration.DeviceConfig, pathRoot string, fsService filesystem.Service) ([]string, []error) {
 	files := make([]string, 0)
 	errs := make([]error, 0)
 
 	// Start with getting all entries in this path
 	// Since directories can be specified in configuration too, need to consider all of them
-	entries, err := fs.ReadDir(pathRoot)
+	entries, err := fsService.ReadDir(pathRoot)
 	if err != nil {
 		errs = append(errs, errors.ErrWithCtxParent(errReadDir, pathRoot, err))
 		return nil, errs
@@ -40,7 +39,7 @@ func EnumerateConfigFiles(device *configuration.DeviceConfig, pathRoot string) (
 
 		if entry.IsDir() {
 			// For directory, recurse and get any nested files
-			children, childErrs := EnumerateConfigFiles(device, fullPath)
+			children, childErrs := EnumerateConfigFiles(device, fullPath, fsService)
 			files = append(files, children...)
 			errs = append(errs, childErrs...)
 		} else {

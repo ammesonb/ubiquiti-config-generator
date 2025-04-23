@@ -135,6 +135,8 @@ dmypy.json
 ubiquiti_config_generator/messages/messages.db
 
 ubiquiti-config-generator
+ubiquiti-config-generator.exe
+
 config.json
 
 templates/**

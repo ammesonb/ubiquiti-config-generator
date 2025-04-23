@@ -1,4 +1,4 @@
-package filesystem
+package filesystemfakes
 
 import (
 	"os"

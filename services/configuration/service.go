@@ -6,45 +6,39 @@ import (
 	"strings"
 
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/services"
 	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
-	"github.com/charmbracelet/log"
 	yaml "gopkg.in/yaml.v3"
 )
 
-type ConfigurationService interface {
-	Load(filepath string) error
+type Service interface {
+	Load(filepath string, fsService filesystem.Service) error
 	GetGitConfig() GitConfig
 	GetLoggingConfig() LoggingConfig
 	GetDevices() []*DeviceConfig
-	services.ServiceImplementation
 }
 
-// DefaultConfigurationService implements ConfigurationService
-type DefaultConfigurationService struct {
+// YAMLService provides configuration provided from YAML definitions
+type YAMLService struct {
 	config *Config
 }
 
 // GetGitConfig retrieves the git-specific configuration
-func (s *DefaultConfigurationService) GetGitConfig() GitConfig {
+func (s *YAMLService) GetGitConfig() GitConfig {
 	return s.config.Git
 }
 
 // GetLoggingConfig retrieves the logging-specific configuration
-func (s *DefaultConfigurationService) GetLoggingConfig() LoggingConfig {
+func (s *YAMLService) GetLoggingConfig() LoggingConfig {
 	return s.config.Logging
 }
 
 // GetDevices returns a list of all configured devices
-func (s *DefaultConfigurationService) GetDevices() []*DeviceConfig {
+func (s *YAMLService) GetDevices() []*DeviceConfig {
 	return s.config.Devices
 }
 
-func (s *DefaultConfigurationService) StopService(logger *log.Logger) {}
-
 // Load populates this configuration service with data from the provided file
-func (s *DefaultConfigurationService) Load(filepath string) error {
-	fsService := filesystem.GetService()
+func (s *YAMLService) Load(filepath string, fsService filesystem.Service) error {
 	configBytes, err := fsService.ReadFile(filepath)
 	if err != nil {
 		return errors.ErrWithParent(errReadMainConfig, err)
@@ -56,15 +50,15 @@ func (s *DefaultConfigurationService) Load(filepath string) error {
 	}
 
 	getConfigValuesFromEnv(s.config)
-	return loadDevices(s.config.DevicesFile, &s.config.Devices)
+	return loadDevices(s.config.DevicesFile, &s.config.Devices, fsService)
 }
 
-func loadDevices(devicesFile string, devices *[]*DeviceConfig) error {
+func loadDevices(devicesFile string, devices *[]*DeviceConfig, fsService filesystem.Service) error {
 	if devicesFile == "" {
 		return nil
 	}
 
-	devicesBytes, err := filesystem.GetService().ReadFile(devicesFile)
+	devicesBytes, err := fsService.ReadFile(devicesFile)
 	if err != nil {
 		return errors.ErrWithParent(errReadDevices, err)
 	}
@@ -110,8 +104,12 @@ func updateConfigFromEnv(config interface{}) {
 	// If a struct, check every field recursively
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
-		// NOTE: should this support other types? e.g. ports as ints
-		//       unsure how to get the $<ENV> name, since unmarshalling would fail
+		// NOTE:
+		// should this support other types? e.g. ports as ints
+		// tricky due to typing conflicts - config value would be string (${ENV_NAME}) but then
+		// actual value would have to be another type, which means either allowing `any` value for config,
+		// overriding the struct type either for initial environment name detection as string (vs int for port value, e.g.)
+		// or typing for the target env value, which would result in the string ENV_NAME breaking unmarshal
 		if field.Kind() == reflect.String {
 			if shouldGetValueFromEnv(field.String()) {
 				field.SetString(os.Getenv(stripEnvMarker(field.String())))
@@ -121,6 +119,6 @@ func updateConfigFromEnv(config interface{}) {
 }
 
 // MakeDefaultConfigurationService creates a new default configuration service from the provided config
-func MakeDefaultConfigurationService(config *Config) *DefaultConfigurationService {
-	return &DefaultConfigurationService{config: config}
+func MakeDefaultConfigurationService(config *Config) *YAMLService {
+	return &YAMLService{config: config}
 }

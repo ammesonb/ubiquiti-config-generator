@@ -6,9 +6,8 @@ import (
 	"time"
 
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
-	"github.com/ammesonb/ubiquiti-config-generator/services"
 	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
-	"github.com/charmbracelet/log"
+	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
 	"github.com/google/go-github/v70/github"
 	gh "github.com/google/go-github/v70/github"
 )
@@ -16,8 +15,7 @@ import (
 type APIClient interface {
 	WithAuthToken(token string)
 	ListInstallations(ctx context.Context) ([]*gh.Installation, *gh.Response, error)
-	CheckAuthorization(ctx context.Context) error
-	services.ServiceImplementation
+	CheckAuthorization(ctx context.Context, configService configuration.Service, fsService filesystem.Service) error
 }
 
 type DefaultGitHubAPIClient struct {
@@ -25,27 +23,20 @@ type DefaultGitHubAPIClient struct {
 	accessToken *gh.InstallationToken
 }
 
-func (d *DefaultGitHubAPIClient) StopService(logger *log.Logger) {
-	// clear properties to remove sensitive information
-	d.accessToken = nil
-	d.client = nil
-}
-
 func (d *DefaultGitHubAPIClient) WithAuthToken(token string) {
 	d.client = d.client.WithAuthToken(token)
 }
 
-func (d *DefaultGitHubAPIClient) CheckAuthorization(ctx context.Context) error {
+func (d *DefaultGitHubAPIClient) CheckAuthorization(ctx context.Context, configService configuration.Service, fsService filesystem.Service) error {
 	if d.accessToken == nil || d.accessToken.ExpiresAt.Before(time.Now()) {
-		return d.authorize(ctx)
+		return d.authorize(ctx, configService, fsService)
 	}
-
 	return nil
 }
 
-func (d *DefaultGitHubAPIClient) authorize(ctx context.Context) error {
-	gitConfig := configuration.GetService().GetGitConfig()
-	jwt, err := makeJWT(gitConfig)
+func (d *DefaultGitHubAPIClient) authorize(ctx context.Context, configService configuration.Service, fsService filesystem.Service) error {
+	gitConfig := configService.GetGitConfig()
+	jwt, err := makeJWT(gitConfig, fsService)
 	if err != nil {
 		return err
 	}

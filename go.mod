@@ -9,6 +9,7 @@ require (
 	github.com/google/go-github/v70 v70.0.0
 	github.com/gorilla/context v1.1.2
 	github.com/gorilla/mux v1.8.1
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.2
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/sqlite v1.5.7
@@ -52,8 +53,13 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/crypto v0.37.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
+	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/sync v0.13.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
+	golang.org/x/tools v0.31.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )
+
+tool github.com/maxbrunsfeld/counterfeiter/v6
