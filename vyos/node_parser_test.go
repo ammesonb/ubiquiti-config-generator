@@ -1160,7 +1160,7 @@ syntax:expression: exec "if ! /usr/sbin/ubnt-fw validate-protocol '$VAR(@)' ;
 }
 
 func TestParseNodeDef(t *testing.T) {
-	assert.NoError(t, filesystem.RegisterService())
+	assert.NoError(t, filesystem.RegisterService(t.Context()))
 	node, err := ParseNodeDef("/nonexistent")
 	assert.Nil(t, node)
 	assert.Error(t, err)

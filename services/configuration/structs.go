@@ -21,6 +21,7 @@ type GitConfig struct {
 	WebhookURL     string `yaml:"webhook-url"`
 	ListenIP       string `yaml:"listen-ip"`
 	WebhookPort    string `yaml:"webhook-port"`
+	WebhookRoute   string `yaml:"webhook-route"`
 	WebhookSecret  string `yaml:"webhook-secret"`
 }
 

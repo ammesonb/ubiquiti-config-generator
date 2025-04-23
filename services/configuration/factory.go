@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"context"
 	"os"
 	"path"
 
@@ -30,7 +31,7 @@ func (configRegistration) New() (services.ServiceImplementation, error) {
 }
 
 // RegisterService registers the configuration service
-func RegisterService() error {
+func RegisterService(_ context.Context) error {
 	services.RegisterService(services.ConfigurationServiceIndex, configRegistration{})
 	// Attempt get, so we know upfront if the service can load successfully
 	_, err := services.GetService(services.ConfigurationServiceIndex)

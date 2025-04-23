@@ -11,7 +11,7 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	assert.NoError(t, filesystem.RegisterService())
+	assert.NoError(t, filesystem.RegisterService(t.Context()))
 
 	nodes, err := Parse("./test-files/node")
 	assert.NoError(t, err)

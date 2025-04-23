@@ -14,7 +14,9 @@ devices:
     password: $UBQ_PASS
     keyfile: $UBQ_KEYFILE
 
+    # Directory containing vyos templates, so we can validate configurations against them
     templatesDir: "./templates"
+    # One or more config files (will be merged, later configurations takes precedence)
     configFiles:
       - "config.boot"
 
@@ -44,13 +46,15 @@ git:
   app-id: 95943
   # The main GitHub branch
   primary-branch: main
-
+  # The path to the private key for the GitHub app
   private-key-path: ./ubiquiti-config.pem
   # The address for the webserver to listen on
   listen-ip: 0.0.0.0
   # The external URL of the webhook, should match the GitHub app configuration
   webhook-url: https://git.bammeson.com
-  # The port to listen on for GitHub webhook stuff
+  # The local HTTP server route webhooks will be sent to
+  webhook-route: /
+  # The port to listen on for GitHub webhook calls
   webhook-port: 54321
-  # The secret to use with GitHub webhooks
+  # The secret to validate GitHub webhook payloads
   webhook-secret: $UBQ_GITHUB_WEBHOOK_SECRET

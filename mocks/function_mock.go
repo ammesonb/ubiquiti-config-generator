@@ -41,7 +41,6 @@ func (m *ServiceMock) ResetFunc(name FunctionName) {
 func (m *ServiceMock) Reset() {
 	if !m.initialized {
 		m.initialized = true
-		m.Reset()
 	}
 
 	m.returnValues = make(map[FunctionName][][]any)

@@ -7,7 +7,7 @@ import (
 )
 
 func TestGetService(t *testing.T) {
-	assert.NoError(t, RegisterService())
+	assert.NoError(t, RegisterService(t.Context()))
 	fsOne := GetService()
 	fsTwo := GetService()
 
@@ -19,5 +19,5 @@ func TestGetService(t *testing.T) {
 }
 
 func TestRegisterService(t *testing.T) {
-	assert.NoError(t, RegisterService())
+	assert.NoError(t, RegisterService(t.Context()))
 }

@@ -17,6 +17,18 @@ lint:
 test:
 	docker-compose run test
 
+.PHONY: test-coverage
+test-coverage:
+	go test ./... -coverpkg=./... -coverprofile ./coverage.out
+	@echo ""
+	@echo "Fully covered:"
+	@go tool cover -func ./coverage.out | grep -e 100.0%
+	@echo ""
+	@echo "Partial cover:"
+	@go tool cover -func ./coverage.out | grep -ve 100.0%
+	@echo ""
+	rm ./coverage.out
+
 .PHONY: build
 build:
 	docker-compose run build

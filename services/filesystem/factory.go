@@ -1,6 +1,8 @@
 package filesystem
 
 import (
+	"context"
+
 	"github.com/ammesonb/ubiquiti-config-generator/services"
 )
 
@@ -18,7 +20,7 @@ func (filesystemRegistration) New() (services.ServiceImplementation, error) {
 }
 
 // RegisterService registers the filesystem service
-func RegisterService() error {
+func RegisterService(_ context.Context) error {
 	services.RegisterService(services.FilesystemServiceIndex, filesystemRegistration{})
 	// Attempt get, so we know upfront if the service can load successfully
 	_, err := services.GetService(services.FilesystemServiceIndex)

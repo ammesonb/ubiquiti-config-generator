@@ -10,7 +10,8 @@ import (
 
 var mockConfig = &configuration.Config{
 	Logging: configuration.LoggingConfig{
-		DBName: "file::memory:?cache=shared",
+		// For tests, do not share cached database
+		DBName: "file::memory:?cache=private&mode=memory",
 	},
 	Git:     configuration.GitConfig{},
 	Devices: []*configuration.DeviceConfig{},
@@ -31,7 +32,7 @@ func TestRegistration(t *testing.T) {
 
 func TestRegisterService(t *testing.T) {
 	assert.NoError(t, mockConf.MockConfiguration(t, mockConfig))
-	assert.NoError(t, RegisterService())
+	assert.NoError(t, RegisterService(t.Context()))
 	dbService := GetService()
 	assert.IsType(t,
 		&DefaultDatabaseService{}, dbService)

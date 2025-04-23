@@ -82,15 +82,15 @@ func StartWebhookServer(logger *log.Logger, ctx context.Context) {
 		},
 	)
 
+	gitConfig := configuration.GetService().GetGitConfig()
 	gitRouter.
-		Path("/").
+		Path(gitConfig.WebhookRoute).
 		HeadersRegexp("X-Hub-Signature-256", "^sha256=[a-fA-F0-9]{32}$").
 		Headers("X-GitHub-Event", "check_suite").
 		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ProcessGitCheckSuite(w, r, &http.Client{}, rcontext.Get(r, GIT_ACCESS_TOKEN_CONTEXT).(string))
 		})
 
-	gitConfig := configuration.GetService().GetGitConfig()
 	srv := &http.Server{
 		Handler: r,
 		Addr:    fmt.Sprintf("%s:%s", gitConfig.ListenIP, gitConfig.WebhookPort),

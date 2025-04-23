@@ -25,6 +25,8 @@ const (
 	ConfigurationServiceIndex ServiceIndex = "configuration"
 	FilesystemServiceIndex    ServiceIndex = "filesystem"
 	DatabaseServiceIndex      ServiceIndex = "database"
+	GitHubServiceIndex        ServiceIndex = "github"
+	GitHubClientServiceIndex  ServiceIndex = "github_client"
 )
 
 // serviceRegistrations is a map containing all registered services
@@ -68,15 +70,4 @@ func createService(index ServiceIndex) (ServiceImplementation, error) {
 	}
 
 	return service, err
-}
-
-// GetRegisteredServices returns a list of all services that are currently registered
-func GetRegisteredServices() []ServiceIndex {
-	var services []ServiceIndex
-
-	for index := range serviceRegistrations {
-		services = append(services, index)
-	}
-
-	return services
 }

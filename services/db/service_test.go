@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 	mockConf "github.com/ammesonb/ubiquiti-config-generator/mocks/configuration"
 	"github.com/stretchr/testify/assert"
 )
@@ -12,9 +13,13 @@ func TestMigrate(t *testing.T) {
 	assert.NoError(t, mockConf.MockConfiguration(t, mockConfig))
 
 	t.Run("count fails before migration", func(t *testing.T) {
+		assert.NoError(t, mockConf.MockConfiguration(t, mockConfig))
 		n, err := dbRegistration{}.New()
-		dbService := n.(DatabaseService)
 		assert.NoError(t, err)
+		dbService := n.(DatabaseService)
+		tables, err := dbService.GetDB().Debug().Migrator().GetTables()
+		assert.NoError(t, err)
+		assert.Empty(t, tables)
 		checkRows := int64(0)
 		err = dbService.GetDB().Model(&CommitCheck{}).Count(&checkRows).Error
 		assert.Error(t, err)
@@ -22,21 +27,20 @@ func TestMigrate(t *testing.T) {
 	})
 
 	t.Run("count succeeds after migration", func(t *testing.T) {
-		assert.NoError(t, RegisterService())
+		assert.NoError(t, RegisterService(t.Context()))
 		dbService := GetService()
 		assert.IsType(t,
 			&DefaultDatabaseService{}, dbService)
 
-		// Only way to check migrate worked is by seeing if a count on a model worked
-		checkRows := int64(0)
-		assert.NoError(t, dbService.GetDB().Model(&CommitCheck{}).Count(&checkRows).Error)
-		assert.Zero(t, checkRows, "No rows inserted yet")
+		tables, err := dbService.GetDB().Migrator().GetTables()
+		assert.NoError(t, err)
+		assert.NotEmpty(t, tables)
 	})
 }
 
 func TestExists(t *testing.T) {
 	assert.NoError(t, mockConf.MockConfiguration(t, mockConfig))
-	assert.NoError(t, RegisterService())
+	assert.NoError(t, RegisterService(t.Context()))
 
 	dbService := GetService()
 
@@ -59,4 +63,19 @@ func TestExists(t *testing.T) {
 	exists, err = dbService.Exists(CommitCheck{}, "BadColumn", "abcd")
 	assert.Error(t, err)
 	assert.False(t, exists, "Check does not exist for bad ID column")
+}
+
+func TestStopService(t *testing.T) {
+	assert.NoError(t, mockConf.MockConfiguration(t, mockConfig))
+	assert.NoError(t, RegisterService(t.Context()))
+	dbService := GetService()
+	assert.IsType(t,
+		&DefaultDatabaseService{}, dbService)
+
+	dbService.StopService(console_logger.DefaultLogger())
+	// Only way to check migrate worked is by seeing if a count on a model worked
+	checkRows := int64(0)
+	// should error if service is stopped
+	// error is private to sql package so cannot check type
+	assert.Error(t, dbService.GetDB().Model(&CommitCheck{}).Count(&checkRows).Error)
 }

@@ -3,11 +3,12 @@ package filesystem
 import (
 	"testing"
 
+	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLiveFileSystemService(t *testing.T) {
-	assert.NoError(t, RegisterService())
+	assert.NoError(t, RegisterService(t.Context()))
 	fs := GetService()
 
 	t.Run("stat", func(t *testing.T) {
@@ -46,4 +47,12 @@ func TestLiveFileSystemService(t *testing.T) {
 		assert.NotNil(t, file)
 	})
 
+}
+
+func TestStopService(t *testing.T) {
+	assert.NoError(t, RegisterService(t.Context()))
+	fsService := GetService()
+	assert.IsType(t, &DefaultFileSystemService{}, fsService)
+	// Just ensure it doesn't crash
+	fsService.StopService(console_logger.DefaultLogger())
 }

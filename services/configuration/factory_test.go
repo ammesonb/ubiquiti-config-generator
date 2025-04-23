@@ -27,7 +27,7 @@ func TestRegisterService(t *testing.T) {
 	mockedFs := filesystem.GetService().(*mockFs.MockedFileSystem)
 	mockedFs.Reset()
 	mockedFs.SetNextResult(mockFs.ReadFileFn, []any{[]byte(""), nil})
-	assert.NoError(t, RegisterService())
+	assert.NoError(t, RegisterService(t.Context()))
 
 	svc := GetService()
 	svcTwo := GetService()

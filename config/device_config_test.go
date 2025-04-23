@@ -14,12 +14,13 @@ import (
 func TestEnumerateConfigFiles(t *testing.T) {
 	assert.NoError(t, mockFs.MockFileSystem(t))
 	mockedFs := filesystem.GetService().(*mockFs.MockedFileSystem)
+	mockedFs.Reset()
 	config := &configuration.DeviceConfig{ConfigFiles: []string{"/config/", "/boot/conf", "/etc/network", "/opt/config/"}}
 
 	t.Run("nonexistent directory", func(t *testing.T) {
 		mockedFs.SetNextResult(mockFs.ReadDirFn, []any{nil, os.ErrNotExist})
 		files, errs := EnumerateConfigFiles(config, "/")
-		assert.Empty(t, files, "No files if read dir fails")
+		assert.Nil(t, files, "No files if read dir fails")
 		assert.Len(t, errs, 1, "Does not continue after read fail")
 		assert.ErrorIs(t, errs[0], errors.ErrWithCtx(errReadDir, "/"))
 	})

@@ -61,6 +61,9 @@ TODO:
 * Upload a diff of existing config vs generated config to branch for viewing
 
 * GitHub deployments
+* Secrets should be pulled from existing config, not committed in YAML files
+*  - Need per-device secret indicator for configuration path/node so we know to retrieve it prior to deploy
+*  - Or maybe injected via environment variables?
 * Perform load commands
 */
 func main() {
@@ -73,6 +76,9 @@ func main() {
 	var serviceGroup sync.WaitGroup
 	errs := internal.RegisterServices(log, ctx, &serviceGroup)
 	if len(errs) > 0 {
+		log.Fatal(errs)
+	}
+	if errs := internal.CheckAuthorizations(log, ctx); len(errs) > 0 {
 		log.Fatal(errs)
 	}
 

@@ -51,7 +51,7 @@ func TestUpdateConfigFromEnv(t *testing.T) {
 			},
 			Git: GitConfig{
 				PrivateKeyPath: "/keyfile",
-				WebhookURL:     "localhost",
+				WebhookRoute:   "localhost",
 				ListenIP:       "localhost",
 				WebhookSecret:  "secret",
 			},
@@ -65,7 +65,7 @@ func TestUpdateConfigFromEnv(t *testing.T) {
 		tracker.Expect("Logging.User", "log_user", config.Logging.User)
 		tracker.Expect("Logging.Password", "password", config.Logging.Password)
 		tracker.Expect("Git.PrivateKeyPath", "/keyfile", config.Git.PrivateKeyPath)
-		tracker.Expect("Git.WebhookURL", "localhost", config.Git.WebhookURL)
+		tracker.Expect("Git.WebhookURL", "localhost", config.Git.WebhookRoute)
 		tracker.Expect("Git.ListenIP", "localhost", config.Git.ListenIP)
 		tracker.Expect("Git.WebhookSecret", "secret", config.Git.WebhookSecret)
 	})
@@ -79,7 +79,7 @@ func TestUpdateConfigFromEnv(t *testing.T) {
 			},
 			Git: GitConfig{
 				PrivateKeyPath: "$git_key",
-				WebhookURL:     "$webhook",
+				WebhookRoute:   "$webhook",
 				ListenIP:       "$listen_ip",
 				WebhookSecret:  "$webhook_secret",
 			},
@@ -92,7 +92,7 @@ func TestUpdateConfigFromEnv(t *testing.T) {
 		tracker.Expect("Logging.User", "your_user", config.Logging.User)
 		tracker.Expect("Logging.Password", "log_pass", config.Logging.Password)
 		tracker.Expect("Git.PrivateKeyPath", "/etc/git_kf", config.Git.PrivateKeyPath)
-		tracker.Expect("Git.WebhookURL", "http://example.com", config.Git.WebhookURL)
+		tracker.Expect("Git.WebhookURL", "http://example.com", config.Git.WebhookRoute)
 		tracker.Expect("Git.ListenIP", "0.0.0.0:8080", config.Git.ListenIP)
 		tracker.Expect("Git.WebhookSecret", "abcdef", config.Git.WebhookSecret)
 	})

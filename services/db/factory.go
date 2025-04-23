@@ -1,6 +1,8 @@
 package db
 
 import (
+	"context"
+
 	"github.com/ammesonb/ubiquiti-config-generator/services"
 	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
 	"gorm.io/driver/sqlite"
@@ -23,7 +25,7 @@ func (m dbRegistration) New() (services.ServiceImplementation, error) {
 }
 
 // RegisterService registers the database service
-func RegisterService() error {
+func RegisterService(_ context.Context) error {
 	services.RegisterService(services.DatabaseServiceIndex, dbRegistration{})
 	// Attempt get, so we know upfront if the service can load successfully
 	dbService, err := services.GetService(services.DatabaseServiceIndex)
