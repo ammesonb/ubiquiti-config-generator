@@ -12,11 +12,5 @@ type WebClient interface {
 type MockClient struct{}
 
 func (c *MockClient) Do(_ *http.Request) (*http.Response, error) {
-	res, err := GetResult(HTTPClientDo)
-	if err != nil {
-		return nil, err
-	} else if _, ok := res.(error); ok {
-		return nil, res.(error)
-	}
-	return res.(*http.Response), nil
+	return nil, nil
 }

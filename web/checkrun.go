@@ -7,12 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/ammesonb/ubiquiti-config-generator/config"
-	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
 	"github.com/ammesonb/ubiquiti-config-generator/services/db"
+	"github.com/charmbracelet/log"
 )
 
 // ProcessGitCheckRun will handle a requested check run and validate the new configuration
@@ -20,35 +18,34 @@ func ProcessGitCheckRun(
 	w http.ResponseWriter,
 	r *http.Request,
 	client *http.Client,
-	logDB *gorm.DB,
 	cfg *configuration.Config,
 	devices map[string]*configuration.DeviceConfig,
 	accessToken string,
+	dbService db.Service,
+	logger *log.Logger,
 ) {
-	log := console_logger.DefaultLogger()
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		internalServerError(w, log, "Failed to read check run request body", err)
+		internalServerError(w, logger, "Failed to read check run request body", err)
 		return
 	}
 
-	if !validateGitWebhookBody(w, r, cfg.Git.WebhookSecret, log, "check run", body) {
+	if !validateGitWebhookBody(w, r, cfg.Git.WebhookSecret, logger, "check run", body) {
 		return
 	}
 
 	form := r.Form
 	if !form.Has("action") {
-		badRequest(w, log, "Check run did not specify action")
+		badRequest(w, logger, "Check run did not specify action")
 		return
 	}
 
-	if !validateAction(w, r, "check run", log, []string{"created", "requested", "rerequested"}) {
+	if !validateAction(w, r, "check run", logger, []string{"created", "requested", "rerequested"}) {
 		return
 	}
 
 	var checkrun checkRunRequest
 	if err = json.Unmarshal(body, &checkrun); err != nil {
-		fmt.Println(body)
 		log.Errorf("Failed to parse check run request: %v", err)
 		return
 	}
@@ -65,18 +62,18 @@ func ProcessGitCheckRun(
 			"started_at": time.Now().Format(time.RFC3339),
 		},
 	); err != nil {
-		logDB.Create(&db.CheckLog{
+		dbService.GetDB().Create(&db.CheckLog{
 			Revision:  revision,
 			Status:    db.StatusFailure,
 			Timestamp: time.Now(),
 			Message:   "Failed to set check run to in progress",
 		})
-		log.Error(err)
+		logger.Error(err)
 		return
 	}
 
 	// Start by cloning the repository
-	logDB.Create(&db.CheckLog{
+	dbService.GetDB().Create(&db.CheckLog{
 		Revision:  revision,
 		Status:    db.StatusInfo,
 		Timestamp: time.Now(),
@@ -92,15 +89,15 @@ func ProcessGitCheckRun(
 		checkrun.CheckRun.CheckSuite.HeadBranch,
 	)
 	if err != nil {
-		log.Error(err)
+		logger.Error(err)
 		return
 	}
 
-	log.Infof("Cloned repository in %s", repositoryDirectory)
+	logger.Infof("Cloned repository in %s", repositoryDirectory)
 
 	changes, err := getChangedFiles(repositoryDirectory, head)
 	if err != nil {
-		log.Error(err)
+		logger.Error(err)
 		return
 	}
 

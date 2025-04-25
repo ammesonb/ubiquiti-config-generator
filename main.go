@@ -7,9 +7,10 @@ import (
 	"syscall"
 
 	"github.com/ammesonb/ubiquiti-config-generator/internal"
+	"github.com/ammesonb/ubiquiti-config-generator/services/db"
 	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
 
-	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
+	"github.com/ammesonb/ubiquiti-config-generator/services/console_logger"
 	"github.com/ammesonb/ubiquiti-config-generator/web"
 )
 
@@ -22,6 +23,7 @@ import (
 *   - Validates the new configuration
 *   - Gets the live config for affected production routers and diffs it against the new one
 *   - Posts a PR comment with the validation results and diff
+*   - One comment per device
 * - On branch merge/push to the main branch:
 *   - Creates a new deployment
 *   - Loads the new configuration
@@ -42,6 +44,7 @@ TODO:
 * Web pages for checks and deployments
 
 * GitHub check run/validations
+* Create access token at start of request, and revoke it afterwards
 * When loading device config/diffs, set up NAT firewall counters
 * val_help from node_parser does not get surfaced anywhere
 * Validation for VyOS stuff
@@ -86,13 +89,17 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	if errs := internal.CheckAuthorizations(log, ctx, config, fsService, githubService); len(errs) > 0 {
-		log.Fatal(errs)
+	dbService, err := db.New(config)
+	if err != nil {
+		log.Fatalf("Failed to create database service: %v", err)
 	}
 
 	log.Debug("Services loaded")
 
-	web.StartWebhookServer(log, ctx)
+	server := web.NewWebServer(log, config, fsService, dbService)
+	if err = server.Start(ctx); err != nil {
+		log.Fatalf("Failed to start web server: %v", err)
+	}
 
 	<-ctx.Done()
 

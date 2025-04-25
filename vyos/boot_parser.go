@@ -10,7 +10,7 @@ import (
 
 	"github.com/charmbracelet/log"
 
-	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
+	"github.com/ammesonb/ubiquiti-config-generator/services/console_logger"
 )
 
 /*

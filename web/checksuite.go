@@ -9,7 +9,6 @@ import (
 	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
 	"github.com/charmbracelet/log"
 
-	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 	"github.com/ammesonb/ubiquiti-config-generator/services/db"
 )
 
@@ -18,21 +17,23 @@ func ProcessGitCheckSuite(
 	w http.ResponseWriter,
 	r *http.Request,
 	client *http.Client,
+	configService configuration.Service,
+	dbService db.Service,
+	logger *log.Logger,
 	accessToken string,
 ) {
-	log := console_logger.DefaultLogger()
-	gitCfg := configuration.GetService().GetGitConfig()
+	gitCfg := configService.GetGitConfig()
 	var body []byte
 	if _, err := r.Body.Read(body); err != nil {
-		internalServerError(w, log, "Failed to read check suite request body", err)
+		internalServerError(w, logger, "Failed to read check suite request body", err)
 		return
 	}
 
-	if !validateGitWebhookBody(w, r, gitCfg.WebhookSecret, log, "check suite", body) {
+	if !validateGitWebhookBody(w, r, gitCfg.WebhookSecret, logger, "check suite", body) {
 		return
 	}
 
-	if !validateAction(w, r, "check run", log, []string{"requested", "rerequested"}) {
+	if !validateAction(w, r, "check run", logger, []string{"requested", "rerequested"}) {
 		return
 	}
 
@@ -40,39 +41,37 @@ func ProcessGitCheckSuite(
 	action := form.Get("action")
 
 	if action == "completed" {
-		log.Info("Maybe should check deployment here - unsure why this is needed")
+		logger.Info("Maybe should check deployment here - unsure why this is needed")
 	}
 
 	var request checkSuiteRequest
 	if err := json.Unmarshal(body, &request); err != nil {
-		fmt.Println(body)
+		fmt.Println(string(body))
 		log.Fatalf("Failed to parse request: %v", err)
 		return
 	}
 
-	ensureDBCommitCheck(client, request, accessToken)
+	ensureDBCommitCheck(client, request, accessToken, dbService, logger)
 }
 
-func ensureDBCommitCheck(client *http.Client, request checkSuiteRequest, accessToken string) {
+func ensureDBCommitCheck(client *http.Client, request checkSuiteRequest, accessToken string, dbService db.Service, logger *log.Logger) {
 	check := &db.CommitCheck{
 		Revision:  request.CheckSuite.HeadSHA,
 		Status:    "pending",
 		StartedAt: time.Now(),
 	}
 
-	dbService := db.GetService()
-
 	exists, err := dbService.Exists(db.CommitCheck{}, "Revision", check.Revision)
 	if err != nil {
-		log.Errorf("Error when checking if commit check already exists: %v", err)
+		logger.Errorf("Error when checking if commit check already exists: %v", err)
 	} else if exists {
-		log.Warnf("Check already added to DB for revision: %s", check.Revision)
+		logger.Warnf("Check already added to DB for revision: %s", check.Revision)
 	} else {
-		if err = createCheck(client, request, accessToken); err != nil {
-			log.Errorf("Failed creating check: %v", err)
+		if err = createCheck(client, request, accessToken, dbService); err != nil {
+			logger.Errorf("Failed creating check: %v", err)
 		} else {
 			dbService.GetDB().Create(&check)
-			log.Info("Successfully created check")
+			logger.Info("Successfully created check")
 		}
 	}
 }

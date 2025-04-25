@@ -7,7 +7,7 @@ import (
 	"github.com/ammesonb/ubiquiti-config-generator/internal/slices"
 	"github.com/ammesonb/ubiquiti-config-generator/utils"
 
-	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
+	"github.com/ammesonb/ubiquiti-config-generator/services/console_logger"
 )
 
 /** Config notes:

@@ -6,24 +6,18 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/subtle"
-	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
 	"github.com/ammesonb/ubiquiti-config-generator/mocks"
-	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
 	"github.com/ammesonb/ubiquiti-config-generator/services/db"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/google/go-github/v70/github"
 
 	"github.com/charmbracelet/log"
@@ -119,112 +113,7 @@ func makeGitRequest(client mocks.WebClient, what string, jwt string, accessToken
 	return response, nil
 }
 
-func makeJWT(gitConfig configuration.GitConfig) (string, error) {
-	keyfile, err := os.ReadFile(gitConfig.PrivateKeyPath)
-	if err != nil {
-		return "", errors.ErrWithParent("failed to open/read keyfile", err)
-	}
-
-	block, _ := pem.Decode(keyfile)
-	x509Encoded := block.Bytes
-	privateKey, _ := x509.ParseECPrivateKey(x509Encoded)
-
-	t := jwt.NewWithClaims(jwt.SigningMethodRS256,
-		jwt.MapClaims{
-			"iat": time.Now().Unix(),
-			"exp": time.Now().Unix() + 600,
-			"iss": gitConfig.AppID,
-		})
-	return t.SignedString(privateKey)
-}
-
-type installationsResponse struct {
-	Installations []installation `json:"installations"`
-}
-
-type installation struct {
-	AppID           int32  `json:"app_id"`
-	AccessTokensURL string `json:"access_tokens_url"`
-}
-
-type accessTokenResponse struct {
-	AccessToken string `json:"token"`
-}
-
-func getAccessToken(client mocks.WebClient, appID string, jwt string) (string, error) {
-	response, err := makeGitRequest(
-		client,
-		"installation",
-		jwt,
-		"",
-		"https://api.github.com/app/installations",
-		"GET",
-		nil,
-	)
-	if err != nil {
-		return "", err
-	}
-	defer func() {
-		if err := response.Body.Close(); err != nil {
-			fmt.Printf("Failed to close response body: %v\n", err)
-		}
-	}()
-
-	installationBody, err := io.ReadAll(response.Body)
-	if err != nil {
-		return "", errors.ErrWithParent("failed to read installations body", err)
-	}
-
-	var appInstalls installationsResponse
-	if err = json.Unmarshal(installationBody, &appInstalls); err != nil {
-		fmt.Println(string(installationBody))
-		return "", errors.ErrWithParent("failed to parse installation response", err)
-	} else if len(appInstalls.Installations) == 0 {
-		return "", errors.Err("response did not return any installations; need at least one")
-	}
-
-	accessTokenURL := ""
-	for _, install := range appInstalls.Installations {
-		if strconv.Itoa(int(install.AppID)) == appID {
-			accessTokenURL = install.AccessTokensURL
-		}
-	}
-
-	if accessTokenURL == "" {
-		fmt.Println(appInstalls.Installations)
-		return "", errors.ErrWithCtx("could not find an installation matching AppID %s", appID)
-	}
-
-	response, err = makeGitRequest(
-		client,
-		"access token",
-		jwt,
-		"",
-		appInstalls.Installations[0].AccessTokensURL,
-		"GET",
-		nil,
-	)
-	if err != nil {
-		return "", err
-	}
-
-	tokenBody, err := io.ReadAll(response.Body)
-	if err != nil {
-		return "", errors.ErrWithParent("failed to read token response body", err)
-	}
-
-	var tokenResponse accessTokenResponse
-	if err = json.Unmarshal(tokenBody, &tokenResponse); err != nil {
-		fmt.Println(tokenBody)
-		return "", errors.ErrWithParent("failed to parse access token response", err)
-	}
-
-	return tokenResponse.AccessToken, nil
-}
-
-func createCheck(client mocks.WebClient, request checkSuiteRequest, accessToken string) error {
-	dbService := db.GetService()
-
+func createCheck(client mocks.WebClient, request checkSuiteRequest, accessToken string, dbService db.Service) error {
 	response, err := makeGitRequest(
 		client,
 		"check run request",

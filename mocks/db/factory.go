@@ -7,6 +7,8 @@ import (
 )
 
 func New() (db.Service, error) {
+	// TODO: this only diverges in the database connection string, which can be
+	//       overridden using configuration
 	inMemoryDatabaseName := "file::memory:?cache=shared"
 
 	gormDb, err := gorm.Open(sqlite.Open(inMemoryDatabaseName), &gorm.Config{})

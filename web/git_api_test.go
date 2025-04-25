@@ -21,8 +21,6 @@ func closeBody(response *http.Response) {
 func TestMakeGitRequest(t *testing.T) {
 	client := &mocks.MockClient{}
 
-	mocks.InitOrClearFuncReturn(mocks.HTTPClientDo)
-
 	body := map[string]any{
 		// client is not JSON-serializable
 		"foo": http.Client{},

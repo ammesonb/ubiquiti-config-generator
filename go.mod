@@ -7,7 +7,6 @@ require (
 	github.com/go-git/go-git/v5 v5.14.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/go-github/v70 v70.0.0
-	github.com/gorilla/context v1.1.2
 	github.com/gorilla/mux v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.2
 	github.com/stretchr/testify v1.10.0

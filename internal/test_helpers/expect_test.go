@@ -1,9 +1,10 @@
 package test_helpers
 
 import (
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestExpect(t *testing.T) {

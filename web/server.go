@@ -8,10 +8,13 @@ import (
 	"time"
 
 	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
+	"github.com/ammesonb/ubiquiti-config-generator/services/db"
+	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
+	"github.com/ammesonb/ubiquiti-config-generator/services/github"
+	"github.com/ammesonb/ubiquiti-config-generator/services/github_client"
 
 	"github.com/charmbracelet/log"
 
-	rcontext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 )
 
@@ -33,67 +36,78 @@ func basicAuthMiddleware(next http.Handler, username, password string) http.Hand
 	})
 }
 
-func githubAccessTokenMiddleware(next http.Handler, logger *log.Logger) http.Handler {
-	gitConfig := configuration.GetService().GetGitConfig()
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		client := &http.Client{}
-		jwt, err := makeJWT(gitConfig)
-		if err != nil {
-			logger.Errorf("Failed making JWT: %v", err)
-			return
-		}
-
-		accessToken, err := getAccessToken(client, gitConfig.AppID, jwt)
-		if err != nil {
-			logger.Errorf("Failed getting access token: %v", err)
-			return
-		}
-
-		rcontext.Set(r, GIT_ACCESS_TOKEN_CONTEXT, accessToken)
-		next.ServeHTTP(w, r)
-	})
+type webServer struct {
+	configService configuration.Service
+	fsService     filesystem.Service
+	dbService     db.Service
+	logger        *log.Logger
 }
 
-// StartWebhookServer spins up a new server that responds to GitHub webhooks and also provides check/deployment status logs
-func StartWebhookServer(logger *log.Logger, ctx context.Context) {
-	logger.Debug("Initializing web server")
+func NewWebServer(logger *log.Logger, configService configuration.Service, fsService filesystem.Service, dbService db.Service) *webServer {
+	return &webServer{
+		configService: configService,
+		fsService:     fsService,
+		dbService:     dbService,
+		logger:        logger,
+	}
+}
+
+func (server *webServer) Start(ctx context.Context) error {
+	server.logger.Debug("Initializing web server")
 
 	r := mux.NewRouter()
+	server.addStaticRoutes(r)
+	server.addLogsRoutes(r)
+	server.addGitWebhookRoutes(r)
+
+	srv := server.listenAndServe(ctx, r)
+
+	// Block until we receive our signal.
+	<-ctx.Done()
+
+	server.logger.Warn("Shutting down webhook server")
+	return srv.Shutdown(ctx)
+}
+
+func (server *webServer) addStaticRoutes(r *mux.Router) {
 	staticRouter := r.PathPrefix("/static/").Subrouter()
 	staticRouter.PathPrefix("/").
 		Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static")))).
 		Methods("GET")
+}
 
-	loggingConfig := configuration.GetService().GetLoggingConfig()
+func (server *webServer) addLogsRoutes(r *mux.Router) {
+	loggingConfig := server.configService.GetLoggingConfig()
 	logsRouter := r.PathPrefix("/logs/").Subrouter()
 	logsRouter.Use(
 		func(next http.Handler) http.Handler {
 			return basicAuthMiddleware(next, loggingConfig.User, loggingConfig.Password)
 		},
 	)
+}
 
-	// TODO: Also need check_run, push, and deployment
-	gitRouter := r.Path("/").
+func (server *webServer) addGitWebhookRoutes(r *mux.Router) {
+	gitConfig := server.configService.GetGitConfig()
+	gitRouter := r.Path(gitConfig.WebhookRoute).
 		Methods("POST").Subrouter()
-
 	gitRouter.Use(
-		func(next http.Handler) http.Handler {
-			return githubAccessTokenMiddleware(next, logger)
+		func(h http.Handler) http.Handler {
+			return github.NewAuthMiddleware(
+				server.configService,
+				server.logger,
+				github_client.NewAPIClient(server.configService, server.fsService),
+			).AccessTokenMiddleware(h)
 		},
 	)
+	gitRouter.Handle("/", github.NewWebhookListener(server.configService, server.logger))
+}
 
-	gitConfig := configuration.GetService().GetGitConfig()
-	gitRouter.
-		Path(gitConfig.WebhookRoute).
-		HeadersRegexp("X-Hub-Signature-256", "^sha256=[a-fA-F0-9]{32}$").
-		Headers("X-GitHub-Event", "check_suite").
-		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ProcessGitCheckSuite(w, r, &http.Client{}, rcontext.Get(r, GIT_ACCESS_TOKEN_CONTEXT).(string))
-		})
+func (server *webServer) listenAndServe(ctx context.Context, r *mux.Router) *http.Server {
+	listenConfig := server.configService.GetGitConfig()
 
 	srv := &http.Server{
 		Handler: r,
-		Addr:    fmt.Sprintf("%s:%s", gitConfig.ListenIP, gitConfig.WebhookPort),
+		Addr:    fmt.Sprintf("%s:%s", listenConfig.ListenIP, listenConfig.WebhookPort),
 		// Good practice: enforce timeouts for servers you create!
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
@@ -102,13 +116,9 @@ func StartWebhookServer(logger *log.Logger, ctx context.Context) {
 	// Run our server in a goroutine so that it doesn't block.
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatalf("Error from web server listen/serve: %v", err)
+			server.logger.Fatalf("Error from web server listen/serve: %v", err)
 		}
 	}()
 
-	// Block until we receive our signal.
-	<-ctx.Done()
-
-	logger.Warn("Shutting down webhook server")
-	_ = srv.Shutdown(ctx)
+	return srv
 }

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
 	"github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+	"github.com/ammesonb/ubiquiti-config-generator/services/console_logger"
 	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
 
 	"github.com/charmbracelet/log"

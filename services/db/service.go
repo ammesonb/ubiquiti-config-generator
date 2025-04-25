@@ -3,7 +3,9 @@ package db
 import (
 	"fmt"
 
+	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
 	"github.com/charmbracelet/log"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -51,4 +53,10 @@ func (s *DefaultDatabaseService) CloseDB(logger *log.Logger) {
 	} else if err = sqlDB.Close(); err != nil {
 		logger.Errorf("Failed closing database connection on shutdown: %v", err)
 	}
+}
+
+func New(config configuration.Service) (Service, error) {
+	dbName := config.GetLoggingConfig().DBName
+	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
+	return &DefaultDatabaseService{Database: db}, err
 }

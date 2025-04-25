@@ -10,6 +10,8 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
+//go:generate go tool counterfeiter -generate
+//counterfeiter:generate . Service
 type Service interface {
 	Load(filepath string, fsService filesystem.Service) error
 	GetGitConfig() GitConfig

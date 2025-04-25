@@ -4,13 +4,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ammesonb/ubiquiti-config-generator/console_logger"
+	"github.com/ammesonb/ubiquiti-config-generator/services/configuration"
+	"github.com/ammesonb/ubiquiti-config-generator/services/configuration/configurationfakes"
+	"github.com/ammesonb/ubiquiti-config-generator/services/console_logger"
 	"github.com/stretchr/testify/assert"
 )
 
+func getConfig() configuration.Service {
+	config := &configurationfakes.FakeService{}
+	config.GetLoggingConfigReturns(configuration.LoggingConfig{
+		DBName: "file::memory:?cache=shared",
+	})
+	return config
+}
+
 func TestMigrate(t *testing.T) {
 	t.Run("count fails before migration", func(t *testing.T) {
-		dbService := n.(DatabaseService)
+		dbService, err := New(getConfig())
+		assert.NoError(t, err)
 		tables, err := dbService.GetDB().Debug().Migrator().GetTables()
 		assert.NoError(t, err)
 		assert.Empty(t, tables)
@@ -21,8 +32,9 @@ func TestMigrate(t *testing.T) {
 	})
 
 	t.Run("count succeeds after migration", func(t *testing.T) {
-		assert.NoError(t, RegisterService(t.Context()))
-		dbService := GetService()
+		dbService, err := New(getConfig())
+		assert.NoError(t, err)
+		assert.NoError(t, dbService.Migrate())
 		assert.IsType(t,
 			&DefaultDatabaseService{}, dbService)
 
@@ -33,7 +45,8 @@ func TestMigrate(t *testing.T) {
 }
 
 func TestExists(t *testing.T) {
-	dbService := GetService()
+	dbService, err := New(getConfig())
+	assert.NoError(t, err)
 
 	// Create simple data entry
 	dbService.GetDB().Create(&CommitCheck{
@@ -56,12 +69,13 @@ func TestExists(t *testing.T) {
 	assert.False(t, exists, "Check does not exist for bad ID column")
 }
 
-func TestStopService(t *testing.T) {
-	dbService := GetService()
+func TestCloseDB(t *testing.T) {
+	dbService, err := New(getConfig())
+	assert.NoError(t, err)
 	assert.IsType(t,
 		&DefaultDatabaseService{}, dbService)
+	dbService.CloseDB(console_logger.DefaultLogger())
 
-	dbService.StopService(console_logger.DefaultLogger())
 	// Only way to check migrate worked is by seeing if a count on a model worked
 	checkRows := int64(0)
 	// should error if service is stopped
