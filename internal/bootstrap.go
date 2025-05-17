@@ -14,7 +14,7 @@ var (
 	configEnvVar      = "UBQ_CONFIGURATION_FILE"
 )
 
-// LoadConfiguration
+// LoadConfiguration returns the user-specified configuration settings
 func LoadConfiguration(logger *log.Logger, ctx context.Context, fsService filesystem.Service) (configuration.Service, error) {
 	config := configuration.YAMLService{}
 	configPath := os.Getenv(configEnvVar)

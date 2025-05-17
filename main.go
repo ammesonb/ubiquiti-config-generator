@@ -9,6 +9,8 @@ import (
 	"github.com/ammesonb/ubiquiti-config-generator/internal"
 	"github.com/ammesonb/ubiquiti-config-generator/services/db"
 	"github.com/ammesonb/ubiquiti-config-generator/services/filesystem"
+	"github.com/ammesonb/ubiquiti-config-generator/services/github"
+	"github.com/ammesonb/ubiquiti-config-generator/services/github_client"
 
 	"github.com/ammesonb/ubiquiti-config-generator/services/console_logger"
 	"github.com/ammesonb/ubiquiti-config-generator/web"
@@ -96,7 +98,12 @@ func main() {
 
 	log.Debug("Services loaded")
 
-	server := web.NewWebServer(log, config, fsService, dbService)
+	githubService, err := github.New(github_client.NewAPIClient(config, fsService), ctx)
+	if err != nil {
+		log.Fatalf("Failed to create GitHub service: %v", err)
+	}
+
+	server := web.NewWebServer(log, config, fsService, dbService, githubService)
 	if err = server.Start(ctx); err != nil {
 		log.Fatalf("Failed to start web server: %v", err)
 	}

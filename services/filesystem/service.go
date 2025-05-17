@@ -2,8 +2,6 @@ package filesystem
 
 import (
 	"os"
-
-	"github.com/charmbracelet/log"
 )
 
 //go:generate go tool counterfeiter -generate
@@ -40,8 +38,6 @@ func (s *OSService) ReadDir(dir string) ([]os.DirEntry, error) {
 func (s *OSService) Open(filename string) (*os.File, error) {
 	return os.Open(filename)
 }
-
-func (s *OSService) StopService(_ *log.Logger) {}
 
 func New() (Service, error) {
 	return &OSService{}, nil

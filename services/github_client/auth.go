@@ -15,6 +15,8 @@ import (
 
 var (
 	errReadKeyfile          = "failed to read keyfile"
+	errKeyfileNotPEM        = "keyfile is not a PEM file"
+	errFailParsePrivateKey  = "failed to parse private key"
 	errListingInstallations = "failed to list installations"
 	errNoInstallations      = "no installations found"
 	errNoAppIDMatch         = "no installation with matching application ID found"
@@ -27,8 +29,13 @@ func makeJWT(gitConfig configuration.GitConfig, fsService filesystem.Service) (s
 	}
 
 	block, _ := pem.Decode(keyfile)
-	x509Encoded := block.Bytes
-	privateKey, _ := x509.ParseECPrivateKey(x509Encoded)
+	if block == nil {
+		return "", errors.Err(errKeyfileNotPEM)
+	}
+	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return "", errors.ErrWithParent(errFailParsePrivateKey, err)
+	}
 
 	t := jwt.NewWithClaims(jwt.SigningMethodRS256,
 		jwt.MapClaims{

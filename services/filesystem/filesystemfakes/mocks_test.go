@@ -55,7 +55,7 @@ func TestMockDirEntry_IsDir(t *testing.T) {
 }
 
 func TestMockDirEntry_Info(t *testing.T) {
-	mockDirEntry := &MockDirEntry{FilePath: "./", FileName: "service.go", StatFunc: os.Stat}
+	mockDirEntry := &MockDirEntry{FilePath: "./", FileName: "fake_service.go", StatFunc: os.Stat}
 	info, err := mockDirEntry.Info()
 	assert.NotNil(t, info)
 	assert.NoError(t, err)

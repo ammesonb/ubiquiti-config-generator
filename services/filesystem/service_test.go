@@ -25,7 +25,7 @@ func TestLiveFileSystemService(t *testing.T) {
 		assert.Greater(t, len(entries), 0)
 		foundService := false
 		for _, entry := range entries {
-			assert.False(t, entry.IsDir())
+			assert.False(t, entry.IsDir() && entry.Name() != "filesystemfakes")
 			foundService = foundService || entry.Name() == "service.go"
 		}
 		assert.True(t, foundService)

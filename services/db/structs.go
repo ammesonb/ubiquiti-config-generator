@@ -16,6 +16,7 @@ type CommitCheck struct {
 }
 
 var (
+	StatusPending    = "pending"
 	StatusInProgress = "in_progress"
 	StatusInfo       = "info"
 	StatusSuccess    = "success"

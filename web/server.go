@@ -40,14 +40,16 @@ type webServer struct {
 	configService configuration.Service
 	fsService     filesystem.Service
 	dbService     db.Service
+	githubService github.Service
 	logger        *log.Logger
 }
 
-func NewWebServer(logger *log.Logger, configService configuration.Service, fsService filesystem.Service, dbService db.Service) *webServer {
+func NewWebServer(logger *log.Logger, configService configuration.Service, fsService filesystem.Service, dbService db.Service, githubService github.Service) *webServer {
 	return &webServer{
 		configService: configService,
 		fsService:     fsService,
 		dbService:     dbService,
+		githubService: githubService,
 		logger:        logger,
 	}
 }
@@ -99,7 +101,7 @@ func (server *webServer) addGitWebhookRoutes(r *mux.Router) {
 			).AccessTokenMiddleware(h)
 		},
 	)
-	gitRouter.Handle("/", github.NewWebhookListener(server.configService, server.logger))
+	gitRouter.Handle("/", github.NewWebhookListener(server.configService, server.dbService, server.githubService, server.logger))
 }
 
 func (server *webServer) listenAndServe(ctx context.Context, r *mux.Router) *http.Server {

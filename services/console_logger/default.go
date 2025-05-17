@@ -33,6 +33,8 @@ func getEnvLogLevel() log.Level {
 	return logLevel
 }
 
+// TODO: wrap this into a mockable service
+
 // DefaultLogger returns a default console_logger
 func DefaultLogger() *log.Logger {
 	if logger == nil {
