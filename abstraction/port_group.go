@@ -1,0 +1,66 @@
+package abstraction
+
+import (
+	"os"
+	"path"
+	"regexp"
+
+	errors2 "github.com/ammesonb/ubiquiti-config-generator/internal/errors"
+
+	yaml "gopkg.in/yaml.v3"
+)
+
+var (
+	errReadPortGroup  = "failed to read the port group in %s"
+	errPortGroupEmpty = "no ports specified for port group %s"
+	errParsePortGroup = "failed to parse port group in %s"
+	failReadPortGroup = "failed to read port group path '%s'"
+)
+
+// LoadPortGroups will look at all yaml files in the given path and return a list of port groups
+func LoadPortGroups(portGroupsPath string) ([]PortGroup, []error) {
+	var portGroups []PortGroup
+	errors := make([]error, 0)
+
+	entries, err := os.ReadDir(portGroupsPath)
+	if err != nil {
+		return portGroups,
+			[]error{errors2.ErrWithCtxParent(failReadPortGroup, portGroupsPath, err)}
+	}
+
+	for _, entry := range entries {
+		// Only want yaml files
+		if entry.IsDir() || !entry.Type().IsRegular() {
+			continue
+		}
+
+		fileNameRegex := regexp.MustCompile(`^(.*)\.ya?ml`)
+		if fileNameRegex.MatchString(entry.Name()) {
+			groupName := fileNameRegex.FindStringSubmatch(entry.Name())[1]
+
+			group, err := makePortGroup(path.Join(portGroupsPath, entry.Name()), groupName)
+			if err != nil {
+				errors = append(errors, err)
+			} else if len(group.Ports) > 0 {
+				portGroups = append(portGroups, *group)
+			} else {
+				errors = append(errors, errors2.ErrWithCtx(errPortGroupEmpty, group.Name))
+			}
+		}
+	}
+
+	return portGroups, errors
+}
+
+func makePortGroup(filepath string, groupName string) (*PortGroup, error) {
+	groupData, err := os.ReadFile(filepath)
+	if err != nil {
+		return nil, errors2.ErrWithCtxParent(errReadPortGroup, filepath, err)
+	}
+	group := PortGroup{Name: groupName}
+	if err = yaml.Unmarshal(groupData, &group); err != nil {
+		return nil, errors2.ErrWithCtxParent(errParsePortGroup, filepath, err)
+	}
+
+	return &group, nil
+}

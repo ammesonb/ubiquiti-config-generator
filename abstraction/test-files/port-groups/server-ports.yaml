@@ -1,0 +1,7 @@
+---
+description: "Ports to forward to the server"
+ports:
+  - 80
+  - 443
+  - 22
+...

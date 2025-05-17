@@ -133,3 +133,10 @@ dmypy.json
 
 # Don't include the messages db
 ubiquiti_config_generator/messages/messages.db
+
+ubiquiti-config-generator
+ubiquiti-config-generator.exe
+
+config.json
+
+templates/**
