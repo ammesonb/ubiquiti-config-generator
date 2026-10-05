@@ -3,7 +3,7 @@
 [Feature index](README.md) | [Roadmap](../roadmap.md)
 
 This article describes intended behavior.
-See the [capability status](../roadmap.md#capability-status) for implementation progress.
+See the [roadmap progress](../roadmap.md#progress-at-a-glance) for implementation progress.
 
 GitHub is the review and history surface for configuration changes.
 A configuration repository holds desired state; checks describe whether a proposed revision is acceptable, and deployments record what happened when that revision was applied.

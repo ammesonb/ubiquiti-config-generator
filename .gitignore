@@ -144,3 +144,6 @@ ubiquiti_config_generator/messages/messages.db
 !.env.*.example
 *.test
 *.out
+
+# Keep the Go test image definition despite the *.test artifact rule.
+!/Dockerfile.test

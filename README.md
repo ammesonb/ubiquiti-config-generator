@@ -13,7 +13,8 @@
 
 The existing Python implementation, examples, tests, and tooling remain available in this repository.
 A new Go implementation is being developed alongside them under `cmd/ubiquiti-config-generator/`.
-The Go executable currently displays usage only; Go deployment, tests, Docker, and CI are subsequent work.
+The Go executable currently displays usage only; device deployment and Go CI are subsequent work.
+A test harness provides ordinary tests and opt-in router smoke tests, with Docker execution awaiting verification.
 
 Install Go 1.27.1, GNU Make, and golangci-lint v2.13.2.
 See [development setup](docs/development.md) for installation and command details.
@@ -25,9 +26,9 @@ make run
 ```
 
 `make check` builds the Go command, runs static checks including formatting, and checks module metadata without rewriting source files.
-It does not run the legacy Python tests.
+It runs the ordinary Go tests, but does not run router smoke tests or the legacy Python tests.
 Build output goes to the ignored `bin/` directory.
-The Go module currently has no external dependencies.
+SSH and dotenv dependencies support the test harness; the application entry point remains a scaffold.
 
 See the [documentation index](docs/README.md), [feature articles](docs/features/README.md), [roadmap](docs/roadmap.md), and [planned testing strategy](docs/testing.md) for the Go implementation.
 The product remains a GitHub App installed on separate repositories that hold actual device settings and configuration files.

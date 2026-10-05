@@ -7,3 +7,8 @@
 /.golangci.yml text eol=lf
 /.editorconfig text eol=lf
 /.gitattributes text eol=lf
+
+/Dockerfile.test text eol=lf
+/.dockerignore text eol=lf
+/.env.integration.example text eol=lf
+/integration/lab/*.tmpl text eol=lf

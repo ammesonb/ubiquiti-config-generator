@@ -3,7 +3,7 @@
 [Feature index](README.md) | [Roadmap](../roadmap.md)
 
 This article describes intended behavior.
-See the [capability status](../roadmap.md#capability-status) for implementation progress.
+See the [roadmap progress](../roadmap.md#progress-at-a-glance) for implementation progress.
 
 Configuration management answers: what should each device be configured to do?
 Its output is a complete native configuration for each target.

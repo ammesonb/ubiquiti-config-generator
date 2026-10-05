@@ -3,7 +3,7 @@
 [Feature index](README.md) | [Roadmap](../roadmap.md)
 
 This article describes intended behavior.
-See the [capability status](../roadmap.md#capability-status) for implementation progress.
+See the [roadmap progress](../roadmap.md#progress-at-a-glance) for implementation progress.
 
 Deployment answers: how does the desired configuration become active, and how do we establish the outcome?
 It operates on complete native configurations independently of how they were authored.
@@ -64,7 +64,7 @@ Cross-device ordering and concurrency can be introduced when concrete dependenci
 
 [Configuration management](configuration.md) supplies complete native artifacts.
 [GitHub integration](github-integration.md) connects deployment results to source revisions and review.
-[Integration tests](../testing.md#acceptance-scenarios) verify application and recovery behavior.
+[Integration tests](../testing.md#future-deployment-scenarios) verify application and recovery behavior.
 
 ## Implementation references
 

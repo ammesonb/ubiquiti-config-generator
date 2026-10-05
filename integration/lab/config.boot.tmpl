@@ -1,0 +1,19 @@
+service {
+    ssh {
+        disable-password-authentication
+        port 22
+    }
+}
+system {
+    host-name ubq-test-router
+    login {
+        user ubqtest {
+            authentication {
+                public-keys smoke {
+                    key "{{SSH_KEY}}"
+                    type ssh-ed25519
+                }
+            }
+        }
+    }
+}
