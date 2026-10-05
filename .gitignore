@@ -133,3 +133,14 @@ dmypy.json
 
 # Don't include the messages db
 ubiquiti_config_generator/messages/messages.db
+
+# Go development and local tooling
+/bin/
+/.tools/
+/.idea/
+/.vscode/
+.env.*
+!.env.example
+!.env.*.example
+*.test
+*.out

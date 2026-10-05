@@ -9,6 +9,34 @@
   <a href="https://github.com/ammesonb/ubiquiti-config-generator/blob/trunk/LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-purple.svg"></a>
 </p>
 
+## Go development
+
+The existing Python implementation, examples, tests, and tooling remain available in this repository.
+A new Go implementation is being developed alongside them under `cmd/ubiquiti-config-generator/`.
+The Go executable currently displays usage only; Go deployment, tests, Docker, and CI are subsequent work.
+
+Install Go 1.27.1, GNU Make, and golangci-lint v2.13.2.
+See [development setup](docs/development.md) for installation and command details.
+
+```text
+make fmt
+make check
+make run
+```
+
+`make check` builds the Go command, runs static checks including formatting, and checks module metadata without rewriting source files.
+It does not run the legacy Python tests.
+Build output goes to the ignored `bin/` directory.
+The Go module currently has no external dependencies.
+
+See the [documentation index](docs/README.md), [feature articles](docs/features/README.md), [roadmap](docs/roadmap.md), and [planned testing strategy](docs/testing.md) for the Go implementation.
+The product remains a GitHub App installed on separate repositories that hold actual device settings and configuration files.
+
+## Python implementation reference
+
+The following documentation describes the existing Python implementation and its configuration format.
+The Go implementation's intended behavior and progress are documented separately above.
+
 This application will dynamically generate and deploy configuration changes for Ubiquiti routers based on local configuration abstractions.
 Its focus is on host-centric home networks, with VLAN network segmentation and strict firewalls blocking access to/from networks.
 As such, complex _network_ configurations, such as shared subnets across interfaces, is not something it is currently set up for.
@@ -21,7 +49,7 @@ That means you still can manually enter anything you would like, BUT it will not
 
 ----
 
-## Data Schema
+### Data Schema
 This [diagram.net](https://app.diagrams.net/?src=about#G1Lw4wh8zmSl0JGgrkhEczMQtAOhgKbUKq) shows the data architecture in use.
 **It may be helpful to reference the sample router config included on this repo, which is also used for automated testing.**
 
@@ -44,7 +72,7 @@ The bulk of the configuration follows.
 - A host belongs to a network (not an interface, since interfaces _also_ map to networks), and has many of the properties you would expect for the address/firewall mappings you would expect.
     - Hosts are more complex, so will be better-documented in the next section
 
-## Hosts
+### Hosts
 The host is the a principal item in this configuration.
 
 You must:
@@ -57,7 +85,7 @@ You can:
 - Specify addresses/ports to allow inbound requests to/for (firewall)
     - These should be lists of address/port combinations
 
-## Automatic validations
+### Automatic validations
 The automatic checks for configuration consistency are as follows:
 - Since file names have to be unique, you cannot have two of the same network, interface, firewall, etc
 - Address and port group names must actually exist to be used
@@ -69,21 +97,21 @@ The automatic checks for configuration consistency are as follows:
     - Unless you manually change it in your configuration
 - enable/disable keywords can be checked before commit/save called
 
-## Committing changes
+### Committing changes
 When you commit your changes to the repo, the post-merge hook will execute using the details in `router_connection_config.yaml`.
 The hook will create commands using your diff, and apply them.
 Unless you have specified the `autosave` configuration flag, it will NOT save the changes to disk, allowing for a reboot should something unexpected occur.
 Otherwise, you will run `save` yourself after verifying the changes worked as expected.
 
-## Getting started
-### Configuring this repository
+### Getting started
+#### Configuring this repository
 First, fork or clone this repository.
 You will likely want to move this to a self-hosted or at the very least private repository as it will contain references to your router configuration and details about connecting to your router.
 Fully fill out the deploy configuration in `deploy.yaml`, as it contains necessary details for connecting to your router and deploy configurations, such as auto-restart times if you do not confirm changes!
 
 Next, we will set up your router configurations.
 
-### Router configuration
+#### Router configuration
 As mentioned above, see `sample_router_config` for a working example.
 These files MUST be stored in a separate repository, which can be cloned independently of this codebase.
 
@@ -101,8 +129,8 @@ The file structure is as follows:
         2. If any omitted, placeholders will be created with a generic default of `accept`, since required for hosts to (potentially) add firewall rules to it
     4. Create a `hosts` folder (if there will be hosts statically mapped to this network)
 
-### Setting up GitHub integrations
-#### The GitHub App
+#### Setting up GitHub integrations
+##### The GitHub App
 1. Go to the [new app page](https://github.com/settings/apps/new).
 2. Add a title and/or description that makes sense to you
 3. Ensure a webhook URL is present, and active is ticked
@@ -138,7 +166,7 @@ The file structure is as follows:
 9. Create a private configuration repo, if you have do not have one for your configuration already
 10. Install the GitHub app to that repository
 
-#### Configuring the app
+##### Configuring the app
 1. Note the app ID, and add it in the deploy.yaml file
 2. Go to the app's settings page, and generate a new private key.
   - This should be placed somewhere code in this repo can read it, and stored in the private-key-path property in deploy.yaml

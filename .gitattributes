@@ -1,0 +1,9 @@
+# Normalize new Go tooling and documentation without rewriting legacy files.
+*.go text eol=lf
+*.md text eol=lf
+/go.mod text eol=lf
+/go.sum text eol=lf
+/Makefile text eol=lf
+/.golangci.yml text eol=lf
+/.editorconfig text eol=lf
+/.gitattributes text eol=lf
