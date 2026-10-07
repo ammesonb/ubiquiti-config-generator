@@ -8,3 +8,7 @@
 !integration/
 !integration/**
 !Dockerfile.test
+
+!Dockerfile.lab
+!scripts/
+!scripts/prepare-vyos-lab.sh

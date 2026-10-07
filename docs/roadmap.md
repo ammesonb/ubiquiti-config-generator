@@ -1,6 +1,6 @@
 # Project roadmap
 
-Last updated: 2026-10-05
+Last updated: 2026-10-06
 
 Build a configuration management system that lets users define network intent once, review and validate changes through GitHub, and deploy complete configurations to Ubiquiti devices with visible status and recovery.
 Shared configurations and logical entities should reduce duplication across both settings and devices.
@@ -38,8 +38,8 @@ Release packaging follows a usable deployment implementation; app hosting remain
 - [x] Ordinary tests verified locally, with the race detector, and in Linux Docker: [test container](../Dockerfile.test) and [test commands](testing.md#ordinary-tests).
 - [x] External lab endpoint configuration implemented and unit-tested: [endpoint settings](testing.md#external-lab-endpoint).
 - [x] Disposable VyOS smoke test verified against the recorded firmware, including SSH, active hostname, and cleanup after success and failure: [integration tests](../integration/) and [verified baseline](testing.md#verified-lab-baseline).
-- [ ] GitHub Actions runs the build, static checks, and ordinary tests using the same commands.
-- [ ] A GitHub Actions lab job provisions the recorded firmware and passes the router smoke test without maintainer infrastructure.
+- [ ] GitHub Actions runs the build, static checks, and ordinary tests using the same commands: [workflow implemented](../.github/workflows/go.yml), awaiting hosted verification.
+- [ ] A GitHub Actions lab job provisions the recorded firmware and passes the router smoke test without maintainer infrastructure, reusing verified images from GHCR: [reusable workflow implemented](../.github/workflows/vyos-lab.yml), awaiting first publication and hosted verification.
 
 ### 1 Deploy a native configuration
 

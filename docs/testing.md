@@ -108,25 +108,109 @@ Verify the ISO checksum before conversion.
 Image IDs are local import results; obtain yours with the inspection command above.
 The harness requests the Ed25519 host-key algorithm whose public key it retrieves through Docker, since VyOS also offers other host-key types.
 
-On Windows, the converter can run in a disposable Linux container without installing its Linux dependencies on the host.
-After `make test-docker`, put the verified ISO and converter named `iso-to-oci` in `.cache/lab`, then run this from the repository root in PowerShell:
+The pinned firmware and converter inputs are declared in [baseline.env](../integration/lab/baseline.env).
+Prepare the same image used by CI from PowerShell or a Linux shell:
 
-```powershell
-$labDir = (Resolve-Path .cache/lab).Path
-docker run --rm --mount "type=bind,source=$labDir,target=/lab" --workdir /lab ubq-go-tests:local bash -c 'apt-get update -qq && apt-get install -y -qq xorriso squashfs-tools jq xz-utils >/dev/null && bash /lab/iso-to-oci /lab/vyos-2026.09.30-1921-rolling-generic-amd64.iso'
-docker import --platform=linux/amd64 .cache/lab/vyos-2026.09.30-1921-rolling-oci-amd64.tar.xz ubq-vyos:2026.09.30-1921-rolling
-docker image inspect ubq-vyos:2026.09.30-1921-rolling --format "{{.Id}}"
+```text
+make lab-image
+docker image inspect ubq-vyos:lab --format "{{.Id}}"
 ```
 
-The mount contains only lab preparation artifacts; `.cache` and `.env.integration` remain ignored by Git.
-Set `UBQ_VYOS_IMAGE` to the inspected ID and run `make smoke-docker`.
+Set `UBQ_VYOS_IMAGE` in `.env.integration` to the inspected ID, then run `make smoke-docker`.
+`make lab-image` downloads the pinned ISO when needed, verifies its SHA256, and converts it with the official helper inside a disposable Linux container.
+It requires Docker only; Linux conversion tools are installed in the builder image rather than on the host.
+It stores the converted filesystem, checksum, and baseline metadata in `.cache/lab` and reuses them when verification succeeds.
+A changed baseline or failed archive verification rebuilds the filesystem.
+The imported `ubq-vyos:lab` tag is a convenience name; smoke tests always use its immutable image ID.
+Lab preparation artifacts and `.env.integration` remain ignored by Git.
 
-## CI follow-up
+### Updating the VyOS baseline
 
-GitHub Actions will invoke the same locally verified test commands.
-A CI lab job should reuse a prepared, pinned router image and retain diagnostic output when a smoke test fails.
-No Go CI workflow is added at this stage.
+1. Choose a release from the [official VyOS builds](https://github.com/vyos/vyos-nightly-build/releases) and its `vyos-<release-tag>-generic-amd64.iso` asset.
+2. In [baseline.env](../integration/lab/baseline.env), set `VYOS_VERSION` to that exact release tag and `VYOS_ISO_SHA256` to the ISO's published SHA256, using 64 hex characters without the `sha256:` prefix.
+3. Keep `VYOS_CONVERTER_REVISION` unless the new firmware needs a converter update; if changing it, use a full commit SHA from [vyos-build](https://github.com/vyos/vyos-build).
+4. Rebuild and inspect the new local image:
+
+```text
+make lab-image
+docker image inspect ubq-vyos:lab --format "{{.Id}}"
+```
+
+Set `UBQ_VYOS_IMAGE` in `.env.integration` to that new image ID, then run `make smoke-docker`.
+After it passes, update the tested-value table and release links above.
+The baseline change automatically produces a new GHCR lookup hash; there is no cache or registry tag to change manually.
+
+## GitHub Actions
+
+[Go CI](../.github/workflows/go.yml) runs on pull requests, pushes to any branch, and manual invocation.
+The build job runs `make registry-tests` and `make workflow-lint`, then `make check`, `make test-race`, and `make test-docker`.
+Go is selected from `go.mod`; golangci-lint and actionlint are installed at pinned versions.
+Go modules and build outputs are cached by `setup-go`.
 The existing Python tests and historical CI configuration remain separate.
+
+The router job calls the reusable [VyOS lab workflow](../.github/workflows/vyos-lab.yml), which can also be invoked manually.
+It uses standard `ubuntu-24.04` runners and creates its own disposable router without production credentials.
+The build and router jobs have 15-minute and 20-minute time limits respectively.
+Failed router preparation or smoke runs retain diagnostic logs for seven days.
+
+### Registry image reuse
+
+The lab workflow uses `ghcr.io/<owner>/<repository>/vyos-lab` in the repository owner's namespace.
+Its lookup tag is `inputs-<hash>`, derived from the firmware baseline, builder Dockerfile, conversion script, and Makefile.
+Test fixtures and injected configuration are excluded from that hash so different configurations reuse the same image.
+
+When the tagged image is available, the workflow resolves its registry digest and uses that digest to pull the image for the run.
+It supplies the resulting local image ID to `make smoke-docker`.
+This skips conversion, builder creation, and filesystem import on subsequent runs.
+The registry digest and local image ID identify different objects; the harness still accepts only the local ID.
+
+When the image is unavailable, the workflow runs `make lab-image` and the smoke test locally.
+Every successful run with registry write access can publish the verified image using the built-in `GITHUB_TOKEN` with `packages: write`.
+This includes branch pushes, pull requests within the repository, and manual lab runs with publishing enabled.
+Fork pull requests cannot publish because their tokens are read-only; they reuse accessible images or build locally.
+When an image already exists, publication reuses its content instead of rebuilding it.
+A successful `main` run applies `main-<hash>` and `main-current` tags to the same image version, marking it as the latest verified main baseline even if it originated on a branch.
+
+The image's source label connects it to the workflow repository.
+No personal access token or configured repository secret is required.
+
+New GHCR packages are private by default.
+After the first publication, make the package public through its settings to permit anonymous pulls by contributors and fork pull requests, following [GitHub's visibility instructions](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility).
+A fork pull request without access to the image falls back to local preparation.
+The workflow summary records the published or reused digest.
+
+### Image retention
+
+The [cleanup workflow](../.github/workflows/vyos-cleanup.yml) runs daily for non-main images and weekly for older main images.
+Daily runs expire managed non-main versions seven days after creation; reuse alone does not reset that period.
+Weekly runs also expire older main versions 30 days after their last metadata update, falling back to creation time when no update time is available.
+The image marked `main-current` is always retained, regardless of age.
+Manual cleanup runs apply both policies.
+Only versions with this workflow's tag scheme are eligible for deletion.
+
+Cleanup reads all pages through `getImages`, then routes each image through `isMain` to `shouldDeleteMain` or `shouldDeleteOther`.
+It rechecks the live tags immediately before deletion.
+Publication and cleanup share a concurrency group so cleanup cannot delete an image during main promotion.
+This serializes lab workflow runs within the repository.
+
+Cleanup uses the repository's built-in token and requires administrator access to its linked GHCR package.
+`make registry-tests` verifies the deletion rules and main-promotion protection without accessing GitHub.
+Actual GHCR deletion permissions remain part of hosted verification.
+
+To reuse a published image locally, copy its full digest reference from the workflow summary:
+
+```text
+docker pull ghcr.io/OWNER/REPOSITORY/vyos-lab@sha256:DIGEST
+docker image inspect ghcr.io/OWNER/REPOSITORY/vyos-lab@sha256:DIGEST --format "{{.Id}}"
+```
+
+Set `UBQ_VYOS_IMAGE` in `.env.integration` to the inspected local ID and run `make smoke-docker`.
+The base image contains no test credentials or router fixture; those are supplied separately for each smoke run.
+
+Standard hosted runners are free for public repositories; private repositories use the owner's plan allowance, as described in [GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
+GHCR container-image storage and bandwidth are currently free, as described in [GitHub Packages billing](https://docs.github.com/en/billing/concepts/product-billing/github-packages).
+The workflow syntax and underlying commands can be verified locally before pushing.
+A successful hosted run and first GHCR publication are still required to establish registry permissions and GitHub runner compatibility.
 
 ## Future deployment scenarios
 

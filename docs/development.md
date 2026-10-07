@@ -7,7 +7,7 @@ Install the matching prebuilt linter release for your OS from the [golangci-lint
 Install Go from [the Go downloads page](https://go.dev/dl/).
 Keep the documented versions aligned when upgrading tools.
 
-The Make recipes invoke tools directly and do not require Bash, Docker, or a CI agent.
+The ordinary Go recipes invoke tools directly and do not require Bash, Docker, or a CI agent.
 On Windows, run GNU Make from PowerShell.
 `GO` and `GOLANGCI_LINT` can override executable names or paths, for example `make check GOLANGCI_LINT=./.tools/golangci-lint.exe`.
 
@@ -26,9 +26,19 @@ On Windows, run GNU Make from PowerShell.
 | `make test` | Run ordinary Go tests without a router. |
 | `make test-race` | Run ordinary tests with the race detector. |
 | `make test-docker` | Build and run ordinary tests in a Go container. |
+| `make lab-image` | Prepare and import the pinned VyOS lab image, reusing verified cached conversion output. |
+| `make registry-tests` | Test registry retention rules with Node.js, without accessing GitHub. |
+| `make workflow-lint` | Validate GitHub Actions workflows with actionlint v1.7.12. |
 | `make smoke` | Read-only smoke test using an explicit lab endpoint. |
 | `make smoke-docker` | Provision a disposable local VyOS container and smoke-test it. |
 | `make check` | Run build, vet, lint, ordinary tests, and module consistency checks. |
+
+Registry retention tests require Node.js with the built-in test runner (Node.js 18 or later).
+Workflow validation requires actionlint v1.7.12, installable with `go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12`.
+`ACTIONLINT` can override its executable path, for example `make workflow-lint ACTIONLINT=./.tools/actionlint.exe`.
+Docker targets, including lab preparation, require a Docker engine using Linux containers.
+`LAB_IMAGE_SOURCE` overrides the imported image's source-repository label when preparing an image for a fork.
+See [registry image reuse](testing.md#registry-image-reuse) for GHCR publishing and local digest pulls.
 
 Formatting and lint rules are defined in `.golangci.yml`.
 Formatting violations cause lint failure; `make fmt` is the explicit repair command.

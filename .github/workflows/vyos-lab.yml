@@ -1,0 +1,101 @@
+name: VyOS lab image and smoke test
+
+on:
+  workflow_call:
+    inputs:
+      publish:
+        description: Publish a verified image from a run with registry write access
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish a verified image
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: vyos-registry-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  lab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Identify image inputs
+        env:
+          INPUT_HASH: ${{ hashFiles('integration/lab/baseline.env', 'Dockerfile.lab', 'scripts/prepare-vyos-lab.sh', 'Makefile') }}
+        run: |
+          image_tag="ghcr.io/${GITHUB_REPOSITORY,,}/vyos-lab:inputs-${INPUT_HASH}"
+          echo "IMAGE_TAG=$image_tag" >> "$GITHUB_ENV"
+          echo "IMAGE_HASH=$INPUT_HASH" >> "$GITHUB_ENV"
+          mkdir -p .cache/ci
+      - name: Authenticate trusted repository runs
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Pull published image by digest
+        id: registry
+        run: |
+          if docker pull "$IMAGE_TAG"; then
+            image_ref=$(docker image inspect "$IMAGE_TAG" --format '{{index .RepoDigests 0}}')
+            docker pull "$image_ref"
+            image_id=$(docker image inspect "$image_ref" --format '{{.Id}}')
+            echo "UBQ_VYOS_IMAGE=$image_id" >> "$GITHUB_ENV"
+            echo 'found=true' >> "$GITHUB_OUTPUT"
+            printf 'Using published image: `%s`\n' "$image_ref" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'found=false' >> "$GITHUB_OUTPUT"
+            echo 'Published image unavailable; preparing the pinned baseline locally.'
+          fi
+      - name: Prepare missing image
+        if: steps.registry.outputs.found != 'true'
+        run: |
+          set -o pipefail
+          make lab-image LAB_IMAGE_SOURCE="https://github.com/$GITHUB_REPOSITORY" 2>&1 | tee .cache/ci/lab-image.log
+          echo "UBQ_VYOS_IMAGE=$(docker image inspect ubq-vyos:lab --format '{{.Id}}')" >> "$GITHUB_ENV"
+      - name: Read-only router smoke test
+        run: |
+          set -o pipefail
+          make smoke-docker 2>&1 | tee .cache/ci/router-smoke.log
+      - name: Publish verified image
+        if: inputs.publish && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        run: |
+          docker tag "$UBQ_VYOS_IMAGE" "$IMAGE_TAG"
+          docker push "$IMAGE_TAG"
+          if [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" != pull_request ]]; then
+            main_tag="${IMAGE_TAG%:*}:main-${IMAGE_HASH}"
+            docker tag "$UBQ_VYOS_IMAGE" "$main_tag"
+            docker push "$main_tag"
+            current_tag="${IMAGE_TAG%:*}:main-current"
+            docker tag "$UBQ_VYOS_IMAGE" "$current_tag"
+            docker push "$current_tag"
+          fi
+          docker pull "$IMAGE_TAG"
+          image_ref=$(docker image inspect "$IMAGE_TAG" --format '{{index .RepoDigests 0}}')
+          printf 'Published image: `%s`\n' "$image_ref" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Pull this digest locally and set `UBQ_VYOS_IMAGE` to its inspected image ID.\n' >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: vyos-diagnostics
+          path: .cache/ci/*.log
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Log out of GHCR
+        if: always()
+        run: docker logout ghcr.io

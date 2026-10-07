@@ -1,0 +1,50 @@
+name: Go CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Build and checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Install pinned linter
+        run: |
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+      - name: Registry retention tests
+        run: make registry-tests
+      - name: Validate workflows
+        run: make workflow-lint
+      - name: Build, vet, lint, and test
+        run: make check
+      - name: Race detector
+        run: make test-race
+      - name: Ordinary tests in Docker
+        run: make test-docker
+
+  router:
+    name: VyOS smoke test
+    uses: ./.github/workflows/vyos-lab.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      publish: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}

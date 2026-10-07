@@ -12,3 +12,9 @@
 /.dockerignore text eol=lf
 /.env.integration.example text eol=lf
 /integration/lab/*.tmpl text eol=lf
+
+/Dockerfile.lab text eol=lf
+/scripts/*.sh text eol=lf
+/.github/**/*.yml text eol=lf
+/integration/lab/baseline.env text eol=lf
+/scripts/*.cjs text eol=lf
