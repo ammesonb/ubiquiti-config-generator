@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"strings"
 	"time"
@@ -48,14 +49,24 @@ func (e *knownHostError) Error() string { return "SSH host key verification fail
 func (e *knownHostError) Unwrap() error { return e.err }
 
 func readConfiguration(ctx context.Context, cfg Config) (string, error) {
+	output, err := Command(ctx, cfg, ShowConfiguration, nil)
+	if err != nil {
+		return "", fmt.Errorf("read active configuration: %w", err)
+	}
+	return string(output), nil
+}
+
+// Command runs a lab command with verified SSH identity and a bounded context.
+// Output is returned to the caller but never included in errors.
+func Command(ctx context.Context, cfg Config, command string, input io.Reader) ([]byte, error) {
 	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", cfg.Address)
 	if err != nil {
-		return "", fmt.Errorf("connect to lab: %w", err)
+		return nil, fmt.Errorf("connect to lab: %w", err)
 	}
 	defer func() { _ = conn.Close() }()
 	if deadline, ok := ctx.Deadline(); ok {
 		if err := conn.SetDeadline(deadline); err != nil {
-			return "", fmt.Errorf("set SSH deadline: %w", err)
+			return nil, fmt.Errorf("set SSH deadline: %w", err)
 		}
 	}
 	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
@@ -73,23 +84,24 @@ func readConfiguration(ctx context.Context, cfg Config) (string, error) {
 	sshConn, channels, requests, err := ssh.NewClientConn(conn, cfg.Address, clientConfig)
 	if err != nil {
 		if hostKeyErr != nil {
-			return "", &knownHostError{hostKeyErr}
+			return nil, &knownHostError{hostKeyErr}
 		}
-		return "", fmt.Errorf("SSH handshake: %w", err)
+		return nil, fmt.Errorf("SSH handshake: %w", err)
 	}
 	client := ssh.NewClient(sshConn, channels, requests)
 	defer func() { _ = client.Close() }()
 	session, err := client.NewSession()
 	if err != nil {
-		return "", fmt.Errorf("open SSH session: %w", err)
+		return nil, fmt.Errorf("open SSH session: %w", err)
 	}
 	defer func() { _ = session.Close() }()
-	output, err := session.Output(ShowConfiguration)
+	session.Stdin = input
+	output, err := session.CombinedOutput(command)
 	if err != nil {
 		// Configuration and command output may contain secrets; do not log them.
-		return "", fmt.Errorf("read active configuration: %w", err)
+		return output, fmt.Errorf("execute lab command: %w", err)
 	}
-	return string(output), nil
+	return output, nil
 }
 
 func checkHostname(output, expected string) error {

@@ -29,7 +29,18 @@ func docker(args ...string) ([]byte, error) {
 	return output, nil
 }
 
+type dockerRouter struct {
+	config  testlab.Config
+	keyData string
+	name    string
+}
+
 func startDockerLab(t *testing.T) testlab.Config {
+	t.Helper()
+	return provisionDockerLab(t).config
+}
+
+func provisionDockerLab(t *testing.T) dockerRouter {
 	t.Helper()
 	get, err := testlab.Environment(filepath.Join("..", ".env.integration"))
 	if err != nil {
@@ -52,9 +63,9 @@ func startDockerLab(t *testing.T) testlab.Config {
 		t.Fatal("the VyOS lab requires Docker using Linux containers")
 	}
 	run("image", "inspect", image)
-	name := "ubq-smoke-" + rand.Text()[:12]
+	name := "ubq-lab-" + rand.Text()[:12]
 	t.Cleanup(func() {
-		// Cleanup uses independent timeouts even if the smoke test timed out.
+		// Cleanup uses independent timeouts even if the router test timed out.
 		if t.Failed() {
 			output, err := docker("logs", "--tail", "100", name)
 			if err == nil {
@@ -68,9 +79,9 @@ func startDockerLab(t *testing.T) testlab.Config {
 			t.Errorf("lab network cleanup: %v: %s", err, output)
 		}
 	})
-	run("network", "create", "--ipv6", "--label", "ubq.test=smoke", name)
-	run("create", "--name", name, "--label", "ubq.test=smoke", "--network", name,
-		"--privileged", "--publish", "127.0.0.1::22", "--volume", "/lib/modules:/lib/modules:ro",
+	run("network", "create", "--ipv6", "--label", "ubq.test=integration", name)
+	run("create", "--name", name, "--label", "ubq.test=integration", "--network", name,
+		"--hostname", "ubq-test-router", "--privileged", "--publish", "127.0.0.1::22", "--volume", "/lib/modules:/lib/modules:ro",
 		"--tmpfs", "/run", "--tmpfs", "/run/lock", image, "/sbin/init")
 
 	public, private, err := ed25519.GenerateKey(rand.Reader)
@@ -111,10 +122,10 @@ func startDockerLab(t *testing.T) testlab.Config {
 			if parseErr != nil {
 				t.Fatal("invalid SSH host public key in lab container")
 			}
-			return testlab.Config{
+			return dockerRouter{keyData: keyData, name: name, config: testlab.Config{
 				Address: address, User: "ubqtest", Auth: ssh.PublicKeys(signer),
 				HostKey: ssh.FixedHostKey(hostKey), HostKeyAlgorithms: []string{hostKey.Type()}, ExpectedHost: "ubq-test-router", Timeout: 2 * time.Minute,
-			}
+			}}
 		}
 		if running := run("inspect", "--format", "{{.State.Running}}", name); running != "true" {
 			t.Fatal("VyOS exited during startup; see container logs")
@@ -122,5 +133,5 @@ func startDockerLab(t *testing.T) testlab.Config {
 		time.Sleep(time.Second)
 	}
 	t.Fatal("VyOS did not generate an SSH host key within 2 minutes")
-	return testlab.Config{}
+	return dockerRouter{}
 }

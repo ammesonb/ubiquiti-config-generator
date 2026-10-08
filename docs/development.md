@@ -19,8 +19,8 @@ On Windows, run GNU Make from PowerShell.
 | `make build` | Build the command into ignored `bin/`. |
 | `make run` | Run the command, which currently displays scaffold usage. |
 | `make fmt` | Rewrite Go formatting and organize imports. |
-| `make lint` | Check formatting, imports, errors, and static analysis, including integration-tagged code. |
-| `make vet` | Run Go's built-in analysis, including integration-tagged code. |
+| `make lint` | Check formatting, imports, errors, and static analysis, including integration tests. |
+| `make vet` | Run Go's built-in analysis, including integration tests. |
 | `make tidy` | Update module metadata after dependency changes. |
 | `make tidy-check` | Fail if module metadata needs changes, showing a diff without applying it. |
 | `make test` | Run ordinary Go tests without a router. |
@@ -31,10 +31,13 @@ On Windows, run GNU Make from PowerShell.
 | `make workflow-lint` | Validate GitHub Actions workflows with actionlint v1.7.12. |
 | `make smoke` | Read-only smoke test using an explicit lab endpoint. |
 | `make smoke-docker` | Provision a disposable local VyOS container and smoke-test it. |
+| `make integration-docker` | Run every device integration group by default; optionally select groups with `TAGS=deploy` or `TAGS="deploy,smoke"`. |
 | `make check` | Run build, vet, lint, ordinary tests, and module consistency checks. |
 
 Registry retention tests require Node.js with the built-in test runner (Node.js 18 or later).
 Workflow validation requires actionlint v1.7.12, installable with `go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12`.
+Install ShellCheck as well to include shell-script analysis in workflow linting.
+Without it, local actionlint does not reproduce CI's shell checks.
 `ACTIONLINT` can override its executable path, for example `make workflow-lint ACTIONLINT=./.tools/actionlint.exe`.
 Docker targets, including lab preparation, require a Docker engine using Linux containers.
 `LAB_IMAGE_SOURCE` overrides the imported image's source-repository label when preparing an image for a fork.
@@ -46,8 +49,8 @@ Formatting violations cause lint failure; `make fmt` is the explicit repair comm
 
 The test harness uses pinned SSH, dotenv, and environment-tag parsing modules recorded in `go.mod` and `go.sum`.
 Endpoint environment names, defaults, and required settings are declared on struct fields with `env` tags.
-Router smoke tests are explicit opt-in commands and are not part of `make check`.
-See [testing](testing.md) for endpoint settings, Docker image preparation, and verification status.
+Device integration tests are explicit opt-in commands and are not part of `make check`.
+See [testing](testing.md) for endpoint settings, Docker image preparation, and test methodology.
 
 ## Layout
 
@@ -55,7 +58,7 @@ See [testing](testing.md) for endpoint settings, Docker image preparation, and v
 - `docs/`: product features, delivery roadmap, and development guidance.
 - `bin/`: local build output, ignored by Git.
 - `internal/testlab/`: test-only SSH and endpoint helpers with ordinary tests.
-- `integration/`: opt-in router smoke test and disposable lab fixture.
+- `integration/`: opt-in router smoke and native deployment tests with disposable lab fixtures.
 - `ubiquiti_config_generator/`: existing Python application.
 - `sample_router_config/`: existing configuration examples.
 - `tests/`: existing Python tests and fixtures.

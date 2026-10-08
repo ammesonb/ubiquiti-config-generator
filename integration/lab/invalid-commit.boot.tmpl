@@ -1,4 +1,15 @@
 service {
+    dhcp-server {
+        shared-network-name INVALID {
+            subnet 192.0.2.0/24 {
+                subnet-id 1
+                range 0 {
+                    start 192.0.2.100
+                    stop 192.0.2.10
+                }
+            }
+        }
+    }
     ssh {
         disable-password-authentication
         port 22
@@ -23,3 +34,5 @@ system {
         }
     }
 }
+
+{{CONFIG_VERSION}}

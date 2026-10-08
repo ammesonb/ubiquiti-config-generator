@@ -1,6 +1,6 @@
 # Project roadmap
 
-Last updated: 2026-10-06
+Last updated: 2026-10-08
 
 Build a configuration management system that lets users define network intent once, review and validate changes through GitHub, and deploy complete configurations to Ubiquiti devices with visible status and recovery.
 Shared configurations and logical entities should reduce duplication across both settings and devices.
@@ -38,8 +38,8 @@ Release packaging follows a usable deployment implementation; app hosting remain
 - [x] Ordinary tests verified locally, with the race detector, and in Linux Docker: [test container](../Dockerfile.test) and [test commands](testing.md#ordinary-tests).
 - [x] External lab endpoint configuration implemented and unit-tested: [endpoint settings](testing.md#external-lab-endpoint).
 - [x] Disposable VyOS smoke test verified against the recorded firmware, including SSH, active hostname, and cleanup after success and failure: [integration tests](../integration/) and [verified baseline](testing.md#verified-lab-baseline).
-- [ ] GitHub Actions runs the build, static checks, and ordinary tests using the same commands: [workflow implemented](../.github/workflows/go.yml), awaiting hosted verification.
-- [ ] A GitHub Actions lab job provisions the recorded firmware and passes the router smoke test without maintainer infrastructure, reusing verified images from GHCR: [reusable workflow implemented](../.github/workflows/vyos-lab.yml), awaiting first publication and hosted verification.
+- [x] GitHub Actions runs the build, static checks, and ordinary tests using the same commands: [verified workflow](../.github/workflows/go.yml).
+- [x] A GitHub Actions lab job provisions the recorded firmware and passes the router smoke test without maintainer infrastructure, publishing and reusing verified images from GHCR: [reusable workflow](../.github/workflows/vyos-lab.yml).
 
 ### 1 Deploy a native configuration
 
@@ -47,7 +47,8 @@ Feature: [Applying configuration](features/device-deployment.md#applying-configu
 
 Make a checked-in, complete native configuration deployable to one supported test device.
 This connects desired configuration to actual device state before adding generation or schema dependencies.
-A manually invoked Go command provides local iteration without a push or GitHub event.
+A manually invoked Go command will provide local iteration without a push or GitHub event.
+The native protocol is exercised by the Docker-only deployment integration tests; the application deployment command remains to be implemented.
 
 #### Required features
 
@@ -55,7 +56,7 @@ A manually invoked Go command provides local iteration without a push or GitHub 
 - [ ] Load and commit through native device commands, replacing existing configuration including deleted settings.
 - [ ] Report upload, load, and commit failures and stop subsequent operations.
 - [ ] Support confirmation and timeout-based rollback, with an explicit save policy.
-- [ ] Verify replacement, deletion, failure handling, confirmation, and rollback on the lab target.
+- [x] Verify native replacement, deletion, failure handling, confirmation, saving, and rollback on a disposable lab target through the [deployment integration tests](testing.md#device-integration-tests); application-command coverage will follow its implementation.
 
 ### 2 Make deployments reviewable and observable
 

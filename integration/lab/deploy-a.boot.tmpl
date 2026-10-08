@@ -12,6 +12,14 @@ system {
         }
     }
     host-name ubq-test-router
+    static-host-mapping {
+        host-name retained.example {
+            inet 192.0.2.10
+        }
+        host-name removed.example {
+            inet 192.0.2.20
+        }
+    }
     login {
         user ubqtest {
             authentication {
@@ -23,3 +31,5 @@ system {
         }
     }
 }
+
+{{CONFIG_VERSION}}

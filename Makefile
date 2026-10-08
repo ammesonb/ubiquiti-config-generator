@@ -5,11 +5,12 @@ GOLANGCI_LINT ?= golangci-lint
 DOCKER ?= docker
 ACTIONLINT ?= actionlint
 NODE ?= node
+TAGS ?=
 TEST_IMAGE ?= ubq-go-tests:local
 LAB_BUILDER_IMAGE ?= ubq-vyos-builder:local
 LAB_IMAGE_SOURCE ?= https://github.com/ammesonb/ubiquiti-config-generator
 
-.PHONY: help build run fmt lint vet tidy tidy-check check test test-race test-docker smoke smoke-docker lab-image workflow-lint registry-tests
+.PHONY: help build run fmt lint vet tidy tidy-check check test test-race test-docker smoke smoke-docker integration-docker lab-image workflow-lint registry-tests
 
 help:
 	@echo make build        - Build the application into bin/
@@ -27,6 +28,7 @@ help:
 	@echo make lab-image    - Prepare the pinned VyOS image with a cached filesystem
 	@echo make smoke        - Read-only smoke test against an explicit lab endpoint
 	@echo make smoke-docker - Provision a disposable local VyOS lab and smoke-test it
+	@echo make integration-docker - Run all device integration tests in disposable Docker labs
 	@echo make check        - Build, vet, lint, test, and check module metadata
 
 build:
@@ -72,9 +74,12 @@ lab-image:
 	$(DOCKER) import --platform=linux/amd64 --change "LABEL org.opencontainers.image.source=$(LAB_IMAGE_SOURCE)" .cache/lab/vyos-rootfs.tar.xz ubq-vyos:lab
 
 smoke:
-	$(GO) test -tags=integration -count=1 -timeout=6m -v ./integration
+	$(GO) test -tags=integration -count=1 -timeout=6m -v ./integration -run TestRouterSmoke
 
 smoke-docker:
-	$(GO) test -tags=integration -count=1 -timeout=6m -v ./integration -args -docker-lab
+	$(GO) test -tags=integration -count=1 -timeout=6m -v ./integration -run TestRouterSmoke -args -docker-lab
+
+integration-docker:
+	$(GO) test -tags=integration -count=1 -timeout=10m -v ./integration -args -docker-lab -test-tags "$(TAGS)"
 
 check: build vet lint tidy-check test

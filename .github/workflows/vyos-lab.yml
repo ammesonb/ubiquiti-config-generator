@@ -1,4 +1,4 @@
-name: VyOS lab image and smoke test
+name: VyOS lab image and integration tests
 
 on:
   workflow_call:
@@ -67,10 +67,10 @@ jobs:
           set -o pipefail
           make lab-image LAB_IMAGE_SOURCE="https://github.com/$GITHUB_REPOSITORY" 2>&1 | tee .cache/ci/lab-image.log
           echo "UBQ_VYOS_IMAGE=$(docker image inspect ubq-vyos:lab --format '{{.Id}}')" >> "$GITHUB_ENV"
-      - name: Read-only router smoke test
+      - name: Device integration tests
         run: |
           set -o pipefail
-          make smoke-docker 2>&1 | tee .cache/ci/router-smoke.log
+          make integration-docker 2>&1 | tee .cache/ci/router-integration.log
       - name: Publish verified image
         if: inputs.publish && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         run: |

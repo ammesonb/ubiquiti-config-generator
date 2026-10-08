@@ -1,0 +1,16 @@
+#!/bin/vbash
+# Test-only native full-file deployment; confirmation and saving are separate.
+config_file=$1
+source /opt/vyatta/etc/functions/script-template
+configure
+trap 'cli-shell-api teardownSession' EXIT
+printf 'UBQ_STAGE:load\n'
+load "$config_file" || builtin exit 1
+printf 'UBQ_STAGE:commit\n'
+commit-confirm 1 no-prompt || builtin exit 1
+# This firmware's commit-confirm wrapper can return zero after a failed commit.
+# A successfully committed candidate has no remaining uncommitted changes.
+if cli-shell-api sessionChanged; then
+    builtin exit 1
+fi
+printf 'UBQ_STAGE:pending\n'

@@ -18,3 +18,5 @@
 /.github/**/*.yml text eol=lf
 /integration/lab/baseline.env text eol=lf
 /scripts/*.cjs text eol=lf
+/integration/lab/*.vbash text eol=lf
+/integration/lab/*.boot text eol=lf

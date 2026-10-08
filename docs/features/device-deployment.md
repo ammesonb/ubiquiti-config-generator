@@ -53,6 +53,15 @@ Drift handling needs an explicit policy.
 Multi-device execution also requires per-device exclusion of conflicting deployments and clear reporting of partial success.
 Cross-device ordering and concurrency can be introduced when concrete dependencies require them.
 
+## Native VyOS deployment integration tests
+
+The [deployment integration tests](../testing.md#device-integration-tests) exercises whole-file replacement, native rejection, explicit confirmation and saving, timeout rollback, and recovery across a container restart.
+It establishes behavior on the recorded firmware through a test-only driver; the application deployment command remains to be implemented.
+Native commit failure is not necessarily atomic, and the confirmed-commit wrapper's exit status does not reliably indicate validation success on this firmware.
+On the recorded firmware, `commit-confirm` can return zero after reporting a failed commit and leave its rollback timer armed.
+The driver checks remaining candidate changes through native `cli-shell-api sessionChanged` and preserves timeout recovery after failure.
+Confirmation and saving remain separate operations so a rejected or partially applied candidate is not made persistent.
+
 ## Open decisions
 
 - Which model and firmware should be supported first, and what native commands implement loading, committing, and recovery?
@@ -64,7 +73,7 @@ Cross-device ordering and concurrency can be introduced when concrete dependenci
 
 [Configuration management](configuration.md) supplies complete native artifacts.
 [GitHub integration](github-integration.md) connects deployment results to source revisions and review.
-[Integration tests](../testing.md#future-deployment-scenarios) verify application and recovery behavior.
+[The testing methodology](../testing.md#device-integration-tests) describes the lab environment and native device testing approach.
 
 ## Implementation references
 

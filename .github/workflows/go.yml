@@ -41,7 +41,7 @@ jobs:
         run: make test-docker
 
   router:
-    name: VyOS smoke test
+    name: VyOS integration tests
     uses: ./.github/workflows/vyos-lab.yml
     permissions:
       contents: read

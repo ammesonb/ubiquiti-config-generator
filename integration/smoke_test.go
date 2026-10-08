@@ -14,8 +14,10 @@ import (
 var dockerLab = flag.Bool("docker-lab", false, "provision a disposable local Docker VyOS lab")
 
 func TestRouterSmoke(t *testing.T) {
+	requireTestTags(t, "smoke")
 	var cfg testlab.Config
 	if *dockerLab {
+		t.Parallel()
 		cfg = startDockerLab(t)
 	} else {
 		var err error

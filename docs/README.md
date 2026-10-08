@@ -10,7 +10,7 @@ See [repository boundaries](features/github-integration.md#github-app-and-reposi
 - [Features](features/README.md): capabilities, expected behavior, constraints, and open design decisions.
 - [Roadmap](roadmap.md): current capability status, delivery milestones, and their dependencies.
 - [Development](development.md): tool installation, repository layout, and Make commands.
-- [Testing](testing.md): local and CI environments and integration acceptance scenarios.
+- [Testing](testing.md): testing methodology, required technologies, and local/CI lab configuration.
 
 Keep behavior and design discussion in the relevant feature article.
 Update roadmap status as capabilities become usable, linking implementation or test evidence.
