@@ -1,0 +1,38 @@
+service {
+    dhcp-server {
+        shared-network-name INVALID {
+            subnet 192.0.2.0/24 {
+                subnet-id 1
+                range 0 {
+                    start 192.0.2.100
+                    stop 192.0.2.10
+                }
+            }
+        }
+    }
+    ssh {
+        disable-password-authentication
+        port 22
+    }
+}
+system {
+    config-management {
+        commit-revisions 20
+        commit-confirm {
+            action reload
+        }
+    }
+    host-name ubq-test-router
+    login {
+        user ubqtest {
+            authentication {
+                public-keys smoke {
+                    key "{{SSH_KEY}}"
+                    type ssh-ed25519
+                }
+            }
+        }
+    }
+}
+
+{{CONFIG_VERSION}}

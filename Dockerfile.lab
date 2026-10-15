@@ -1,0 +1,6 @@
+FROM golang:1.27.1-bookworm@sha256:69a7b9788769bec032d238959b61854e9ae87f57be9029ec04e9885fabf99195
+RUN apt-get update -qq && apt-get install -y --no-install-recommends xorriso squashfs-tools jq xz-utils && rm -rf /var/lib/apt/lists/*
+COPY integration/lab/baseline.env /usr/local/share/ubq-lab/baseline.env
+COPY scripts/prepare-vyos-lab.sh /usr/local/bin/prepare-vyos-lab
+WORKDIR /lab
+ENTRYPOINT ["bash", "/usr/local/bin/prepare-vyos-lab"]

@@ -1,0 +1,22 @@
+# Normalize new Go tooling and documentation without rewriting legacy files.
+*.go text eol=lf
+*.md text eol=lf
+/go.mod text eol=lf
+/go.sum text eol=lf
+/Makefile text eol=lf
+/.golangci.yml text eol=lf
+/.editorconfig text eol=lf
+/.gitattributes text eol=lf
+
+/Dockerfile.test text eol=lf
+/.dockerignore text eol=lf
+/.env.integration.example text eol=lf
+/integration/lab/*.tmpl text eol=lf
+
+/Dockerfile.lab text eol=lf
+/scripts/*.sh text eol=lf
+/.github/**/*.yml text eol=lf
+/integration/lab/baseline.env text eol=lf
+/scripts/*.cjs text eol=lf
+/integration/lab/*.vbash text eol=lf
+/integration/lab/*.boot text eol=lf

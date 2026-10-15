@@ -1,0 +1,32 @@
+name: Expire VyOS images
+
+on:
+  schedule:
+    - cron: '31 3 * * *'
+    - cron: '31 4 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+# Share the lock with publication to prevent deletion during main promotion.
+concurrency:
+  group: vyos-registry-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            await require('./scripts/cleanup-vyos-images.cjs')({
+              github, context, core,
+              pruneMain: context.eventName === 'workflow_dispatch' || context.payload.schedule === '31 4 * * 0',
+            });

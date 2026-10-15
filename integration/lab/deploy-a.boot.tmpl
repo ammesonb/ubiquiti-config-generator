@@ -1,0 +1,35 @@
+service {
+    ssh {
+        disable-password-authentication
+        port 22
+    }
+}
+system {
+    config-management {
+        commit-revisions 20
+        commit-confirm {
+            action reload
+        }
+    }
+    host-name ubq-test-router
+    static-host-mapping {
+        host-name retained.example {
+            inet 192.0.2.10
+        }
+        host-name removed.example {
+            inet 192.0.2.20
+        }
+    }
+    login {
+        user ubqtest {
+            authentication {
+                public-keys smoke {
+                    key "{{SSH_KEY}}"
+                    type ssh-ed25519
+                }
+            }
+        }
+    }
+}
+
+{{CONFIG_VERSION}}
