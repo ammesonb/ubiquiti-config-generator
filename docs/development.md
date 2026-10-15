@@ -57,7 +57,6 @@ See [testing](testing.md) for endpoint settings, Docker image preparation, and t
 - `cmd/ubiquiti-config-generator/`: Go executable entry point.
 - `docs/`: product features, delivery roadmap, and development guidance.
 - `bin/`: local build output, ignored by Git.
-- `internal/testlab/`: test-only SSH and endpoint helpers with ordinary tests.
 - `integration/`: opt-in router smoke and native deployment tests with disposable lab fixtures.
 - `ubiquiti_config_generator/`: existing Python application.
 - `sample_router_config/`: existing configuration examples.
