@@ -5,18 +5,14 @@ import (
 	"time"
 )
 
-// Dialer opens a deployment session on one configured device. Implementations
-// own authentication, host identity verification, and firmware-specific behavior.
-// Application code must not depend on the testlab package for device access.
+// Dialer opens an authenticated deployment session on one configured device.
 type Dialer interface {
 	Dial(ctx context.Context) (Session, error)
 }
 
 // Session owns a native configuration session and its uploaded files. Methods
-// are sequential; callers must exclude conflicting deployments on the same device.
-// Every operation must honor context cancellation, including connection setup.
-// Failures should wrap their cause in a StageError without exposing configuration
-// or device output in the error message.
+// are sequential, so callers must exclude conflicting deployments on the same device.
+// Methods return a StageError on failure.
 type Session interface {
 	// Upload transfers the complete artifact to a private temporary file.
 	Upload(ctx context.Context, artifact Artifact) (RemoteFile, error)
@@ -26,10 +22,9 @@ type Session interface {
 	Load(ctx context.Context, file RemoteFile) error
 
 	// CommitConfirmed applies the candidate and arms native timeout recovery.
-	// Nil requires native evidence that the commit succeeded, including checking
-	// for remaining candidate changes where exit status is unreliable.
-	// It never confirms or saves. An error can leave changes and a timer active;
-	// callers must inspect state rather than infer that nothing changed.
+	// Nil means the candidate was applied and timeout recovery is armed.
+	// It never confirms or saves. An error can leave changes and a timer active,
+	// so callers must inspect state rather than infer that nothing changed.
 	CommitConfirmed(ctx context.Context, timeout time.Duration) error
 
 	// ReadActive retrieves current configuration rather than the staged candidate.

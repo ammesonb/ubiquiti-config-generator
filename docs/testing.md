@@ -85,7 +85,7 @@ Docker test targets use an already prepared image; they do not download firmware
 The [Docker harness](../integration/docker_test.go) creates a uniquely named IPv6-enabled network and a privileged router container running `/sbin/init`.
 It mounts `/lib/modules` read-only and uses temporary filesystems for `/run` and `/run/lock`.
 SSH is published only on host loopback with a dynamically assigned port.
-A remote Docker engine cannot provide this local endpoint; provision it separately and use the external read-only mode instead.
+A remote Docker engine cannot provide this local endpoint, instead provision it separately and use the external read-only mode instead.
 
 Each router receives the [boot fixture](../integration/lab/config.boot.tmpl) before startup and a newly generated temporary SSH identity.
 The fixture enables key-only SSH, native commit history, and reload-based confirmed-commit recovery.

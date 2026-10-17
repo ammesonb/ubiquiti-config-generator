@@ -1,5 +1,5 @@
 // Package deployment defines the contracts for deploying complete native router
-// configurations. Device commands and transport details belong in device implementations.
+// configurations.
 package deployment
 
 import "time"
@@ -27,7 +27,7 @@ type Request struct {
 type RemoteFile string
 
 // Configuration is a native serialization of active settings. It may differ from
-// the uploaded artifact in ordering, whitespace, defaults, or generated metadata;
-// byte equality with the artifact alone is not a valid deployment check.
+// the uploaded artifact in ordering, whitespace, defaults, or generated metadata,
+// so byte equality with the artifact alone is not a valid deployment check.
 // Configuration can contain credentials and must not be logged.
 type Configuration []byte

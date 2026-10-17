@@ -14,10 +14,8 @@ const (
 	StageCleanup Stage = "cleanup"
 )
 
-// StageError attributes a failure without printing potentially sensitive device
-// diagnostics. Err is retained for errors.Is/errors.As and must not be logged
-// without examining it for configuration, credentials, or command output.
-// A stage error identifies where execution stopped, not the final device state.
+// StageError identifies the failed deployment operation. Its message omits Err
+// because the underlying device diagnostics can contain credentials or configuration.
 type StageError struct {
 	Stage Stage
 	Err   error
