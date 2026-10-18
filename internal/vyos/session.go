@@ -29,8 +29,21 @@ func (d Dialer) Dial(ctx context.Context) (deployment.Session, error) {
 	if err != nil {
 		return nil, stageError(deployment.StageConnect, err)
 	}
+	timeout := d.SSH.CommandTimeout
+	if timeout == 0 {
+		timeout = 30 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	// Until preparation succeeds, this connection belongs to Dial and can be discarded on cancellation.
+	// After the session is ready, unregister this failsafe to ensure we do NOT close the connection.
+	skipClose := context.AfterFunc(ctx, func() { _ = client.Close() })
 	s := newSession(client)
-	err = s.startConfigurationSession(ctx, client, d.SSH.CommandTimeout)
+	err = s.startConfigurationSession(ctx, client)
+	unregistered := skipClose()
+	if err == nil && (!unregistered || ctx.Err() != nil) {
+		err = stageError(deployment.StageAwaitReady, ctx.Err())
+	}
 	if err != nil {
 		_ = client.Close()
 		return nil, err
@@ -62,12 +75,7 @@ type session struct {
 //go:embed configuration_session.vbash
 var configurationSessionScript string
 
-func (s *session) startConfigurationSession(ctx context.Context, client *sshclient.Client, timeout time.Duration) (err error) {
-	if timeout == 0 {
-		timeout = 30 * time.Second
-	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
+func (s *session) startConfigurationSession(ctx context.Context, client *sshclient.Client) (err error) {
 	stage := deployment.StagePrepare
 	defer func() {
 		if ctx.Err() != nil {
@@ -75,8 +83,6 @@ func (s *session) startConfigurationSession(ctx context.Context, client *sshclie
 		}
 		err = stageError(stage, err)
 	}()
-	stop := context.AfterFunc(ctx, func() { _ = client.Close() })
-	defer stop()
 	shell, err := client.NewSession(ctx)
 	if err != nil {
 		return err
