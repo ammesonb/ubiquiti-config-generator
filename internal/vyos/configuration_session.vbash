@@ -1,0 +1,18 @@
+#!/bin/vbash
+directory=$1
+umask 077
+mkdir -- "$directory" || builtin exit 1
+
+cleanup() {
+    cli-shell-api inSession && cli-shell-api teardownSession
+    if [ -d "$directory" ]; then
+        rm -f -- "$directory"/*.boot
+        rmdir -- "$directory"
+    fi
+}
+
+trap cleanup EXIT
+source /opt/vyatta/etc/functions/script-template || builtin exit 1
+cli-shell-api inSession || builtin exit 1
+printf 'UBQ_READY:%s\n' "$$"
+cat >/dev/null

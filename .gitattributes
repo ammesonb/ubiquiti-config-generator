@@ -19,4 +19,5 @@
 /integration/lab/baseline.env text eol=lf
 /scripts/*.cjs text eol=lf
 /integration/lab/*.vbash text eol=lf
+/internal/vyos/*.vbash text eol=lf
 /integration/lab/*.boot text eol=lf

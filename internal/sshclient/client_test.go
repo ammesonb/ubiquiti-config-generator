@@ -1,6 +1,7 @@
 package sshclient_test
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
@@ -18,6 +19,42 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+func TestCallerManagedSession(t *testing.T) {
+	cfg, connections := server(t, func(channel ssh.Channel, _ string) {
+		_, _ = io.Copy(channel, channel)
+		exit(channel, 0)
+	})
+	client, err := sshclient.Dial(context.Background(), cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = client.Close() })
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	session, err := client.NewSession(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = session.Close() })
+	cancel()
+	var output bytes.Buffer
+	session.Stdin = strings.NewReader("caller-owned input")
+	session.Stdout = &output
+	if err := session.Run("echo-input"); err != nil {
+		t.Fatal(err)
+	}
+	if output.String() != "caller-owned input" {
+		t.Fatal("caller-managed session lost its streams")
+	}
+	if _, err := client.NewSession(ctx); !errors.Is(err, context.Canceled) {
+		t.Fatalf("already-canceled allocation did not preserve its error: %v", err)
+	}
+	result, err := client.Run(context.Background(), "echo-input", []byte("next command"))
+	if err != nil || string(result.Stdout) != "next command" || connections.Load() != 1 {
+		t.Fatal("caller-managed session did not share the reusable connection")
+	}
+}
+
 func signer(t *testing.T) ssh.Signer {
 	t.Helper()
 	_, key, err := ed25519.GenerateKey(rand.Reader)
@@ -31,7 +68,7 @@ func signer(t *testing.T) ssh.Signer {
 	return signer
 }
 
-// This server handles synthetic exec requests; it never invokes a local shell.
+// Exec requests are simulated so transport tests do not depend on a local shell.
 func server(t *testing.T, run func(ssh.Channel, string)) (sshclient.Config, *atomic.Int32) {
 	t.Helper()
 	key := signer(t)
@@ -82,17 +119,21 @@ func server(t *testing.T, run func(ssh.Channel, string)) (sshclient.Config, *ato
 					if err != nil {
 						return
 					}
-					for request := range reqs {
-						var command struct{ Value string }
-						if request.Type != "exec" || ssh.Unmarshal(request.Payload, &command) != nil {
-							_ = request.Reply(false, nil)
-							continue
+					workers.Add(1)
+					go func() {
+						defer workers.Done()
+						for request := range reqs {
+							var command struct{ Value string }
+							if request.Type != "exec" || ssh.Unmarshal(request.Payload, &command) != nil {
+								_ = request.Reply(false, nil)
+								continue
+							}
+							_ = request.Reply(true, nil)
+							run(channel, command.Value)
+							break
 						}
-						_ = request.Reply(true, nil)
-						run(channel, command.Value)
-						break
-					}
-					_ = channel.Close()
+						_ = channel.Close()
+					}()
 				}
 			}()
 		}
@@ -206,11 +247,14 @@ func TestDialRejectsMissingSettings(t *testing.T) {
 	}
 }
 
-func TestRunCancellationClosesConnection(t *testing.T) {
+func TestRunCancellationPreservesConnection(t *testing.T) {
 	started, release := make(chan struct{}), make(chan struct{})
-	cfg, _ := server(t, func(ssh.Channel, string) {
-		close(started)
-		<-release
+	cfg, _ := server(t, func(ch ssh.Channel, command string) {
+		if command == "stall" {
+			close(started)
+			<-release
+		}
+		exit(ch, 0)
 	})
 	t.Cleanup(func() { close(release) })
 	client, err := sshclient.Dial(context.Background(), cfg)
@@ -236,8 +280,8 @@ func TestRunCancellationClosesConnection(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("cancellation did not interrupt command execution")
 	}
-	if _, err := client.Run(context.Background(), "after-cancel", nil); err == nil {
-		t.Fatal("canceled connection remained usable")
+	if _, err := client.Run(context.Background(), "after-cancel", nil); err != nil {
+		t.Fatalf("command cancellation closed the connection: %v", err)
 	}
 }
 
@@ -277,9 +321,14 @@ func TestHandshakeTimeoutClosesSocket(t *testing.T) {
 	}
 }
 
-func TestCommandTimeoutClosesConnection(t *testing.T) {
+func TestCommandTimeoutPreservesConnection(t *testing.T) {
 	release := make(chan struct{})
-	cfg, _ := server(t, func(ssh.Channel, string) { <-release })
+	cfg, _ := server(t, func(ch ssh.Channel, command string) {
+		if command == "stall" {
+			<-release
+		}
+		exit(ch, 0)
+	})
 	t.Cleanup(func() { close(release) })
 	cfg.CommandTimeout = 100 * time.Millisecond
 	client, err := sshclient.Dial(context.Background(), cfg)
@@ -297,8 +346,8 @@ func TestCommandTimeoutClosesConnection(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("Run did not honor its command timeout independently of the connection timeout")
 	}
-	if _, err := client.Run(context.Background(), "after-timeout", nil); err == nil {
-		t.Fatal("timed-out connection remained usable")
+	if _, err := client.Run(context.Background(), "after-timeout", nil); err != nil {
+		t.Fatalf("command timeout closed the connection: %v", err)
 	}
 }
 
@@ -315,7 +364,6 @@ func TestExpiredContextDoesNotStartCommandOrCloseConnection(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = client.Close() })
-	// Dial's context governs connection setup, not the lifetime of the client.
 	stopDial()
 	canceled, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -331,5 +379,68 @@ func TestExpiredContextDoesNotStartCommandOrCloseConnection(t *testing.T) {
 	}
 	if commands.Load() != 1 {
 		t.Fatal("an already-expired context allowed a remote command to start")
+	}
+}
+
+func TestCanceledCommandDoesNotClosePersistentSession(t *testing.T) {
+	started, release := make(chan struct{}), make(chan struct{})
+	cfg, _ := server(t, func(ch ssh.Channel, command string) {
+		if command == "stall" {
+			close(started)
+			<-release
+		} else {
+			_, _ = io.Copy(ch, ch)
+		}
+		exit(ch, 0)
+	})
+	t.Cleanup(func() { close(release) })
+	client, err := sshclient.Dial(context.Background(), cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = client.Close() })
+	session, err := client.NewSession(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = session.Close() })
+	input, err := session.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+	session.Stdout = &output
+	if err := session.Start("persistent"); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { _, err := client.Run(ctx, "stall", nil); done <- err }()
+	select {
+	case <-started:
+	case <-time.After(3 * time.Second):
+		t.Fatal("command did not start alongside the persistent session")
+	}
+	cancel()
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("lost cancellation: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("command cancellation did not return")
+	}
+	if _, err := io.WriteString(input, "still alive"); err != nil {
+		t.Fatal(err)
+	}
+	if err := input.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := session.Wait(); err != nil {
+		t.Fatal(err)
+	}
+	if output.String() != "still alive" {
+		t.Fatal("persistent session lost its output")
 	}
 }
