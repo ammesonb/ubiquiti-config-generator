@@ -26,7 +26,7 @@ func TestLevelsAndColor(t *testing.T) {
 			}
 			var expected string
 			for _, message := range []string{"first", "second"} {
-				line := "2026-10-18T12:00:00Z " + tc.level + " " + message
+				line := "2026-10-18T12:00:00Z [" + tc.level + "] " + message
 				if enabled {
 					line = "\x1b[" + tc.code + "m" + line + "\x1b[0m"
 				}
