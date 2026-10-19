@@ -1,18 +1,18 @@
-// Command ubiquiti-config-generator is the entry point for the GitHub App.
 package main
 
 import (
-	"flag"
-	"fmt"
+	"context"
+	"os"
+	"os/signal"
+
+	"github.com/ammesonb/ubiquiti-config-generator/internal/cli"
+	"golang.org/x/term"
 )
 
-func main() {
-	flag.Usage = func() {
-		// Help output is best effort; there is no useful recovery for a failed write.
-		_, _ = fmt.Fprintln(flag.CommandLine.Output(), "Usage: ubiquiti-config-generator [flags]")
-		_, _ = fmt.Fprintln(flag.CommandLine.Output(), "Development scaffold; configuration deployment is not implemented yet.")
-		flag.PrintDefaults()
-	}
-	flag.Parse()
-	flag.Usage()
+func main() { os.Exit(run()) }
+
+func run() int {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	return cli.Run(ctx, os.Args[1:], cli.Streams{Input: os.Stdin, Output: os.Stdout, Error: os.Stderr, Interactive: term.IsTerminal(int(os.Stdin.Fd()))})
 }

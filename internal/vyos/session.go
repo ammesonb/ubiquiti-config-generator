@@ -25,15 +25,12 @@ var _ deployment.Session = (*session)(nil)
 
 // Dial connects to VyOS and prepares a configuration session for staging changes.
 func (d Dialer) Dial(ctx context.Context) (deployment.Session, error) {
-	client, err := sshclient.Dial(ctx, d.SSH)
+	cfg := d.SSH.WithDefaults()
+	client, err := sshclient.Dial(ctx, cfg)
 	if err != nil {
 		return nil, stageError(deployment.StageConnect, err)
 	}
-	timeout := d.SSH.CommandTimeout
-	if timeout == 0 {
-		timeout = 30 * time.Second
-	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+	ctx, cancel := context.WithTimeout(ctx, cfg.CommandTimeout)
 	defer cancel()
 	// Until preparation succeeds, this connection belongs to Dial and can be discarded on cancellation.
 	// After the session is ready, unregister this failsafe to ensure we do NOT close the connection.

@@ -12,7 +12,8 @@ type Artifact struct {
 type Request struct {
 	Artifact Artifact
 
-	ConfirmTimeout time.Duration
+	ConfirmTimeout   time.Duration
+	SaveAfterConfirm bool
 }
 
 // RemoteFile is the handle passed from Upload to LoadCandidate.

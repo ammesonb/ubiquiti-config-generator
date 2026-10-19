@@ -7,6 +7,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/pem"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/ammesonb/ubiquiti-config-generator/internal/testlab"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/knownhosts"
 )
 
 func docker(args ...string) ([]byte, error) {
@@ -30,9 +32,11 @@ func docker(args ...string) ([]byte, error) {
 }
 
 type dockerRouter struct {
-	config  testlab.Config
-	keyData string
-	name    string
+	identityPath   string
+	knownHostsPath string
+	config         testlab.Config
+	keyData        string
+	name           string
 }
 
 func startDockerLab(t *testing.T) testlab.Config {
@@ -122,7 +126,20 @@ func provisionDockerLab(t *testing.T) dockerRouter {
 			if parseErr != nil {
 				t.Fatal("invalid SSH host public key in lab container")
 			}
-			return dockerRouter{keyData: keyData, name: name, config: testlab.Config{
+			credentials := t.TempDir()
+			identityPath := filepath.Join(credentials, "identity")
+			knownHostsPath := filepath.Join(credentials, "known_hosts")
+			block, err := ssh.MarshalPrivateKey(private, "disposable lab")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(identityPath, pem.EncodeToMemory(block), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(knownHostsPath, []byte(knownhosts.Line([]string{address}, hostKey)+"\n"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			return dockerRouter{identityPath: identityPath, knownHostsPath: knownHostsPath, keyData: keyData, name: name, config: testlab.Config{
 				Address: address, User: "ubqtest", Auth: ssh.PublicKeys(signer),
 				HostKey: ssh.FixedHostKey(hostKey), HostKeyAlgorithms: []string{hostKey.Type()}, ExpectedHost: "ubq-test-router", Timeout: 2 * time.Minute,
 			}}

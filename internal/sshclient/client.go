@@ -22,6 +22,17 @@ type Config struct {
 	CommandTimeout    time.Duration
 }
 
+// WithDefaults fills unset timeouts so connection setup and commands share the same policy.
+func (cfg Config) WithDefaults() Config {
+	if cfg.ConnectTimeout == 0 {
+		cfg.ConnectTimeout = 30 * time.Second
+	}
+	if cfg.CommandTimeout == 0 {
+		cfg.CommandTimeout = 30 * time.Second
+	}
+	return cfg
+}
+
 // Client is the shared SSH connection used for commands and persistent processes.
 type Client struct {
 	client         *ssh.Client
@@ -47,12 +58,7 @@ func Dial(ctx context.Context, cfg Config) (*Client, error) {
 	if cfg.ConnectTimeout < 0 || cfg.CommandTimeout < 0 {
 		return nil, errors.New("SSH timeouts must not be negative")
 	}
-	if cfg.ConnectTimeout == 0 {
-		cfg.ConnectTimeout = 30 * time.Second
-	}
-	if cfg.CommandTimeout == 0 {
-		cfg.CommandTimeout = 30 * time.Second
-	}
+	cfg = cfg.WithDefaults()
 	ctx, cancel := context.WithTimeout(ctx, cfg.ConnectTimeout)
 	defer cancel()
 	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", cfg.Address)

@@ -48,15 +48,15 @@ Feature: [Applying configuration](features/device-deployment.md#applying-configu
 Make a checked-in, complete native configuration deployable to one supported test device.
 This connects desired configuration to actual device state before adding generation or schema dependencies.
 A manually invoked Go command will provide local iteration without a push or GitHub event.
-The native protocol is exercised by the Docker-only deployment integration tests; the application deployment command remains to be implemented.
+The local `deploy` command and native protocol are exercised against disposable Docker routers.
 
 #### Required features
 
-- [ ] Transfer a complete native configuration file to the target device.
-- [ ] Load and commit through native device commands, replacing existing configuration including deleted settings.
-- [ ] Report upload, load, and commit failures and stop subsequent operations.
-- [ ] Support confirmation and timeout-based rollback, with an explicit save policy.
-- [x] Verify native replacement, deletion, failure handling, confirmation, saving, and rollback on a disposable lab target through the [deployment integration tests](testing.md#device-integration-tests); application-command coverage will follow its implementation.
+- [x] Transfer a complete native configuration file to the target device.
+- [x] Load and commit through native device commands, replacing existing configuration including deleted settings.
+- [x] Report upload, load, and commit failures and stop subsequent operations.
+- [x] Support confirmation and timeout-based rollback, with an explicit save policy.
+- [x] Verify native replacement, deletion, failure handling, confirmation, saving, and rollback on a disposable lab target through the [deployment integration tests](testing.md#device-integration-tests) and command tests.
 
 ### 2 Make deployments reviewable and observable
 

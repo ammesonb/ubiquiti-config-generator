@@ -14,7 +14,7 @@ LAB_IMAGE_SOURCE ?= https://github.com/ammesonb/ubiquiti-config-generator
 
 help:
 	@echo make build        - Build the application into bin/
-	@echo make run          - Display the scaffold usage
+	@echo make run          - Display command usage
 	@echo make fmt          - Apply Go formatting and organize imports
 	@echo make lint         - Check all Go code including opt-in integration tests
 	@echo make vet          - Run go vet including integration tests

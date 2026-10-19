@@ -13,8 +13,7 @@
 
 The existing Python implementation, examples, tests, and tooling remain available in this repository.
 A new Go implementation is being developed alongside them under `cmd/ubiquiti-config-generator/`.
-The Go executable currently displays usage only; device deployment and Go CI are subsequent work.
-A test harness provides ordinary tests and opt-in router smoke tests, with Docker execution awaiting verification.
+The Go command deploys a complete configuration file to a VyOS device, with a timed rollback unless you explicitly accept the changes.
 
 Install Go 1.27.1, GNU Make, and golangci-lint v2.13.2.
 See [development setup](docs/development.md) for installation and command details.
@@ -28,7 +27,27 @@ make run
 `make check` builds the Go command, runs static checks including formatting, and checks module metadata without rewriting source files.
 It runs the ordinary Go tests, but does not run router smoke tests or the legacy Python tests.
 Build output goes to the ignored `bin/` directory.
-SSH and dotenv dependencies support the test harness; the application entry point remains a scaffold.
+
+### Deploy a configuration file
+
+Run the command from an interactive terminal with an SSH private key and a known-hosts file that trusts the device:
+
+```text
+bin/ubiquiti-config-generator deploy router.boot --host router.example:22 --user vyos --identity /path/to/key --known-hosts /path/to/known_hosts --confirm-timeout 5m --save
+```
+
+The file replaces the complete configuration, so settings omitted from it are removed.
+Avoid other configuration changes on the same device until you have accepted the deployment or verified rollback.
+The identity file must contain an unencrypted private key, and the confirmation window must be a positive whole number of minutes.
+Once the command prompts you, check connectivity and the intended settings on the device, then enter `yes` to accept them.
+Acceptance disables automatic rollback, and `--save` also persists the configuration across restart.
+Without `--save`, accepted changes remain active but are not saved by this command.
+
+Leaving the prompt unanswered or declining leaves the device's rollback timer enabled.
+The command stops waiting shortly before the requested window ends, or when polling finds that confirmation is no longer pending.
+A disconnected device or an ended confirmation window does not establish whether rollback completed, so inspect device state before retrying.
+If the device offers multiple SSH host keys, use `--host-key-algorithms ssh-ed25519` (or the corresponding supported algorithm) to select the key trusted in your known-hosts file.
+Use `deploy --help` for connection and operation timeout options.
 
 See the [documentation index](docs/README.md), [feature articles](docs/features/README.md), [roadmap](docs/roadmap.md), and [planned testing strategy](docs/testing.md) for the Go implementation.
 The product remains a GitHub App installed on separate repositories that hold actual device settings and configuration files.

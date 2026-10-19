@@ -15,6 +15,7 @@ const (
 	StageLoad       Stage = "load"
 	StageCommit     Stage = "commit"
 	StageInspect    Stage = "inspect"
+	StageApproval   Stage = "await confirmation"
 	StageConfirm    Stage = "confirm"
 	StageSave       Stage = "save"
 	StageCleanup    Stage = "cleanup"
